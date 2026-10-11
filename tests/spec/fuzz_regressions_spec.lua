@@ -42,4 +42,19 @@ describe("fuzz regressions", function()
       return n
     end))
   end)
+
+  it("the export parser reads a planning keyword after a broken timestamp", function()
+    local E = require("org.export.element")
+    local hl = E.parse({
+      "*** x",
+      "CLOSED: [2023-06-05 Wed  SCHEDULED: <2028-12-08 Fri> DEADLINE: <2020-03-14 Sat 15:00>",
+    }).contents[1]
+    -- org-element-planning-parser: each keyword takes the timestamp after
+    -- it, or none
+    eq("<2028-12-08 Fri>", hl.scheduled.raw_value)
+    eq("<2020-03-14 Sat 15:00>", hl.deadline.raw_value)
+    -- a keyword found again replaces the first one
+    hl = E.parse({ "* x", "SCHEDULED: <2024-01-01 Mon> SCHEDULED: none" }).contents[1]
+    eq(nil, hl.scheduled)
+  end)
 end)

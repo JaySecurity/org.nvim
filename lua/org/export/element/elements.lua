@@ -151,15 +151,35 @@ function P:headline_meta(node, L, i, last)
   end
 end
 
+local PLANNING_KEYWORDS = { "CLOSED:", "DEADLINE:", "SCHEDULED:" }
+
+--- The timestamps of a planning line (org-element-planning-parser): each
+--- keyword in turn, anywhere on the line, takes the timestamp right after
+--- it, or none; a keyword found again replaces the first one.
 function P:planning_values(line)
   local out = {}
-  for kw, pos in line:gmatch("(%u+):[ \t]*()[<%[][^>%]]+[>%]]") do
-    local t = self:parse_timestamp(line, pos)
-    if t then
-      out[kw:lower()] = t
+  local pos = 1
+  while true do
+    local s, e
+    for _, kw in ipairs(PLANNING_KEYWORDS) do
+      local ks, ke = line:find(kw, pos, true)
+      if ks and (not s or ks < s) then
+        s, e = ks, ke
+      end
     end
+    if not s then
+      for k, v in pairs(out) do
+        if v == false then
+          out[k] = nil
+        end
+      end
+      return out
+    end
+    local key = line:sub(s, e - 1):lower()
+    local at = e + #line:match("^[ \t]*", e + 1) + 1
+    out[key] = self:parse_timestamp(line, at) or false
+    pos = e + 1
   end
-  return out
 end
 
 function P:planning(L, i, e)
