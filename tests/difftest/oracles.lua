@@ -8,6 +8,9 @@
 --                     #+TBLFM line, top down
 --   visibility        "=== <step>" + "v"/"h" per line at startup and after
 --                     each of three S-TABs
+--   commands          "=== <i> <step>" + the buffer after each step of a
+--                     seeded sequence of editing commands
+--                     (tests/difftest/commands.lua)
 --
 -- Run them inside M.frozen(): Emacs' "now" and time zone.
 
@@ -16,7 +19,7 @@ local P = require("tests.emacs_parity")
 local M = {}
 
 M.EXPORT = { "export-html", "export-ascii", "export-md", "export-latex", "export-org" }
-M.ALL = vim.list_extend(vim.deepcopy(M.EXPORT), { "agenda", "table", "visibility" })
+M.ALL = vim.list_extend(vim.deepcopy(M.EXPORT), { "agenda", "table", "visibility", "commands" })
 
 --- The NORMALISE area (tests/emacs_parity.lua) whose rules apply to an
 --- oracle's output.
@@ -193,6 +196,19 @@ local function visibility(file)
   return table.concat(out, "\n") .. "\n"
 end
 
+--- What a request to Emacs carries besides the oracle, input and output
+--- files: the plan of the commands oracle.
+---@param oracle string
+---@param file string
+---@return string[]
+function M.extra(oracle, file)
+  if oracle == "commands" then
+    local commands = require("tests.difftest.commands")
+    return { commands.encode(commands.plan_of(file)) }
+  end
+  return {}
+end
+
 --- What `oracle` prints for `file` ("!error <message>" if it raised).
 ---@param oracle string
 ---@param file string
@@ -215,6 +231,8 @@ function M.run(oracle, file)
         return tables(file)
       elseif oracle == "visibility" then
         return visibility(file)
+      elseif oracle == "commands" then
+        return require("tests.difftest.commands").run(file)
       end
       error("unknown oracle " .. oracle)
     end)

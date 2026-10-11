@@ -84,14 +84,20 @@ Then regenerate the fixtures and run
 `difftest.el` is the Emacs side of `make difftest` (CONTRIBUTING.md,
 "Differential testing"): instead of writing fixtures, it keeps running and
 answers requests from `tests/difftest/emacs.lua` on stdin, one per line
-(`<oracle> TAB <input.org> TAB <output file>`), with `common.el`'s fixed
+(`<oracle> TAB <input.org> TAB <output file>`, plus `TAB <plan>` for the
+`commands` oracle), with `common.el`'s fixed
 "now", zone and locale. The org.nvim side of each oracle is in
 `tests/difftest/oracles.lua`; keep the two in step. An oracle that
 signals an error writes an `!error <message>` line: in place of the whole
 output for an export, of one view for the agenda or one S-TAB step for
 visibility (S-TAB is `org-cycle-global`, as `org-shifttab` would move
 between table fields in a table at the top of the file), and after the
-table, put back unchanged, for a table whose formulas fail.
+table, put back unchanged, for a table whose formulas fail. The
+`commands` oracle replays its plan (`tests/difftest/commands.lua`) on the
+visited file with everything unfolded, calling each command with its own
+`this-command` and running `post-command-hook` after it (log notes wait
+for it); a step that signals an error without changing the buffer has
+declined, one that changed it first adds an `!error` line to its step.
 `common.el` deletes its temporary `org-id-locations-file` when Emacs
 exits.
 

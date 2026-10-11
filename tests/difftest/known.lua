@@ -370,4 +370,60 @@ return {
       end)
     end,
   },
+  {
+    oracle = "commands",
+    reason = [[org-todo on a COMMENT headline with tags: Emacs takes COMMENT
+      out, changes the keyword, aligns the tags and puts COMMENT back
+      without aligning again, so its tags end 8 columns past
+      org-tags-column; org.nvim aligns them at tags_column. An Emacs bug,
+      not copied.]],
+    either = "%*+ %u+ [^\n]-COMMENT [^\n]-%s:[^%s]+:",
+    same = function(s)
+      return each_line(s, function(l)
+        return (l:gsub("^(%*+ .-COMMENT .-)%s+(:[^%s]+:)$", "%1 %2"))
+      end)
+    end,
+  },
+  {
+    oracle = "commands",
+    reason = [[A timestamp with the wrong weekday (<2026-10-12 Fri>) on a
+      planning line or next to a timestamp org.nvim changes: org.nvim
+      writes it again with the right weekday, Emacs leaves its text
+      alone.]],
+    either = "%d%d%d%d%-%d%d%-%d%d %a%a%a",
+    same = function(s)
+      return (s:gsub("(%d%d%d%d%-%d%d%-%d%d) %a%a%a", "%1"))
+    end,
+  },
+  {
+    oracle = "commands",
+    reason = [[Archiving the Archive sibling itself (C-c C-x A on "** Archive
+      :ARCHIVE:"): Emacs finds that headline as its own Archive sibling,
+      cuts it and pastes it one level deeper, under the previous sibling;
+      org.nvim leaves it alone.]],
+    emacs = "Archive%s+:ARCHIVE:\n:PROPERTIES:\n:ARCHIVE_TIME:",
+  },
+  {
+    oracle = "commands",
+    reason = [[Sorting the children of a headline whose text holds an inline
+      task: Emacs (org-sort-entries) takes the inline task for the first
+      child and sorts the entries of its level, so nothing moves; org.nvim
+      sorts the children.]],
+    input = function(lines)
+      for _, l in ipairs(lines) do
+        if l:match(INLINETASK) then
+          return true
+        end
+      end
+      return false
+    end,
+    either = "^%*+ ",
+    same = function(s)
+      local t = vim.split(s, "\n", { plain = true })
+      table.sort(t)
+      return table.concat(t, "\n")
+    end,
+    broad = true,
+    moves = true,
+  },
 }

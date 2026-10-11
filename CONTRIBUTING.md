@@ -324,6 +324,21 @@ runs each through Emacs Org 9.8.10 and org.nvim, and compares what a set of
 | `agenda` | week and day agendas, the TODO list, a tags and a tags-todo match over the file |
 | `table` | the file after recalculating every table that has a `#+TBLFM` line |
 | `visibility` | the visible lines at startup and after each of three S-TABs |
+| `commands` | the buffer after each step of one to three editing commands, picked from the seed |
+
+The `commands` oracle (`tests/difftest/commands.lua`) replays editing
+commands on the document: promoting, demoting and moving subtrees, `C-c
+C-t` (also with `org-log-done` set to `time`), priority up and down,
+clocking in and out (at the frozen "now"), toggling a checkbox (statistics
+cookies updated), `S-up` / `S-down` on a timestamp's day, sorting entries
+alphabetically, `C-RET`, archiving to the Archive sibling and refiling to
+another headline of the file. Each step targets the k-th headline,
+checkbox item or timestamp of the buffer as it is at that step, so a
+shrunk document still replays the same steps; Emacs runs the interactive
+commands (`org-promote-subtree`, `org-todo`, `org-clock-in`, ...) and
+org.nvim the matching actions of `lua/org/actions.lua`, both with the
+document unfolded and inline tasks on. The report shows the steps of a
+failure next to its replay command.
 
 It needs Emacs and Org 9.8.10 (see `scripts/emacs-parity/README.md`):
 
@@ -349,7 +364,7 @@ it must be empty or hold the `.difftest-out` file of an earlier run.
 Emacs and org.nvim work in parallel (`DIFFTEST_JOBS` Emacs workers,
 default one per CPU up to 8); a request Emacs doesn't answer in 20
 seconds counts as an Emacs error, like any input Emacs raises an error on.
-An error in one agenda view, S-TAB step or table leaves only that part
+An error in one agenda view, S-TAB step, table or command step leaves only that part
 out of the comparison; an error in an export leaves out the whole output.
 When Emacs errors or times out on more than a tenth of the comparisons
 (and more than two), or on every comparison of an oracle, the Emacs side

@@ -85,6 +85,63 @@ describe("difftest", function()
     end
   end)
 
+  it("plans editing commands from the seed and finds their targets", function()
+    local commands = require("tests.difftest.commands")
+    eq(commands.plan(5), commands.plan(5))
+    eq(5, commands.seed_of("/x/d5.org"))
+    eq(0, commands.seed_of("/x/doc.org"))
+    eq({ commands.encode(commands.plan(5)) }, oracles.extra("commands", "/x/d5.org"))
+    eq({}, oracles.extra("agenda", "/x/d5.org"))
+    for _, step in ipairs(commands.plan(5)) do
+      ok(commands.BY_NAME[step.cmd], step.cmd)
+    end
+    local lines = {
+      "* A <2026-10-01 Thu>",
+      "- [ ] box",
+      "*************** inline",
+      "** B",
+      "* C",
+    }
+    eq({ { 1, 0 }, { 4, 0 }, { 5, 0 } }, commands.targets("heading", lines))
+    eq({ { 2, 0 } }, commands.targets("checkbox", lines))
+    eq({ { 1, 13 } }, commands.targets("timestamp", lines))
+    -- refile's destination: a headline outside the subtree
+    eq(5, commands.refile_dest(lines, 1, 1))
+    eq(5, commands.refile_dest(lines, 1, 2))
+    eq(1, commands.refile_dest(lines, 4, 1))
+  end)
+
+  it("replays the commands on the buffer, step by step", function()
+    local commands = require("tests.difftest.commands")
+    local saved = commands.plan_of
+    commands.plan_of = function()
+      return { { cmd = "todo", k = 1 }, { cmd = "demote-subtree", k = 2 }, { cmd = "toggle-checkbox", k = 1 } }
+    end
+    local file = scratch .. "/d1.org"
+    vim.fn.mkdir(scratch, "p")
+    vim.fn.writefile({ "* A [/]", "- [ ] box", "* B" }, file)
+    local okr, out = pcall(oracles.frozen, function()
+      return oracles.run("commands", file)
+    end)
+    commands.plan_of = saved
+    ok(okr, out)
+    eq({
+      "=== 1 todo 1",
+      "* TODO A [/]",
+      "- [ ] box",
+      "* B",
+      "=== 2 demote-subtree 2",
+      "* TODO A [/]",
+      "- [ ] box",
+      "** B",
+      "=== 3 toggle-checkbox 1",
+      "* TODO A [1/1]",
+      "- [X] box",
+      "** B",
+      "",
+    }, vim.split(out, "\n", { plain = true }))
+  end)
+
   it("applies NORMALISE and splits a difference into hunks", function()
     local res = compare.compare("export-html", '<a id="org1234abc">\nx\ny\n', '<a id="orgfedcba9">\nx\nz\n', {
       known = {},
