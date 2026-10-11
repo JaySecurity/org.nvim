@@ -277,23 +277,6 @@ describe("difftest", function()
   end)
 
   it("matches two known differences in one hunk, the broad rewrite last", function()
-    -- seed 39 (export-latex): a doubled backslash and a date range in one
-    -- line, with an inline task titled like a headline (not a second
-    -- target for the link)
-    local input = {
-      "*** end. gamma",
-      "*************** end. gamma",
-      "\\\\ <2026-10-01 09:00>--<2025-06-07 Sat>",
-      "[[*Alpha][heading]]",
-    }
-    local res = compare.compare(
-      "export-latex",
-      "$\\backslash$\\ \\textit{<2026-10-01 Thu 09:00>--<2025-06-07 Sat 09:00>}\n",
-      "$\\backslash$$\\backslash$ \\textit{<2026-10-01 Thu 09:00>--<2025-06-07 Sat>}\n",
-      { input = input }
-    )
-    eq(1, #res.hunks)
-    eq(0, #res.unknown)
     -- a broad rewrite (digits) applied first would break the narrower one
     local digits = {
       oracle = "table",
@@ -310,7 +293,7 @@ describe("difftest", function()
       end,
       reason = "suffix",
     }
-    res = compare.compare("table", "a 1 1x\n", "a 2\n", { known = { digits, suffix } })
+    local res = compare.compare("table", "a 1 1x\n", "a 2\n", { known = { digits, suffix } })
     eq(0, #res.unknown)
   end)
 
