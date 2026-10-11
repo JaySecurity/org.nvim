@@ -685,6 +685,41 @@ local function tr_ranges(line)
   return out
 end
 
+--- Does an org-tr-regexp-both match start at column `p` of `line`
+--- (`<date .*?>--<date .*?>`, either bracket)?
+local function tr_at(line, p)
+  if not line:find("^[<%[]%d%d%d%d%-%d%d%-%d%d[ >%]]", p) then
+    return false
+  end
+  local spaced = line:sub(p + 11, p + 11) == " "
+  local init = p + 11
+  while true do
+    local s, e = line:find("[>%]]%-%-?%-?[<%[]%d%d%d%d%-%d%d%-%d%d", init)
+    if not s then
+      return false
+    end
+    if s == p + 11 or spaced then
+      local nxt = line:sub(e + 1, e + 1)
+      if nxt == ">" or nxt == "]" or (nxt == " " and line:find("[>%]]", e + 2)) then
+        return true
+      end
+    end
+    init = s + 1
+  end
+end
+
+--- org-at-date-range-p with INACTIVE-OK, for the timestamp at column
+--- `col`: a date range starts at it or at the `<` or `[` before it on the
+--- line ("<a> x <b>--<c>" is one range for Emacs, from a to c). Such a
+--- timestamp is no plain timestamp entry (org-agenda-get-timestamps).
+local function at_date_range(line, col)
+  if tr_at(line, col) then
+    return true
+  end
+  local q = line:sub(1, col - 1):match(".*()[<%[]")
+  return q ~= nil and tr_at(line, q)
+end
+
 --- The DOTIME org-agenda-get-scheduled and org-agenda-get-deadlines pass
 --- for the SCHEDULED or DEADLINE (`key`) of `hl`: its value from the first
 --- " H:MM" on, or false when it has none (the headline is searched); nil
@@ -754,6 +789,28 @@ local function block_sources(hl)
       end
     end
   end
+  -- ranges org-tr-regexp finds in the text where the timestamps parse
+  -- as two ("<a 06:00> x>--<b>"), as on the planning line
+  local seen_line = {}
+  for _, ts in ipairs(hl.timestamps) do
+    local text = not seen_line[ts.line] and hl.file.lines[ts.line]
+    seen_line[ts.line] = true
+    if text and text:find(">-", 1, true) then
+      for _, r in ipairs(tr_ranges(text)) do
+        local covered = false
+        for _, o in ipairs(out) do
+          if o.line == ts.line and o.date.range_end and o.start_col and o.start_col < r.mid and o.end_col >= r.mid then
+            covered = true
+            break
+          end
+        end
+        if not covered then
+          r.line = ts.line
+          out[#out + 1] = r
+        end
+      end
+    end
+  end
   table.sort(out, function(a, b)
     if a.line ~= b.line then
       return a.line < b.line
@@ -773,6 +830,7 @@ local function block_sources(hl)
           start = date.from_days(date.days_from_civil(tonumber(y), tonumber(m), tonumber(d)))
         end
         t.date = start:clone({ range_end = t.date.range_end })
+        t.raw_col = s
       end
       floor[t.line] = (t.end_col or t.start_col) + 1
     end
@@ -1236,7 +1294,7 @@ function M.agenda(files, from, to, opts)
             -- 6:00 without an end
             local which = (d == a and d == b) and "both" or (d == a and "start") or (d == b and "end") or nil
             local raw = which and t.start_col and t.end_col and hl.file.lines[t.line]
-            local dotime = raw and range_dotime(raw:sub(t.start_col, t.end_col), which)
+            local dotime = raw and range_dotime(raw:sub(t.raw_col or t.start_col, t.end_col), which)
             if dotime then
               set_time(item, nil, block_acfg, nil, nil, dotime)
             elseif which == "both" then
@@ -1252,7 +1310,12 @@ function M.agenda(files, from, to, opts)
             end
             add(d, item)
           end
-        elseif not ts.range_end and types.timestamp and not before_first then
+        elseif
+          not ts.range_end
+          and types.timestamp
+          and not before_first
+          and not (t.start_col and at_date_range(hl.file.lines[t.line] or "", t.start_col))
+        then
           -- org-agenda-get-timestamps
           local show_days = {}
           if repeating(ts) then

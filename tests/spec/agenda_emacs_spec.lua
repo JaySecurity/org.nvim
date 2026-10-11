@@ -700,4 +700,17 @@ describe("agenda times of date ranges, as Emacs reads them (difftest seeds 765, 
     local i = { "* i", "DEADLINE: <2026-10-03 Sat>--<2026-10-03 Sat 9:15-10:00>" }
     eq({ "deadline 9:15-10:00", "range 9:15-10:00" }, entries(i, A + 5))
   end)
+
+  -- org-tr-regexp's start runs over a `>`: these are one range for Emacs,
+  -- and their timestamps no plain timestamp entries (org-at-date-range-p)
+  it("a range whose start runs over a > is one entry, at the start's time", function()
+    local y = { "* y", "SCHEDULED: <2026-10-02 Fri 06:00> DEADLINE: <2026-09-28 Mon>--<2026-10-02 Fri 09:45>" }
+    eq({ "range 6:00", "scheduled 6:00" }, entries(y, A + 4))
+    eq({ "deadline 9:45" }, entries(y, A))
+    eq({ "range 6:00" }, entries({ "* z", "<2026-10-02 06:00> Mon>--<2026-10-02 09:45>" }, A + 4))
+    eq(
+      { "range 6:00" },
+      entries({ "* x", "<2026-10-02 Fri 06:00> text <2026-09-30 Wed>--<2026-10-02 Fri 09:45>" }, A + 4)
+    )
+  end)
 end)
