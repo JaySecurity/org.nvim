@@ -109,6 +109,15 @@ M.extra = {
     end,
     args_only = true,
   },
+  migrate_config = {
+    "org.migrate",
+    "command",
+    desc = "Convert an nvim-orgmode setup: :Org migrate_config [file]",
+    complete = function(arglead)
+      return vim.fn.getcompletion(arglead, "file")
+    end,
+    args_only = true,
+  },
   lint = { "org.lint", "command", desc = "Check the buffer for syntax problems: :Org lint [checker ...]" },
   feed_update = { "org.feed", "update_command", desc = "Update a feed: :Org feed_update [name]" },
   feed_goto_inbox = { "org.feed", "goto_inbox", desc = "Go to a feed's inbox: :Org feed_goto_inbox [name]" },
