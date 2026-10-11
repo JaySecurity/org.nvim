@@ -185,7 +185,7 @@ function M.entry_text(hl, max, indent)
   local in_drawer = false
   for _, l in ipairs(src) do
     if in_drawer then
-      if l:match("^%s*:END:") then
+      if l:upper():match("^%s*:END:") then
         in_drawer = false
       end
     elseif l:match("^%s*:[%w_%-]+:%s*$") then

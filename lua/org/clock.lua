@@ -401,7 +401,7 @@ end
 --- (org-remove-empty-drawer-at).
 local function remove_empty_drawer_around(bufnr, lnum)
   local prev = vim.api.nvim_buf_get_lines(bufnr, lnum - 2, lnum, false)
-  if prev[1] and prev[2] and prev[1]:match("^%s*:[%w_%-]+:%s*$") and prev[2]:match("^%s*:END:%s*$") then
+  if prev[1] and prev[2] and prev[1]:match("^%s*:[%w_%-]+:%s*$") and prev[2]:upper():match("^%s*:END:%s*$") then
     vim.api.nvim_buf_set_lines(bufnr, lnum - 2, lnum, false, {})
   end
 end

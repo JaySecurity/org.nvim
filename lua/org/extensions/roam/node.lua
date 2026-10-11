@@ -761,15 +761,13 @@ function M.promote_subtree_lines(lines)
     planning[#planning + 1] = vim.trim(rest[i])
     i = i + 1
   end
-  if rest[i] and rest[i]:match("^%s*:PROPERTIES:%s*$") then
-    while rest[i] do
-      out[#out + 1] = vim.trim(rest[i])
-      local fin = rest[i]:match("^%s*:END:%s*$")
-      i = i + 1
-      if fin then
-        break
-      end
+  -- the drawer as the parser reads it (:properties: in any letter case)
+  local drawer = rest[i] and parser.parse_property_drawer(rest, i, #rest)
+  if drawer then
+    for k = i, drawer.properties_range[2] do
+      out[#out + 1] = vim.trim(rest[k])
     end
+    i = drawer.properties_range[2] + 1
   end
   out[#out + 1] = "#+title: " .. title
   if #tags > 0 then
