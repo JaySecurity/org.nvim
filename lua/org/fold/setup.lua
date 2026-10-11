@@ -162,6 +162,10 @@ function M.apply_startup(bufnr, first)
     else
       record_states(bufnr, states)
     end
+    if mode == "overview" then
+      shared.emacs_outline_fixup("overview")
+      refresh_ellipsis()
+    end
     hide_archived_all()
     return
   end

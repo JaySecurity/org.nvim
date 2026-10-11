@@ -786,8 +786,11 @@ hidden (org-cycle-show-empty-lines).
                 were (blocks fold only with `hideblocks`, drawers per
                 `hidedrawers`). SHOW ALL shows every headline and block,
                 a folded drawer stays folded. CONTENTS also shows inline
-                tasks, folded. With a count N, show the headlines with up
-                to N stars.
+                tasks, folded, and END lines without their task. The text
+                before the first headline stays visible, except its
+                drawers, which fold; inline tasks there count as headings,
+                as in Emacs (the text after them hides). With a count N,
+                show the headlines with up to N stars.
 <C-c><Tab>      Fold the subtree, then show the children of the entry (a
                 count: that many levels) without its text
                 (org-ctrl-c-tab).

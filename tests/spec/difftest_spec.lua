@@ -313,18 +313,6 @@ describe("difftest", function()
     eq(0, #compare.compare("table", e, o, { known = { moved } }).unknown)
   end)
 
-  it("knows the visibility of blank lines inside a list before the first headline", function()
-    -- seed 74
-    local e = { "=== S1", "v +", "v  + plan", "v ", "v  +", "=== S2" }
-    local o = { "=== S1", "v +", "h  + plan", "h ", "h  +", "=== S2" }
-    local res = compare.compare("visibility", table.concat(e, "\n") .. "\n", table.concat(o, "\n") .. "\n")
-    eq(1, #res.hunks)
-    eq(0, #res.unknown)
-    -- a blank line alone isn't
-    res = compare.compare("visibility", "=== S1\nv x\nv \n", "=== S1\nv x\nh \n")
-    eq(1, #res.unknown)
-  end)
-
   it("keeps footnote definitions in subtrees that aren't exported out of the count", function()
     -- seed 1376: the only [fn:named] was under a :noexport: headline
     local doc = gen.doc(1376)

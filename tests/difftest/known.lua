@@ -66,49 +66,10 @@ end
 ---@type difftest.Known[]
 return {
   {
-    oracle = "visibility",
-    reason = [[The END line of an inline task ("*************** END") is hidden
-      by Emacs in OVERVIEW and CONTENTS (S-TAB), shown by org.nvim.]],
-    emacs = "h %*+ [Ee][Nn][Dd]",
-    same = function(s)
-      return each_line(s, function(l)
-        return (l:gsub("^[hv] (%*%*%*%*%*%*%*%*%*%*%*%*%*%*%*+ [Ee][Nn][Dd])", "? %1"))
-      end)
-    end,
-  },
-  {
-    oracle = "visibility",
-    reason = [[A drawer before the first headline (:NOTES: ... :END:) is
-      folded by Emacs on S-TAB, left open by org.nvim.]],
-    input = "^:%u+:$",
-    emacs = "h :END:",
-  },
-  {
     oracle = "agenda",
     reason = [[A headline that is only tags ("* :work:"): Emacs shows the tags
       as the title too, org.nvim an empty title.]],
     emacs = "%s(:[%w_@:]+:)%s+%1",
-  },
-  {
-    oracle = "visibility",
-    reason = [[Indented lines (sub-items, item bodies, blank lines between
-      them) of a plain list before the first headline: org.nvim folds them
-      on S-TAB, Emacs leaves them visible.]],
-    emacs = "v  ",
-    same = function(s)
-      -- an indented line, or a blank one before an indented line (a
-      -- blank line inside the list)
-      local lines = vim.split(s, "\n", { plain = true })
-      for i = #lines, 1, -1 do
-        local l = lines[i]
-        if l:match("^[hv]  +") then
-          lines[i] = "?" .. l:sub(2)
-        elseif l:match("^[hv] $") and (lines[i + 1] or ""):match("^%?  +") then
-          lines[i] = "? "
-        end
-      end
-      return table.concat(lines, "\n")
-    end,
   },
   {
     oracle = "agenda",
