@@ -50,6 +50,16 @@ function M.split_cells(line)
   return cells
 end
 
+--- The fields a row line has as written, before any alignment: one per
+--- `|` but the last, plus the text after the last `|` when it isn't
+--- blank. "|" has none, "| a |" and "| a" one. Emacs' org-table-get-field
+--- finds no field past these (a field formula aimed there writes nothing).
+function M.field_count(line)
+  local _, pipes = line:gsub("|", "")
+  local tail = line:match("|([^|]*)$") or ""
+  return math.max(pipes - 1, 0) + (tail:match("%S") and 1 or 0)
+end
+
 --- Byte positions (1-based) of every `|` in a line.
 local function pipe_positions(line)
   local out = {}
@@ -74,7 +84,7 @@ function M.parse(lines)
       t.rows[#t.rows + 1] = { hline = true }
     else
       local cells = M.split_cells(line)
-      t.rows[#t.rows + 1] = { cells = cells }
+      t.rows[#t.rows + 1] = { cells = cells, nfields = M.field_count(line) }
       t.ncols = math.max(t.ncols, #cells)
     end
   end
