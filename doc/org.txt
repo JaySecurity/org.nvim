@@ -30,16 +30,17 @@ CONTENTS                                                        *org-contents*
   21. Export .................................... |org-export|
   22. Timers and notifications .................. |org-timers|
   23. Encryption (org-crypt) .................... |org-crypt|
-  24. Completion ................................ |org-completion|
-  25. Appearance and highlights ................. |org-appearance|
-  26. Configuration reference ................... |org-config|
-  27. Keymaps reference ......................... |org-keymaps|
-  28. Commands .................................. |org-commands|
-  29. Lua API ................................... |org-api|
-  30. In-buffer settings ........................ |org-in-buffer-settings|
-  31. Linting ................................... |org-lint|
-  32. Differences from Emacs .................... |org-differences|
-  33. Extensions ................................ |org-extensions|
+  24. Phone and sync ............................ |org-sync|
+  25. Completion ................................ |org-completion|
+  26. Appearance and highlights ................. |org-appearance|
+  27. Configuration reference ................... |org-config|
+  28. Keymaps reference ......................... |org-keymaps|
+  29. Commands .................................. |org-commands|
+  30. Lua API ................................... |org-api|
+  31. In-buffer settings ........................ |org-in-buffer-settings|
+  32. Linting ................................... |org-lint|
+  33. Differences from Emacs .................... |org-differences|
+  34. Extensions ................................ |org-extensions|
 
 ==============================================================================
 1. INTRODUCTION                                             *org-introduction*
@@ -6040,7 +6041,111 @@ Config (`crypt`): `tag_matcher` "crypt" (a |org-match-syntax| expression),
 "ask", `gpg_program` "gpg".
 
 ==============================================================================
-24. COMPLETION                                                *org-completion*
+24. PHONE AND SYNC                                                  *org-sync*
+
+Org files are plain text, so the usual way to have them on a phone is to
+keep one directory of notes in sync between the computer and the phone
+and to open the same files in Neovim and in an Org app there. org.nvim
+needs no account and runs no sync itself: anything that copies files will
+do. This chapter covers the apps, the ways to sync, conflicts, and what
+Neovim does when a synced file changes under an open buffer
+(|org-reload|).
+
+Apps                                                           *org-sync-apps*
+
+- Orgzly Revived (Android) reads and writes Org files. Its notebooks live
+  in "repositories": a directory on the phone (which a file sync tool
+  such as Syncthing keeps in step with the computer), WebDAV, Dropbox, or
+  git. Each notebook is one `.org` file of the directory.
+- beorg (iOS) edits Org files kept in iCloud Drive, Dropbox or on a WebDAV
+  server; point it at the folder your computer syncs too.
+- Orgro (iOS, Android) opens Org files from the phone's storage or a
+  cloud provider's app, mainly to read them, with a few small edits.
+- MobileOrg-style apps (the original MobileOrg for iOS and Android) don't
+  edit your files directly: they sync a staging directory with the Org
+  Mobile protocol, which org.nvim speaks. `:Org mobile_push` copies the
+  files and agenda views there, `:Org mobile_pull` takes back the entries
+  captured and the edits made on the phone (|org-mobile|). Use this only
+  with such an app; the others need no push or pull.
+
+Whatever the app, set it up with the same TODO keywords as
+`todo_keywords` (or the `#+TODO:` lines of your files), so that a state
+set on the phone means the same on the computer.
+
+Ways to sync                                                *org-sync-methods*
+
+- Syncthing (or another file sync tool) between the computer and the
+  phone: changes reach the other side within seconds when both are
+  online, with no server in between. On Android, give Orgzly Revived a
+  directory repository inside the synced folder.
+- A cloud folder (iCloud Drive, Dropbox, a WebDAV server such as
+  Nextcloud): the computer's client keeps a local copy that Neovim edits
+  as usual; the phone app syncs with the same folder.
+- git: commit and pull on both sides (on the phone with Orgzly Revived's
+  git repositories, or a git client app). The `merge` extension merges
+  Org files entry by entry, so edits to different entries of the same
+  file don't conflict (|org-extensions-merge|).
+
+Set `agenda_files` and `org_directory` to the synced directory. Capture
+into a file the phone also opens (`default_notes_file` or a template's
+`target`) and what you capture on the computer shows up on the phone at
+the next sync.
+
+Conflicts                                                 *org-sync-conflicts*
+
+When the same file changes on both sides before they sync, a file sync
+tool keeps both versions: Syncthing writes the other one next to the
+file as `notes.sync-conflict-<date>-<time>-<device>.org`, Dropbox as
+`notes (<name>'s conflicted copy <date>).org`. Both end in `.org`, so a
+directory or `*.org` glob in `agenda_files` picks the copy up and its
+entries show twice in the agenda: a sign to merge the two (|:diffsplit|
+helps) and delete the copy. git reports a conflict on pull instead, with
+the `merge` extension only where the same entry changed on both sides.
+
+To have fewer conflicts: save before you put the computer away (the phone
+only sees what is on disk), let a sync finish before editing on the other
+side, and keep a file you edit often in both places, like an inbox, short
+(refile from it, |org-refile|).
+
+Changed on disk (reload_on_change)                                *org-reload*
+
+When another program changes the file of an open org buffer (a sync
+tool, a git pull, another editor), the buffer follows, as long as you
+haven't changed it:
+
+- An unmodified buffer is reloaded at once, without a prompt. The cursor,
+  the view and the closed folds stay where they were (a fold moves with
+  its headline when lines are added above it), and |u| brings back the
+  text from before the reload.
+- A modified buffer is never touched: a warning says that the file
+  changed and that your changes are kept. |:edit!| loads the file (dropping
+  your changes); |:w| asks before it writes over the other program's
+  version. Merge by hand when you want both: |:w| the buffer to another
+  name, |:edit!|, then |:diffsplit| the two.
+- Saving the buffer yourself (|:w|, or org's own saves after refile,
+  archive, capture, agenda edits) never causes a reload.
+
+The directory of each org buffer's file is watched (libuv file system
+events, on Linux, macOS and Windows), which also sees tools that save by
+writing a temporary file and renaming it over the original, as Syncthing
+and many editors do. Events are debounced (200 ms), and a buffer in
+Insert mode is reloaded once you leave it. At most 64 directories are
+watched; past that, and for every other buffer, Neovim's own 'autoread'
+still reloads unmodified files when Neovim gets focus or on |:checktime|.
+
+Neovim 0.13 and later watch the files of 'autoread' buffers themselves.
+There Neovim reloads an unmodified buffer too (org still puts the folds
+back), and for a modified one shows its own W12 prompt (|W12|) instead of
+org's warning; answering "OK" there keeps your changes, and a later |:w|
+then writes over the file without asking.
+
+Turn it off with `reload_on_change = false`; the file is then only
+checked by 'autoread' as above. Emacs has the same with
+`global-auto-revert-mode`, off by default there; it is on here because a
+buffer with changes is never reloaded and a reload can be undone.
+
+==============================================================================
+25. COMPLETION                                                *org-completion*
 
 Completes (like Emacs `org-pcomplete`):
 - TODO keywords after stars
@@ -6291,7 +6396,7 @@ Folding needs no helper: org.nvim folds org buffers itself (|org-folding|),
 and the `lsp` extension also answers `textDocument/foldingRange`.
 
 ==============================================================================
-25. APPEARANCE AND HIGHLIGHTS                                 *org-appearance*
+26. APPEARANCE AND HIGHLIGHTS                                 *org-appearance*
 
 Options under `ui`:
   menus                  the Org menus (|org-menus|), default true
@@ -6707,7 +6812,7 @@ Highlight groups (all `default`, override with |nvim_set_hl()|):  *org-highlight
   - `OrgAgenda*`
 
 ==============================================================================
-26. CONFIGURATION REFERENCE                                       *org-config*
+27. CONFIGURATION REFERENCE                                       *org-config*
 
 Every option and its default is listed in `lua/org/config/`. Lists
 replace the default, tables are merged, and `capture.templates` replaces the
@@ -6838,6 +6943,8 @@ Buffer ~
                                       "showall", "show2levels".."show5levels"
   hide_drawer_startup       true      fold drawers on startup
   hide_block_startup        false     fold blocks on startup
+  reload_on_change          true      reload unmodified buffers whose file
+                                      changed on disk |org-reload|
   startup_with_beamer_mode  false     |org-beamer-mode| on startup
   cycle_open_archived_trees false     let cycling open :ARCHIVE: subtrees
   sparse_tree_open_archived_trees  false  sparse trees open :ARCHIVE: trees
@@ -7245,7 +7352,7 @@ mappings ~
   See |org-keymaps|.
 
 ==============================================================================
-27. KEYMAPS REFERENCE                                            *org-keymaps*
+28. KEYMAPS REFERENCE                                            *org-keymaps*
 
 Every mapping is `mappings.<section>.<action> = lhs | { lhs, ... } | false`.
 `<prefix>` expands to `mappings.prefix`. `mappings.disable_all = true` turns
@@ -7590,7 +7697,7 @@ Section `beamer`: beamer_select_environment <C-c><C-b>, only while
 |org-beamer-mode| is on.
 
 ==============================================================================
-28. COMMANDS                                                    *org-commands*
+29. COMMANDS                                                    *org-commands*
 
                                                                         *:Org*
 :Org {action} [args]    Run any action by name (the names are those in
@@ -7770,7 +7877,7 @@ mouse_show_overview, mouse_timestamp_today, mouse_transform_to_outline
 (the list items of the entry become subheadings), mouse_move_tree_start.
 
 ==============================================================================
-29. LUA API                                                          *org-api*
+30. LUA API                                                          *org-api*
 
 `require("org.api")` is the public Lua API for plugins and configs: files,
 headlines and their changes, agenda queries, capture, links, the clock and
@@ -8191,7 +8298,7 @@ use them only for what `org.api` doesn't cover yet:
 Their targets are `{ bufnr = n, lnum = l }`.
 
 ==============================================================================
-30. IN-BUFFER SETTINGS                               *org-in-buffer-settings*
+31. IN-BUFFER SETTINGS                               *org-in-buffer-settings*
 
   #+TITLE: #+AUTHOR: #+DATE: #+EMAIL:   export metadata
   #+SETUPFILE: "path/to/shared.org"     import file settings recursively
@@ -8258,7 +8365,7 @@ refused or failed download isn't tried again. Missing or unreadable local
 setup files are ignored; lint reports missing paths.
 
 ==============================================================================
-31. LINTING                                                         *org-lint*
+32. LINTING                                                         *org-lint*
 
 :Org lint [checker ...]
                         Check the buffer for syntax mistakes (Emacs
@@ -8331,7 +8438,7 @@ Differences from Emacs:
   checker, r (Emacs g) lints again.
 
 ==============================================================================
-32. DIFFERENCES FROM EMACS                                   *org-differences*
+33. DIFFERENCES FROM EMACS                                   *org-differences*
 
 - Display: in indent mode (org-indent-mode) rows that wrap don't get the
   virtual indentation (Emacs sets a wrap-prefix; Neovim has no per-line
@@ -8787,9 +8894,14 @@ Differences from Emacs:
   backend or a Neovim syntax or ftplugin file (`vim`, `json`, ...),
   where Emacs knows those with a Babel backend or an installed major
   mode.
+- Files changed on disk (|org-reload|): an unmodified org buffer reloads
+  as soon as another program changes its file (`reload_on_change`, on by
+  default), like Emacs with `global-auto-revert-mode`, which is off by
+  default there. A modified buffer is kept and a warning shown, where
+  Emacs asks when you next edit it.
 
 ==============================================================================
-33. EXTENSIONS                                               *org-extensions*
+34. EXTENSIONS                                               *org-extensions*
 
 Extensions are optional features modelled on popular third-party Emacs Org
 packages. They ship with org.nvim but nothing is loaded until you list one
