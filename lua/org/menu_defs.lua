@@ -459,7 +459,8 @@ function M.org()
     {
       "Customize",
       dynamic = function()
-        if require("org.customize").menu_expanded then
+        -- (set by org.customize, not loaded until it is used)
+        if package.loaded["org.customize"] and require("org.customize").menu_expanded then
           -- org-create-customize-menu
           return {
             { "Browse Org group", action = "customize" },

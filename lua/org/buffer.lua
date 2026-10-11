@@ -34,6 +34,45 @@ function M.insert_mode_line(bufnr)
   end
 end
 
+--- Is the custom timestamp display on in `bufnr`? The buffer's toggle,
+--- else `#+STARTUP: customtime`, else `display_custom_times`
+--- (`org.timestamps.custom_display_enabled`; here so that opening a file
+--- doesn't load org.timestamps).
+---@param bufnr integer
+---@return boolean
+function M.custom_times(bufnr)
+  local v = vim.b[bufnr].org_custom_times
+  if v ~= nil then
+    return v
+  end
+  local ok, file = pcall(require("org.files").get_buffer, bufnr)
+  if ok and file.settings.startup.customtime then
+    return true
+  end
+  return config.opts.display_custom_times == true
+end
+
+-- The crypt write hook (org-crypt-use-before-save-magic) until org.crypt
+-- loads and registers its own under the same name: it loads org.crypt only
+-- when `crypt.encrypt_on_save` is on at the time of a write.
+local crypt_hook_registered = false
+local function register_crypt_hook()
+  if crypt_hook_registered or package.loaded["org.crypt"] then
+    return
+  end
+  crypt_hook_registered = true
+  require("org.write_hooks").register("crypt", {
+    order = 50,
+    filetype = "org",
+    pre = function(bufnr)
+      if not (config.opts.crypt or {}).encrypt_on_save then
+        return true
+      end
+      return require("org.crypt").before_save(bufnr)
+    end,
+  })
+end
+
 --- Concealing for the buffer in window `win`: set with `:setlocal`, so
 --- other buffers later shown in the window keep their own values.
 local function set_win_opts(bufnr, win)
@@ -43,8 +82,7 @@ local function set_win_opts(bufnr, win)
   local wo = vim.wo[win][0]
   local ui = config.opts.ui
   local hides = ui.conceal_links or ui.hide_macro_markers or #(ui.hidden_keywords or {}) > 0
-  local ok_ts, ts = pcall(require, "org.timestamps")
-  if hides or (ok_ts and ts.custom_display_enabled(bufnr)) then
+  if hides or M.custom_times(bufnr) then
     wo.conceallevel = math.max(vim.wo[win].conceallevel, 2)
   end
   if vim.wo[win].concealcursor == "" then
@@ -110,17 +148,17 @@ function M.attach(bufnr)
   try("org.ui.decorations", "attach", bufnr)
   try("org.ui.src_highlight", "attach", bufnr)
   try("org.cite", "attach", bufnr)
-  try("org.table", "attach", bufnr)
-  try("org.clock", "attach", bufnr)
-  try("org.crypt", "attach", bufnr)
+  -- (the attach parts of the larger modules, which load on first use)
+  try("org.table.attach", "attach", bufnr)
+  try("org.clock.attach", "attach", bufnr)
+  register_crypt_hook()
   try("org.speed", "attach", bufnr)
   -- #+STARTUP: linkpreviews / latexpreview, ui.images.startup
-  try("org.ui.images", "setup_buffer", bufnr)
+  try("org.ui.images.startup", "setup_buffer", bufnr)
   -- startup_with_beamer_mode, #+STARTUP: beamer
   try("org.export.beamer_mode", "setup_buffer", bufnr)
   -- custom timestamp display (display_custom_times, #+STARTUP: customtime)
-  local ok_ts, ts = pcall(require, "org.timestamps")
-  if ok_ts and ts.custom_display_enabled(bufnr) then
+  if M.custom_times(bufnr) then
     try("org.timestamps", "attach_custom_display", bufnr)
   end
 

@@ -130,11 +130,11 @@ local HEADLINE = [=[\*\+\s]=]
 --- Link syntax: bracket, angle, plain and radio links, and custom link type
 --- faces (`links.types.<name>.face`). All are in the `@orgLinks` cluster.
 function M.links(bufnr, conceal_links)
-  local links = require("org.links")
+  local url_schemes = require("org.links.schemes")
   local lconceal = conceal_links and " conceal" or ""
   local cluster = { "orgLink", "orgLinkPlain" }
   local schemes = {}
-  for name in pairs(links.URL_SCHEMES) do
+  for name in pairs(url_schemes) do
     schemes[#schemes + 1] = esc(name)
   end
   local types = require("org.config").opts.links.types or {}
@@ -186,7 +186,15 @@ function M.links(bufnr, conceal_links)
   end
   -- radio links: words matching a <<<radio target>>>
   local targets = {}
-  for _, t in ipairs(links.radio_targets(bufnr)) do
+  -- (org.links loads only for a buffer that has one)
+  local has_radio = false
+  for _, l in ipairs(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)) do
+    if l:find("<<<", 1, true) then
+      has_radio = true
+      break
+    end
+  end
+  for _, t in ipairs(has_radio and require("org.links").radio_targets(bufnr) or {}) do
     targets[#targets + 1] = esc(t):gsub(" +", [[\_s\+]])
   end
   if #targets > 0 then

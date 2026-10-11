@@ -37,27 +37,9 @@ package.loaded["org.links"] = M
 --- (org-stored-links).
 M.stored = {}
 
-M.URL_SCHEMES = {
-  http = true,
-  https = true,
-  ftp = true,
-  mailto = true,
-  news = true,
-  doi = true,
-  file = true,
-  id = true,
-  shell = true,
-  elisp = true,
-  help = true,
-  man = true,
-  attachment = true,
-  info = true,
-  irc = true,
-  docview = true,
-  bibtex = true,
-  ["file+sys"] = true,
-  ["file+emacs"] = true,
-}
+-- (a module of its own: the syntax and the decorations read it without
+-- loading this one)
+M.URL_SCHEMES = require("org.links.schemes")
 
 local function lopts()
   return config.opts.links or {}

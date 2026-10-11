@@ -10,6 +10,9 @@
 ---   render.sources.ql = source
 --- end)
 --- ```
+---
+--- `parts` loads the parts of a facade module (org/lists.lua and the files
+--- in org/lists/) on first use of one of them.
 
 local M = {}
 
@@ -92,6 +95,41 @@ function M.if_loaded(name, key, fn)
   elseif hooks[name] then
     hooks[name][key] = nil
   end
+end
+
+--- Load the parts of the facade module `facade` (modules that add their
+--- functions to it and share helpers through `shared`) the first time a
+--- field the facade doesn't have is read from it or `shared`, or a new one
+--- is set on it: code that only uses the facade's own functions (the list
+--- item parser the folds use) doesn't load them. Both are plain tables
+--- again once the parts are in.
+---@param facade table
+---@param shared table
+---@param names string[] the parts, loaded in this order
+function M.parts(facade, shared, names)
+  local function load()
+    setmetatable(facade, nil)
+    setmetatable(shared, nil)
+    for _, name in ipairs(names) do
+      require(name)
+    end
+  end
+  setmetatable(facade, {
+    __index = function(t, k)
+      load()
+      return rawget(t, k)
+    end,
+    __newindex = function(t, k, v)
+      load()
+      rawset(t, k, v)
+    end,
+  })
+  setmetatable(shared, {
+    __index = function(t, k)
+      load()
+      return rawget(t, k)
+    end,
+  })
 end
 
 return M

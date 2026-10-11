@@ -307,7 +307,7 @@ local function protected_ranges(line)
   -- from each colon back, as a gmatch would find them. The pattern itself
   -- went back over a run of letters from each of its characters, quadratic
   -- in its length: seconds for a line holding a long hash.
-  local schemes = require("org.links").URL_SCHEMES
+  local schemes = require("org.links.schemes")
   local init = 1
   while true do
     local c = line:find(":", init, true)
