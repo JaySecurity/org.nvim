@@ -960,7 +960,9 @@ function parse_section(hl, lines, from, to, log_drawer, min_inline)
         add_block_ranges(hl, line, i)
       end
     end
-    local clock = (not tail or i > verbatim_end) and line:find("CLOCK:", 1, true) and M.parse_clock_line(line)
+    -- a CLOCK line in a block or a LaTeX environment is text, not a clock
+    -- (org-clock-sum only counts clock elements)
+    local clock = i > verbatim_end and line:find("CLOCK:", 1, true) and M.parse_clock_line(line)
     if clock then
       clock.line = i
       hl.clocks[#hl.clocks + 1] = clock

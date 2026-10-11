@@ -104,4 +104,24 @@ describe("fuzz regressions", function()
       eq({ 8 }, lines_of(endless.clocks))
     end)
   end)
+
+  it("reads no clock from a CLOCK line inside a block", function()
+    -- Emacs Org 9.8.10: org-clock-sum gives H 15 minutes
+    local clock = "CLOCK: [2024-01-01 Mon 10:00]--[2024-01-01 Mon 11:00] =>  1:00"
+    local file = require("org.parser").parse({
+      "* H",
+      "#+begin_comment",
+      clock,
+      "#+end_comment",
+      "#+begin_src sh",
+      clock,
+      "#+end_src",
+      "#+begin_example",
+      clock,
+      "#+end_example",
+      "CLOCK: [2024-01-01 Mon 12:00]--[2024-01-01 Mon 12:15] =>  0:15",
+    })
+    eq(1, #file.headlines[1].clocks)
+    eq(15, file.headlines[1]:clocked_minutes())
+  end)
 end)
