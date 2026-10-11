@@ -19,3 +19,5 @@ lua/org/clock
 lua/org/agenda
 lua/org/pickers
 lua/org/health
+lua/org/links.lua
+lua/org/links
