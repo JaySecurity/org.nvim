@@ -108,10 +108,16 @@ local function agenda(file)
   local a = require("org.agenda")
   local view = require("org.agenda.view")
   local date = require("org.date")
-  local saved = { config.opts.agenda_files, config.opts.agenda.show_current_time_in_grid }
+  local saved =
+    { config.opts.agenda_files, config.opts.agenda.show_current_time_in_grid, config.opts.inlinetask_min_level }
   config.opts.agenda_files = { file }
   -- the current-time line depends on the clock: off on both sides
   config.opts.agenda.show_current_time_in_grid = false
+  -- difftest.el loads org-inlinetask (common.el): headlines of level 15
+  -- and deeper are inline tasks there, and their END lines no headlines.
+  -- (The visibility oracle leaves inline tasks off for now: org.nvim
+  -- folds them differently, see known.lua.)
+  config.opts.inlinetask_min_level = 15
   local out = {}
   local okc, err = pcall(function()
     for _, v in ipairs(VIEWS) do
@@ -126,6 +132,7 @@ local function agenda(file)
     end
   end)
   config.opts.agenda_files, config.opts.agenda.show_current_time_in_grid = saved[1], saved[2]
+  config.opts.inlinetask_min_level = saved[3]
   assert(okc, err)
   return table.concat(out, "\n") .. "\n"
 end

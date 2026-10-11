@@ -68,6 +68,22 @@ local function inlinetask_before_headline(lines)
   return false
 end
 
+--- Is there an active timestamp after an inline task's END line, before
+--- the next heading?
+local function timestamp_after_inline_end(lines)
+  local after_end = false
+  for _, l in ipairs(lines) do
+    if l:match(INLINETASK .. "[Ee][Nn][Dd]%s*$") then
+      after_end = true
+    elseif l:match("^%*+ ") then
+      after_end = false
+    elseif after_end and l:match("<%d%d%d%d%-%d%d%-%d%d") then
+      return true
+    end
+  end
+  return false
+end
+
 --- Per line of `lines`, whether it's in a subtree that isn't exported
 --- (a COMMENT headline or a :noexport: tag).
 local function excluded_lines(lines)
@@ -297,15 +313,6 @@ return {
     emacs = "%s(:[%w_@:]+:)%s+%1",
   },
   {
-    oracle = "agenda",
-    reason = [[The END line of an inline task shows in org.nvim's tags matches
-      (as a headline with the tags of the task's outline), not in Emacs'.]],
-    ours = "^%s*[%w_]+:%s+[Ee][Nn][Dd]%s",
-    same = function(s)
-      return (("\n" .. s):gsub("\n%s*[%w_]+:%s+[Ee][Nn][Dd]%s[^\n]*", "")):sub(2)
-    end,
-  },
-  {
     oracle = "table",
     reason = [[Formulas over text or out-of-range references: Emacs (Calc)
       keeps symbolic results ("42 + title") or leaves the field; org.nvim
@@ -370,6 +377,15 @@ return {
       org.nvim without one.]],
     input = "%u+: <[^>]+>%-%-<[^>]* %d%d?:%d%d>",
     either = "[DS]%l+[:%.]",
+  },
+  {
+    oracle = "agenda",
+    reason = [[A timestamp after an inline task's END line (in the text of
+      the enclosing headline): Emacs' agenda titles it "END" (the line
+      org-agenda-get-timestamps finds with org-outline-regexp-bol), org.nvim
+      with the enclosing headline.]],
+    input = timestamp_after_inline_end,
+    emacs = "%sEND%f[%s:%z]",
   },
   {
     oracle = "agenda",
