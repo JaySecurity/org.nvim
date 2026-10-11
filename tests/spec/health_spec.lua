@@ -630,12 +630,15 @@ describe("health: sections", function()
     with_config({ agenda_files = {} })
 
     it("says what is wrong with each entry that gives no file", function()
+      -- messages show paths under the home directory as ~/... (on Windows
+      -- the temporary directory is under it)
+      local shown = require("org.utils").abbreviate(dir)
       eq(
         {
-          dir .. "/empty: no .org files in this directory (subdirectories aren't searched: use dir/**/*.org)",
-          dir .. "/nope/*.org: the glob matches no .org file",
-          dir .. "/missing.org: no such file",
-          dir .. "/notes/b.txt: not an .org file",
+          shown .. "/empty: no .org files in this directory (subdirectories aren't searched: use dir/**/*.org)",
+          shown .. "/nope/*.org: the glob matches no .org file",
+          shown .. "/missing.org: no such file",
+          shown .. "/notes/b.txt: not an .org file",
         },
         health.agenda_problems({
           dir .. "/notes",
@@ -654,7 +657,10 @@ describe("health: sections", function()
       local out = capture(health.check_files)
       eq("start: org.nvim files", out[1])
       ok(find_msg(out, "^ok: 1 agenda file%(s%) found"), vim.inspect(out))
-      eq("warn: agenda_files: " .. dir .. "/missing.org: no such file", find_msg(out, "missing%.org"))
+      eq(
+        "warn: agenda_files: " .. require("org.utils").abbreviate(dir) .. "/missing.org: no such file",
+        find_msg(out, "missing%.org")
+      )
       require("org.config").opts.agenda_files = { dir .. "/missing.org" }
       out = capture(health.check_files)
       ok(find_msg(out, "no such file"), vim.inspect(out))

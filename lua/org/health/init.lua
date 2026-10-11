@@ -104,9 +104,10 @@ function M.unknown_options(user)
   return out
 end
 
---- A path for a message: under the home directory as ~/...
+--- A path for a message: under the home directory as ~/..., with forward
+--- slashes on Windows too (fnamemodify(":~") gives backslashes there)
 local function tilde(p)
-  return vim.fn.fnamemodify(p, ":~")
+  return require("org.utils").abbreviate(p)
 end
 
 --- Options Emacs reads once per agenda (org-agenda-finalize), under the
@@ -270,9 +271,9 @@ function M.check_core(h)
   local plugin, own = {}, {}
   for _, f in ipairs(foreign) do
     if f.own then
-      own[#own + 1] = vim.fn.fnamemodify(f.path, ":~")
+      own[#own + 1] = tilde(f.path)
     else
-      plugin[#plugin + 1] = vim.fn.fnamemodify(f.path, ":~")
+      plugin[#plugin + 1] = tilde(f.path)
     end
   end
   if #plugin > 0 then
