@@ -195,46 +195,7 @@ function export_as(backend, lines, opts)
     keywords = M.collect_keywords(full, dir, nil, nil, filename)
   end
   work = M.delete_comment_trees(work, todo)
-  -- Babel
   local babel_cfg = require("org.config").opts.babel or {}
-  if babel_cfg.evaluate_on_export and not opts.no_babel then
-    -- opts.no_babel_eval: keep the results already in the buffer (the
-    -- live preview), but still apply :exports
-    local ok, res = false, nil
-    if not opts.no_babel_eval then
-      ok, res = pcall(function()
-        return require("org.babel").export_evaluate(opts.bufnr, work)
-      end)
-    end
-    if ok and type(res) == "table" then
-      work = res
-    end
-    work = M.babel_process(work, { filename = filename })
-  end
-  -- before-parsing hook
-  for _, f in ipairs(M.as_list(hooks.before_parsing)) do
-    local r = f(backend.name, work)
-    if type(r) == "table" then
-      work = r
-    end
-  end
-  -- radio targets
-  local radio = {}
-  for _, l in ipairs(work) do
-    for r in l:gmatch("<<<([^<>\n]-)>>>") do
-      radio[#radio + 1] = r
-    end
-  end
-  local link_types = vim.deepcopy(element.DEFAULT_LINK_TYPES)
-  local extra_types = {}
-  for t in pairs((require("org.config").opts.links or {}).types or {}) do
-    extra_types[t] = true
-  end
-  local abbrevs = vim.tbl_extend(
-    "force",
-    (require("org.config").opts.links or {}).abbreviations or {},
-    file0.settings.link_abbrevs or {}
-  )
   local ctx = {
     keywords = keywords,
     filename = filename,
@@ -243,20 +204,6 @@ function export_as(backend, lines, opts)
     no_eval = opts.no_eval_macros and true or false,
   }
   local expander = M.macro_expander(ctx)
-  local popts = {
-    todo = todo,
-    link_types = link_types,
-    extra_link_types = extra_types,
-    abbrevs = abbrevs,
-    radio = radio,
-    macro = expander,
-    no_final_newline = opts.no_final_newline,
-    footnote_section = c.footnote_section or require("org.config").opts.footnote_section,
-    inlinetask_min_level = c.inlinetask_min_level or 15,
-    alpha = require("org.lists").opt("allow_alphabetical"),
-    term = ({ ["."] = "%.", [")"] = "%)" })[require("org.lists").opt("ordered_item_terminator")],
-  }
-  local parser = element.new(popts)
   -- {{{property(NAME[,search])}}}: the headline being parsed, or a searched one
   local pfile
   ctx.property_lookup = function(name, loc, p)
@@ -301,6 +248,70 @@ function export_as(backend, lines, opts)
     end
     return file0.settings.properties[name]
   end
+  if cfg().replace_macros ~= false and M.has_macro(work) then
+    -- org-macro-replace-all, before Babel: macros are replaced in the
+    -- text, so what they expand to is parsed (an empty value can end a
+    -- paragraph or a list item, or empty a description tag)
+    work = M.replace_all_macros(work, expander, {
+      todo = todo,
+      inlinetask_min_level = c.inlinetask_min_level or 15,
+      alpha = require("org.lists").opt("allow_alphabetical"),
+      term = ({ ["."] = "%.", [")"] = "%)" })[require("org.lists").opt("ordered_item_terminator")],
+    })
+  end
+  -- Babel
+  if babel_cfg.evaluate_on_export and not opts.no_babel then
+    -- opts.no_babel_eval: keep the results already in the buffer (the
+    -- live preview), but still apply :exports
+    local ok, res = false, nil
+    if not opts.no_babel_eval then
+      ok, res = pcall(function()
+        return require("org.babel").export_evaluate(opts.bufnr, work)
+      end)
+    end
+    if ok and type(res) == "table" then
+      work = res
+    end
+    work = M.babel_process(work, { filename = filename })
+  end
+  -- before-parsing hook
+  for _, f in ipairs(M.as_list(hooks.before_parsing)) do
+    local r = f(backend.name, work)
+    if type(r) == "table" then
+      work = r
+    end
+  end
+  -- radio targets
+  local radio = {}
+  for _, l in ipairs(work) do
+    for r in l:gmatch("<<<([^<>\n]-)>>>") do
+      radio[#radio + 1] = r
+    end
+  end
+  local link_types = vim.deepcopy(element.DEFAULT_LINK_TYPES)
+  local extra_types = {}
+  for t in pairs((require("org.config").opts.links or {}).types or {}) do
+    extra_types[t] = true
+  end
+  local abbrevs = vim.tbl_extend(
+    "force",
+    (require("org.config").opts.links or {}).abbreviations or {},
+    file0.settings.link_abbrevs or {}
+  )
+  local popts = {
+    todo = todo,
+    link_types = link_types,
+    extra_link_types = extra_types,
+    abbrevs = abbrevs,
+    radio = radio,
+    macro = expander,
+    no_final_newline = opts.no_final_newline,
+    footnote_section = c.footnote_section or require("org.config").opts.footnote_section,
+    inlinetask_min_level = c.inlinetask_min_level or 15,
+    alpha = require("org.lists").opt("allow_alphabetical"),
+    term = ({ ["."] = "%.", [")"] = "%)" })[require("org.lists").opt("ordered_item_terminator")],
+  }
+  local parser = element.new(popts)
   local function parse_secondary(s)
     return parser:parse_objects(s, element.RESTRICTIONS.keyword)
   end

@@ -84,38 +84,6 @@ return {
     emacs = "h :END:",
   },
   {
-    oracle = "export%-.*",
-    reason = [[A macro that expands to nothing at the start of a line: Emacs
-      expands macros before parsing, so the line can become empty (and
-      split a paragraph) or stop continuing a list item; org.nvim parses
-      first, and keeps the space after the macro at the start of the
-      line. Only where the lines, list items and paragraphs break (and
-      that space) differs.]],
-    input = "^%s*{{{title}}}",
-    broad = true,
-    moves = true,
-    same = function(s)
-      return (s:gsub("</?p>", ""):gsub("</li>", ""):gsub("</[ou]l>", ""):gsub("%s+", ""))
-    end,
-  },
-  {
-    oracle = "export%-.*",
-    reason = [[A description item whose tag is a macro that expands to nothing
-      ("- {{{title}}} :: text"): Emacs expands macros before parsing, so
-      it's a plain item; org.nvim exports a description item.]],
-    input = "^%s*[%-%+] .*{{{title}}} ::",
-    either = "::",
-  },
-  {
-    oracle = "export%-latex",
-    reason = [[The same (a description item whose tag is a macro that expands
-      to nothing), where the LaTeX list ends: \end{description} in
-      org.nvim.]],
-    input = "^%s*[%-%+] .*{{{title}}} ::",
-    emacs = "^\\end{itemize}$",
-    ours = "^\\end{description}$",
-  },
-  {
     oracle = "agenda",
     reason = [[A headline that is only tags ("* :work:"): Emacs shows the tags
       as the title too, org.nvim an empty title.]],
@@ -150,19 +118,6 @@ return {
       with the enclosing headline.]],
     input = timestamp_after_inline_end,
     emacs = "%sEND%f[%s:%z]",
-  },
-  {
-    oracle = "export%-.*",
-    reason = [[A macro that expands to nothing ("{{{title}}}" without
-      #+title) next to a space: Emacs drops the space (at the start or end
-      of a paragraph or headline), org.nvim keeps it.]],
-    input = "{{{title}}}",
-    same = function(s)
-      -- line by line: the lines break at the same places
-      return each_line(s, function(l)
-        return (vim.trim(l:gsub("  +", " ")):gsub("([>%[#{]) ", "%1"):gsub(" ([}<\\%]&])", "%1"))
-      end)
-    end,
   },
   {
     oracle = "commands",

@@ -5407,7 +5407,10 @@ functions) and the built-ins `{{{title}}}`, `{{{author}}}`, `{{{email}}}`,
 `{{{input-file}}}`, `{{{keyword(NAME)}}}`, `{{{property(NAME[,search])}}}`,
 `{{{n(name[,-|N])}}}` and `{{{results(...)}}}`.
 `{{{modification-time(FMT,t)}}}` takes the date of the file's last Git
-commit (Emacs asks any VC back-end).
+commit (Emacs asks any VC back-end). As in Emacs, macros are replaced in
+the text before it is parsed: a macro that expands to nothing on a line
+of its own ends the paragraph, and one whose value starts with `- ` at
+the start of a line makes a list item.
 
 `#+MACRO: name (eval FORM)` macros evaluate the Emacs Lisp FORM like
 org-macro: `$1`...`$N` are variables bound to the arguments (strings, nil

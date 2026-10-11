@@ -192,3 +192,193 @@ function M.macro_expander(ctx)
     error("Undefined Org macro: " .. key .. "; aborting", 0)
   end
 end
+
+---------------------------------------------------------------------------
+-- org-macro-replace-all on the lines
+---------------------------------------------------------------------------
+
+--- Whether `lines` hold a macro ("{{{name").
+function M.has_macro(lines)
+  for _, l in ipairs(lines) do
+    if l:find("{{{[%w_%-]") then
+      return true
+    end
+  end
+  return false
+end
+
+local VERBATIM_BLOCKS = { src = true, example = true, export = true, comment = true }
+
+--- Replace the macros of `lines` by their value before they are parsed,
+--- as org-export-as does with org-macro-replace-all: what a macro expands
+--- to is parsed with the text around it, so a macro expanding to nothing
+--- can leave an empty line (ending a paragraph), stop a line continuing a
+--- list item or empty a description tag. Only the macros of text where
+--- objects are parsed are replaced here: paragraphs (also in items,
+--- drawers, footnote definitions, quote and special blocks), verse
+--- blocks, headline titles and table rows. Keywords, node properties and
+--- {{{results}}} are left to the parser; src, example, export and comment
+--- blocks, LaTeX environments, fixed-width and comment lines have no
+--- macros.
+---@param lines string[]
+---@param expander fun(node: table, parser: table): string|nil
+---@param popts table element parser options (todo, inlinetask_min_level, alpha, term)
+---@return string[]
+function M.replace_all_macros(lines, expander, popts)
+  local shared = require("org.export.element.shared")
+  local R = element.RESTRICTIONS.paragraph
+  local pp = element.new(vim.tbl_extend("force", popts, {
+    macro = function(node, p)
+      if node.key == "results" then
+        -- replaced after Babel (org-export-as's second pass)
+        return nil
+      end
+      return expander(node, p)
+    end,
+  }))
+  local min_inline = popts.inlinetask_min_level or 15
+  local n = #lines
+  -- the line of the next headline after each line: the end of a block or
+  -- a drawer is looked for before it
+  local next_hl = {}
+  local nh = n + 1
+  for i = n, 1, -1 do
+    next_hl[i] = nh
+    local s = shared.headline_stars(lines[i])
+    if s and s < min_inline then
+      nh = i
+    end
+  end
+  -- searches that failed, by what was looked for and section: a later
+  -- one in the same section fails too
+  local failed = {}
+  local function find_end(i, key, pred)
+    local stop = next_hl[i]
+    local fk = key .. "\0" .. stop
+    if failed[fk] and failed[fk] < i then
+      return nil
+    end
+    for j = i + 1, stop - 1 do
+      if pred(lines[j]) then
+        return j
+      end
+    end
+    failed[fk] = i
+    return nil
+  end
+  local out = {}
+  local run = {} -- consecutive lines of text, replaced together
+  local function flush()
+    if #run == 0 then
+      return
+    end
+    local text = table.concat(run, "\n")
+    if text:find("{{{", 1, true) then
+      text = pp:replace_macros(text, R)
+    end
+    vim.list_extend(out, vim.split(text, "\n", { plain = true }))
+    run = {}
+  end
+  local function keep(from, to)
+    flush()
+    for j = from, to or from do
+      out[#out + 1] = lines[j]
+    end
+  end
+  local i = 1
+  local meta = false -- right after a headline or its planning line
+  while i <= n do
+    local l = lines[i]
+    local stars = shared.headline_stars(l)
+    local after_hl = meta
+    meta = false
+    local e
+    if stars then
+      flush()
+      if stars < min_inline then
+        -- {{{property}}} reads the entry's own properties
+        local node = { props = {} }
+        pp.scanning = true
+        pp:headline_title(node, l, false)
+        pp.scanning = false
+        pp:headline_meta(node, lines, i, next_hl[i] - 1)
+        pp.current_headline = node
+        meta = true
+      end
+      local head, title = l:match("^(%*+%s+)(.*)$")
+      local first = #out + 1
+      run[1] = title
+      flush()
+      out[first] = head .. out[first]
+      i = i + 1
+    elseif l:match("^[ \t]*$") then
+      keep(i)
+      i = i + 1
+    elseif after_hl and shared.is_planning_line(l) then
+      keep(i)
+      meta = true
+      i = i + 1
+    elseif after_hl and shared.property_drawer_end(lines, i, next_hl[i] - 1) then
+      e = shared.property_drawer_end(lines, i, next_hl[i] - 1)
+      keep(i, e)
+      i = e + 1
+    else
+      local btype = shared.block_type(l)
+      local env = shared.latex_env_begin(l)
+      if btype then
+        local endp = "^[ \t]*#%+[Ee][Nn][Dd]_" .. vim.pesc(btype:lower()) .. "[ \t]*$"
+        e = find_end(i, "block " .. btype:lower(), function(x)
+          return x:lower():match(endp) ~= nil
+        end)
+      elseif shared.drawer_name(l) and not shared.is_end_line(l) then
+        e = find_end(i, "drawer", shared.is_end_line)
+      elseif env then
+        local endp = "^[ \t]*\\end{" .. vim.pesc(env) .. "}[ \t]*$"
+        e = find_end(i, "env " .. env, function(x)
+          return x:match(endp) ~= nil
+        end)
+      end
+      if e and ((btype and VERBATIM_BLOCKS[btype:lower()]) or env) then
+        -- no objects inside
+        keep(i, e)
+        i = e + 1
+      elseif
+        e
+        or l:match("^[ \t]*#%+")
+        or shared.is_comment_line(l)
+        or shared.is_fixed_width(l)
+        or shared.is_clock_line(l)
+        or shared.is_hr(l)
+        or shared.is_end_line(l)
+        or l:match("^%%%%%(")
+      then
+        -- a line without objects; for the other blocks and the drawers,
+        -- what is between their delimiters is text or other elements
+        keep(i)
+        i = i + 1
+      elseif shared.is_tableel_rule(l) then
+        -- a table.el table: no objects
+        while i <= n and (shared.is_table_line(lines[i]) or shared.is_tableel_rule(lines[i])) do
+          keep(i)
+          i = i + 1
+        end
+      elseif shared.is_table_line(l) then
+        -- each row on its own
+        flush()
+        run[1] = l
+        flush()
+        i = i + 1
+      else
+        -- paragraph text: an item or a footnote definition starts a new
+        -- run (objects don't span them)
+        if shared.item_match(l, popts.alpha, popts.term) or shared.is_footnote_def(l) then
+          flush()
+        end
+        run[#run + 1] = l
+        i = i + 1
+      end
+    end
+  end
+  flush()
+  return out
+end

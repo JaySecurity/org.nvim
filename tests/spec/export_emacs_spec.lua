@@ -747,6 +747,52 @@ describe("export: Emacs parity (difftest known differences)", function()
     has(out, '<li class="off"><code>[&nbsp;]</code> :: five</li>')
   end)
 
+  it("macros are replaced in the text before it is parsed", function()
+    -- org-macro-replace-all: {{{title}}} without #+title expands to
+    -- nothing, which empties a line (two paragraphs), stops a line
+    -- continuing a list item, empties a description tag and drops the
+    -- space it leaves at the end of a headline
+    local out = ox.export_as("org", {
+      "* Head {{{title}}}",
+      "First line",
+      "{{{title}}}",
+      "second para.",
+      "",
+      "- item one",
+      "{{{title}}} continues",
+      "- {{{title}}} :: tag gone",
+      "",
+      "=verbatim {{{title}}}= stays, {{{title}}} goes.",
+      "#+begin_src emacs-lisp",
+      "{{{nothing}}}",
+      "#+end_src",
+    }, { body_only = true })
+    eq(
+      table.concat({
+        "* Head",
+        "First line",
+        "",
+        "second para.",
+        "",
+        "- item one",
+        "  continues",
+        "- :: tag gone",
+        "",
+        "=verbatim {{{title}}}= stays,  goes.",
+        "#+begin_src emacs-lisp",
+        "  {{{nothing}}}",
+        "#+end_src",
+        "",
+      }, "\n"),
+      out
+    )
+  end)
+
+  it("a macro's value is parsed with the text around it", function()
+    local out = html({ "#+MACRO: item - $1", "{{{item(one)}}}", "{{{item(two)}}}" })
+    has(out, '<ul class="org-ul">\n<li>one</li>\n<li>two</li>\n</ul>')
+  end)
+
   it("a footnote label defined twice exports its last definition", function()
     -- org-export-get-footnote-definition fills its cache with puthash
     local out = ox.export_as("ascii", {
@@ -769,9 +815,13 @@ describe("export: Emacs parity (difftest known differences)", function()
   it("a date range whose end has no time takes the start's time", function()
     -- org-element-timestamp-parser: hour-end defaults to hour-start (the
     -- two spaces after a timestamp are Emacs's too)
-    local out = ox.export_as("org", { "<2026-10-01 Thu 17:30>--<2026-10-03 Sat> <2026-10-01 Thu>--<2026-10-03 Sat 10:00>" }, {
-      body_only = true,
-    })
+    local out = ox.export_as(
+      "org",
+      { "<2026-10-01 Thu 17:30>--<2026-10-03 Sat> <2026-10-01 Thu>--<2026-10-03 Sat 10:00>" },
+      {
+        body_only = true,
+      }
+    )
     eq("<2026-10-01 Thu 17:30>--<2026-10-03 Sat 17:30>  <2026-10-01 Thu>--<2026-10-03 Sat 10:00>\n", out)
   end)
 end)
