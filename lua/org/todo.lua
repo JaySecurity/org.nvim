@@ -382,7 +382,7 @@ local function shift_repeaters(bufnr, hl, now, today)
   for _, kind in ipairs({ "deadline", "scheduled" }) do
     local ts = hl.planning[kind]
     if has_repeater(ts) then
-      edit.set_planning(bufnr, hl.line, kind, date.apply_repeater(ts, now, today))
+      edit.set_planning(bufnr, hl.line, kind, date.apply_repeater(ts, now, today), { in_place = true })
     elseif kind == "scheduled" and ts and not ts.repeater then
       -- a SCHEDULED date without repeater is no longer relevant
       edit.set_planning(bufnr, hl.line, kind, nil)
