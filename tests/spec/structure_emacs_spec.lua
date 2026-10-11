@@ -417,3 +417,53 @@ describe("move subtree before the first top-level headline (make difftest)", fun
     eq({ "* b", "*************** task", "*************** END" }, buf_lines(buf))
   end)
 end)
+
+describe("refile and archive sibling change levels like org-paste-subtree (make difftest)", function()
+  with_config({ inlinetask_min_level = 15 })
+
+  it("refile realigns the tags of the moved headlines and leaves inline tasks alone", function()
+    local buf = org_buffer({
+      "* A",
+      "** B",
+      "* C :y:",
+      "** D :z:",
+      "*************** inline",
+      "*************** END",
+    }, { 3, 0 })
+    require("org.refile").refile(nil, { dest = { bufnr = buf, lnum = 2, level = 2 } })
+    eq({
+      "* A",
+      "** B",
+      "*** C" .. string.rep(" ", 69) .. ":y:",
+      "**** D" .. string.rep(" ", 68) .. ":z:",
+      "*************** inline",
+      "*************** END",
+    }, buf_lines(buf))
+  end)
+
+  it("archive to sibling too, and the parent's cookie counts its TODO children", function()
+    local buf = org_buffer({
+      "* P [/]",
+      "- [ ] box",
+      "** TODO a :x:",
+      "** DONE b :y:",
+      "*************** inline",
+      "*************** END",
+    }, { 4, 0 })
+    require("org.archive").archive_to_sibling()
+    local lines = buf_lines(buf)
+    lines[7] = lines[7]:gsub("%d%d%d%d%-%d%d%-%d%d %a+ %d%d:%d%d", "TIME")
+    eq({
+      "* P [0/1]",
+      "- [ ] box",
+      "** TODO a :x:",
+      "** Archive" .. string.rep(" ", 58) .. ":ARCHIVE:",
+      "*** DONE b" .. string.rep(" ", 64) .. ":y:",
+      ":PROPERTIES:",
+      ":ARCHIVE_TIME: TIME",
+      ":END:",
+      "*************** inline",
+      "*************** END",
+    }, lines)
+  end)
+end)

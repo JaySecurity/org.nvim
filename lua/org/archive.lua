@@ -388,7 +388,7 @@ function M.archive_subtree(target, opts)
       return
     end
   end
-  local new = edit.relevel(lines, level)
+  local new = edit.paste_relevel(lines, level, files.get_buffer(abuf).settings.todo)
   if blank then
     table.insert(new, 1, "")
   end
@@ -496,7 +496,13 @@ function M.archive_to_sibling(target)
   local sibling = assert(marks.set(bufnr, sib_line))
   local shl = files.get_buffer(bufnr):headline_at(sib_line)
   local at = config.opts.archive_reversed_order and shl.body_end or shl.end_line
-  vim.api.nvim_buf_set_lines(bufnr, at, at, false, edit.relevel(lines, hl.level + 1))
+  vim.api.nvim_buf_set_lines(
+    bufnr,
+    at,
+    at,
+    false,
+    edit.paste_relevel(lines, hl.level + 1, files.get_buffer(bufnr).settings.todo)
+  )
   edit.set_property(bufnr, at + 1, "ARCHIVE_TIME", archive_time())
   s, e = source:rows()
   vim.api.nvim_buf_set_lines(bufnr, s - 1, e, false, {})

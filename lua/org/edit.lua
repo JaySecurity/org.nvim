@@ -704,13 +704,30 @@ function M.shift_levels(lines, delta)
   return out
 end
 
---- Normalize subtree lines so the first headline has `level`.
+--- Normalize subtree lines so the first headline has `level` (only the
+--- stars change).
 function M.relevel(lines, level)
   local first = lines[1] and (lines[1]:match("^(%*+)") or "")
   if not first or first == "" then
     return lines
   end
   return M.shift_levels(lines, level - #first)
+end
+
+--- Normalize subtree lines so the first headline has `level`, as
+--- org-paste-subtree does for refile and archive: each headline promoted
+--- or demoted like org-promote / org-demote (tags realigned, inline tasks
+--- left alone, the indentation fixed with `adapt_indentation`).
+---@param lines string[]
+---@param level integer
+---@param todo_cfg? table the TODO keywords (default: the global ones)
+function M.paste_relevel(lines, level, todo_cfg)
+  local first = lines[1] and (lines[1]:match("^(%*+)") or "")
+  if not first or first == "" or level == #first then
+    return lines
+  end
+  require("org.structure")
+  return require("org.structure.shared").relevel(lines, level - #first, todo_cfg)
 end
 
 return M

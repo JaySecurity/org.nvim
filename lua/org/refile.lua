@@ -490,7 +490,7 @@ function M.insert_subtree(lines, dest)
   local bufnr = dest.bufnr or utils.load_buffer(dest.filename)
   local file = files.get_buffer(bufnr)
   local at, level = insertion_point(file, dest)
-  local new = edit.relevel(vim.deepcopy(lines), level)
+  local new = edit.paste_relevel(vim.deepcopy(lines), level, file.settings.todo)
   if #file.lines == 1 and file.lines[1] == "" then
     vim.api.nvim_buf_set_lines(bufnr, 0, 1, false, new)
     at = 0
