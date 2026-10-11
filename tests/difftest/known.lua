@@ -100,25 +100,6 @@ return {
   },
   {
     oracle = "export%-.*",
-    reason = [[A property drawer without its :END: line: Emacs doesn't read
-      it as a drawer (no CUSTOM_ID), org.nvim does.]],
-    input = function(lines)
-      for i, l in ipairs(lines) do
-        if l == ":PROPERTIES:" then
-          local j = i + 1
-          while lines[j] and lines[j]:match("^:[%w_%-]+:") and lines[j] ~= ":END:" do
-            j = j + 1
-          end
-          if lines[j] ~= ":END:" then
-            return true
-          end
-        end
-      end
-      return false
-    end,
-  },
-  {
-    oracle = "export%-.*",
     reason = [[A description item with an empty tag ("- :: text") is a plain
       item for Emacs, a description item with an empty term for org.nvim.]],
     input = "^%s*[%-%+] ::",

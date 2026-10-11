@@ -735,6 +735,12 @@ describe("export: Emacs parity (difftest known differences)", function()
     has(out, "[2026-10-01 Thu +1d/3d -2d]")
   end)
 
+  it("a property drawer without :END: is text, its CUSTOM_ID unused", function()
+    local out = html({ "* H1", ":PROPERTIES:", ":CUSTOM_ID: foo", "Text after." })
+    hasnt(out, 'id="foo"')
+    has(out, ":PROPERTIES:\n:CUSTOM<sub>ID</sub>: foo\nText after.")
+  end)
+
   it("a footnote label defined twice exports its last definition", function()
     -- org-export-get-footnote-definition fills its cache with puthash
     local out = ox.export_as("ascii", {
