@@ -133,12 +133,6 @@ return {
   },
   {
     oracle = "export%-.*",
-    reason = [[A timestamp with a habit repeater (<... .+2d/4d>): org.nvim
-      exports it without the "/4d".]],
-    emacs = "[%.%+]%d+[hdwmy]/%d+[hdwmy]",
-  },
-  {
-    oracle = "export%-.*",
     reason = [[A macro that expands to nothing at the start of a line: Emacs
       expands macros before parsing, so the line can become empty (and
       split a paragraph) or stop continuing a list item; org.nvim parses

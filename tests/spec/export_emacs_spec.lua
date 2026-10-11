@@ -712,4 +712,12 @@ describe("export: Emacs parity (difftest known differences)", function()
     local md = ox.export_as("md", lines, { body_only = true })
     hasnt(md, ">")
   end)
+
+  it("a timestamp keeps a habit's repeater deadline (.+2d/4d)", function()
+    local out = ox.export_as("ascii", { "Text <2026-10-01 Thu .+2d/4d> and [2026-10-01 Thu +1d/3d -2d]." }, {
+      body_only = true,
+    })
+    has(out, "<2026-10-01 Thu .+2d/4d>")
+    has(out, "[2026-10-01 Thu +1d/3d -2d]")
+  end)
 end)

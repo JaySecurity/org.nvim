@@ -214,11 +214,15 @@ function P:parse_timestamp(s, p)
     node.hour_end = tonumber(th) or h1
     node.minute_end = tonumber(tm) or mi1
   end
-  local rtype, rval, runit = raw:match("([%.%+]?%+)(%d+)([hdwmy])")
+  local rtype, rval, runit, rest = raw:match("([%.%+]?%+)(%d+)([hdwmy])(.*)$")
   if rtype then
     node.repeater_type = rtype == "++" and "catch-up" or (rtype == ".+" and "restart" or "cumulate")
     node.repeater_value = tonumber(rval)
     node.repeater_unit = runit
+    -- a habit's repeater deadline, as in .+2d/4d
+    local dval, dunit = rest:match("^/(%d+)([hdwmy])")
+    node.repeater_deadline_value = tonumber(dval)
+    node.repeater_deadline_unit = dunit
   end
   local wfirst, wval, wunit = raw:match("(%-?)%-(%d+)([hdwmy])")
   if wval and raw:match("%s%-%-?%d+[hdwmy]") then
