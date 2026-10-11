@@ -56,23 +56,6 @@ local function is_item(l)
   return l:match("^%s*[%-%+] ") or l:match("^%s*[%-%+]$") or l:match("^%s*%d+[%.%)] ") or l:match("^%s*%d+[%.%)]$")
 end
 
---- Whether a plain list item (or a line of its body) comes right before
---- an inline task (blank lines between).
-local function inlinetask_after_list(lines)
-  for i = 2, #lines do
-    if lines[i]:match(INLINETASK) then
-      local j = i - 1
-      while j > 1 and lines[j]:match("^%s*$") do
-        j = j - 1
-      end
-      if is_item(lines[j]) or lines[j]:match("^%s+%S") then
-        return true
-      end
-    end
-  end
-  return false
-end
-
 --- Whether an inline task comes before the first headline.
 local function inlinetask_before_headline(lines)
   for _, l in ipairs(lines) do
@@ -127,10 +110,6 @@ local function duplicate_footnotes(lines)
   end
   return false
 end
-
-local INLINETASK_IN_LIST = [[An inline task right after a plain list:
-      Emacs ends the list before it, org.nvim exports it inside the last
-      item.]]
 
 ---@type difftest.Known[]
 return {
@@ -209,63 +188,6 @@ return {
       folded by Emacs on S-TAB, left open by org.nvim.]],
     input = "^:%u+:$",
     emacs = "h :END:",
-  },
-  -- an inline task after a list, by back-end: the differences that
-  -- putting the task inside the last item makes, and only those
-  {
-    oracle = "export%-ascii",
-    reason = INLINETASK_IN_LIST .. [[ ASCII: the task's box (and what
-      follows it in the item) is indented further and wrapped narrower.]],
-    input = inlinetask_after_list,
-    emacs = "^%s%s%s%s+%S",
-    ours = "^%s%s%s%s+%S",
-    broad = true,
-    same = function(s)
-      return (s:gsub("%s+", ""))
-    end,
-  },
-  {
-    oracle = "export%-html",
-    reason = INLINETASK_IN_LIST .. [[ HTML: the item's text in a <p>, the
-      list closed after the task's </div>.]],
-    input = inlinetask_after_list,
-    either = "</[oud]l>",
-    broad = true,
-    same = function(s)
-      return (s:gsub("</?p>", ""):gsub("</li>", ""):gsub("</dd>", ""):gsub("</[oud]l>", ""):gsub("%s+", ""))
-    end,
-  },
-  {
-    oracle = "export%-latex",
-    reason = INLINETASK_IN_LIST .. [[ LaTeX: the list's \end{...} after
-      the task.]],
-    input = inlinetask_after_list,
-    either = "^\\end{%a+}",
-    same = function(s)
-      return (each_line(s, function(l)
-        return (l:gsub("^\\end{%a+}$", ""))
-      end):gsub("\n", ""))
-    end,
-  },
-  {
-    oracle = "export%-md",
-    reason = INLINETASK_IN_LIST .. [[ Markdown: the task's HTML indented
-      as the item's body.]],
-    input = inlinetask_after_list,
-    either = 'class="inlinetask"',
-    same = function(s)
-      return each_line(s, vim.trim)
-    end,
-  },
-  {
-    oracle = "export%-org",
-    reason = INLINETASK_IN_LIST .. [[ Org: the task (and the item's body
-      lines) indented as the item's body.]],
-    input = inlinetask_after_list,
-    either = "^%s+%S",
-    same = function(s)
-      return each_line(s, vim.trim)
-    end,
   },
   {
     oracle = "export%-.*",
@@ -477,10 +399,12 @@ return {
     reason = [[A date range whose start has a time and whose end has none, as
       <2026-10-01 17:30>--<2026-10-03 Sat>, is exported by Emacs with the
       start's time on the end too (org-element-timestamp-interpreter), by
-      org.nvim without.]],
+      org.nvim without. The longer line can wrap elsewhere, and a line break
+      next to CJK text (日本語) is filled without a space.]],
     emacs = "%a%a%a %d%d:%d%d[%]>&]",
     same = function(s)
-      return (squash(s):gsub("(%d%d%d%d%-%d%d%-%d%d %a+) %d%d:%d%d", "%1"):gsub("(%a%a%a) %d%d:%d%d([%]>])", "%1%2"))
+      s = squash(s):gsub("(%d%d%d%d%-%d%d%-%d%d %a+) %d%d:%d%d", "%1"):gsub("(%a%a%a) %d%d:%d%d([%]>])", "%1%2")
+      return (s:gsub("([\128-\255]) ", "%1"):gsub(" ([\128-\255])", "%1"))
     end,
   },
   {
