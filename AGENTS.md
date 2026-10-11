@@ -76,6 +76,7 @@ make extensions-report                     # each extension against the promotio
 | `lua/org/pickers/` | picker sources and the snacks / fzf-lua / telescope / mini.pick / `vim.ui.select` adapters |
 | `lua/org/extensions/` | optional extensions, each enabled under `extensions` in `setup()` |
 | `lua/org/extensions/transclusion/` | transclusion: options, shared helpers and setup in `init.lua` (the facade); materialized regions, keeping them read-only, rendering, watching sources, actions and saving / export in the parts, beside the keyword, source, highlight and edit modules |
+| `lua/org/extensions/cli/run.lua`, `cli/` | the `org` command line: usage, output, failures, the command table and `main` in `run.lua` (the facade); headless prompts, arguments and config, targets, guarding and saving, the read / info / capture / clock / export commands and the session server in the parts; the write commands in `write.lua` |
 | `lua/org/symbols.lua`, `lua/org/integrations/` | the outline as document symbols, and the aerial.nvim / outline.nvim providers built on it |
 | `lua/aerial/`, `lua/outline/`, `lua/telescope/` | one-line shims those plugins `require` by name; they load only when the plugin is installed |
 | `lua/org/_meta/` | LuaLS type annotations for `setup()` options (no runtime code) |
