@@ -654,8 +654,10 @@ What the agenda pass found:
   macOS arm64 often can't grow (`jit.v` logs "failed to allocate mcode
   memory") and then flushes every trace in Neovim, about 100 times per
   view. Interpreted, the same view took a quarter of the time, and still
-  less than with a larger machine-code area. `org.agenda.items`,
-  `org.agenda.render` and `org.agenda.habits` call `jit.off(true, true)`;
+  less than with a larger machine-code area. `org.agenda.items` (and
+  each of its parts in `agenda/items/`: the call covers only the
+  functions of the file that makes it), `org.agenda.render` and
+  `org.agenda.habits` call `jit.off(true, true)`;
   the parser keeps the JIT, which helps it when it doesn't flush. To check
   a module, load it with the JIT off (`jit.off(loadfile(path), true)`
   in `package.preload`) and compare.

@@ -64,6 +64,7 @@ make extensions-report                     # each extension against the promotio
 | `lua/org/mappings.lua` | default keys, bound to actions |
 | `lua/org/parser.lua`, `element.lua`, `files.lua` | parsing and the per-file cache |
 | `lua/org/agenda/`, `babel/`, `capture/`, `export/`, `table/`, `ui/` | larger subsystems |
+| `lua/org/agenda/items.lua`, `agenda/items/` | collecting agenda entries (not compiled by the JIT, each part included): item fields, building items and headline iteration in the facade; times of day, repeats, date ranges, diary sexps, deadlines and scheduled, timestamps, log mode, the day agenda, the TODO / tags / search / stuck lists and sorting in the parts |
 | `lua/org/fold.lua`, `fold/` | fold levels (`foldexpr` and its cache, a hot path) in `fold.lua`; visibility cycling and commands in `fold/` |
 | `lua/org/structure.lua`, `structure/` | outline editing: shared helpers in the facade; heading insertion, templates, promote/demote, moves, kill ring and clone, sorting, narrowing, toggles, motions in the parts |
 | `lua/org/links.lua`, `links/` | hyperlinks: the facade, and parse / search / open / shell / store / insert / commands parts |
