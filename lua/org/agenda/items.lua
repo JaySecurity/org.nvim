@@ -7,6 +7,17 @@
 --- (`org-entries-lessp`). Items carry the text properties Emacs sorts on:
 --- time of day, urgency, priority, category, habit, ts-date and type.
 
+-- Not compiled by the JIT: building an agenda over many files ran 3 to 5
+-- times faster interpreted. Its loops are short (an entry's dates, its
+-- tags) and branch a lot, so most traces aborted ("leaving loop", closures)
+-- and the many that were compiled filled the machine-code area, which
+-- flushed every compiled trace in Neovim over and over ("failed to allocate
+-- mcode memory", on macOS arm64). See "Performance budgets" in
+-- CONTRIBUTING.md.
+if jit then
+  jit.off(true, true)
+end
+
 local config = require("org.config")
 local date = require("org.date")
 local habits = require("org.agenda.habits")
@@ -669,6 +680,11 @@ end
 ---@return { date: org.Date, start_col: integer, end_col: integer, mid: integer }[]
 local function tr_ranges(line)
   local out, pos = {}, 1
+  -- (a range has a ">-": most planning lines have none, and the pattern
+  -- below goes over the line from each date)
+  if not line:find(">-", 1, true) then
+    return out
+  end
   while true do
     local s, e, a, mid, b = line:find("<(%d%d%d%d%-%d%d%-%d%d.-)>%-%-?%-?()<(%d%d%d%d%-%d%d%-%d%d.-)>", pos)
     if not s then
@@ -754,6 +770,14 @@ local function range_dotime(raw, which)
   return "<" .. (which == "start" and a or b) .. ">"
 end
 
+-- Timestamps in buffer order.
+local function by_position(a, b)
+  if a.line ~= b.line then
+    return a.line < b.line
+  end
+  return (a.start_col or 0) < (b.start_col or 0)
+end
+
 --- The active timestamps of an entry for org-agenda-get-timestamps and
 --- org-agenda-get-blocks, in buffer order: its plain ones (`index` into
 --- `hl.timestamps`), the date ranges that are no timestamp objects
@@ -811,12 +835,7 @@ local function block_sources(hl)
       end
     end
   end
-  table.sort(out, function(a, b)
-    if a.line ~= b.line then
-      return a.line < b.line
-    end
-    return (a.start_col or 0) < (b.start_col or 0)
-  end)
+  table.sort(out, by_position)
   local floor = {}
   for _, t in ipairs(out) do
     local text = t.start_col and t.date.range_end and hl.file.lines[t.line]

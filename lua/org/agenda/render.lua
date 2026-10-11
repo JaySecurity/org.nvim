@@ -6,6 +6,17 @@
 --- from `agenda.prefix_format` (org-agenda-prefix-format), the headline
 --- text, and the tags aligned to the right.
 
+-- Not compiled by the JIT: building an agenda over many files ran 3 to 5
+-- times faster interpreted. Its loops are short (an entry's dates, its
+-- tags) and branch a lot, so most traces aborted ("leaving loop", closures)
+-- and the many that were compiled filled the machine-code area, which
+-- flushed every compiled trace in Neovim over and over ("failed to allocate
+-- mcode memory", on macOS arm64). See "Performance budgets" in
+-- CONTRIBUTING.md.
+if jit then
+  jit.off(true, true)
+end
+
 local config = require("org.config")
 local date = require("org.date")
 local habits = require("org.agenda.habits")
