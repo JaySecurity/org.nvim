@@ -125,7 +125,7 @@ function M.reset_checkbox_state_subtree()
     end
   end
   if vim.api.nvim_get_current_buf() == bufnr then
-    pcall(vim.cmd, s .. "," .. e .. "foldopen!")
+    pcall(vim.api.nvim_command, s .. "," .. e .. "foldopen!")
   end
   if M.automatic_rule("checkbox") then
     file = files.get_buffer(bufnr)
