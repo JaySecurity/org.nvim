@@ -158,7 +158,9 @@ function M.parse_item_line(line)
   end
   local cb, after2 = rest:match("^%[([ xX%-])%](.*)$")
   if cb and (after2 == "" or after2:match("^%s")) then
-    item.checkbox = cb == "x" and "X" or cb
+    -- "[x]" is a box but not a checked one: org-list reads it like "[ ]"
+    -- (counts it as unchecked, toggles it to "[X]")
+    item.checkbox = cb == "x" and " " or cb
     local stripped = after2:gsub("^%s+", "")
     col = col + (#rest - #stripped)
     rest = stripped
