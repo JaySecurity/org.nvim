@@ -48,7 +48,8 @@ make extensions-report                     # each extension against the promotio
   `param-type-mismatch`, `undefined-field`, ...) are demoted to hints,
   except in the paths listed in `scripts/typecheck_strict.txt`
   (`lua/org/api/`, `parser.lua`, `element.lua`, `files.lua`, `date.lua`,
-  `timestamps.lua`), where they fail it too. Fix a
+  `timestamps.lua`, structure, lists, clock, agenda, babel, capture,
+  links, columns, mobile, pickers, health), where they fail it too. Fix a
   new warning (usually a wrong `---@param`/`---@return`, or a missing nil
   check) rather than silencing it. To make a module strict, add its path
   as one line there and fix what `make typecheck` reports; never remove
