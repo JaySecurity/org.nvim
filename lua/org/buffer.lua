@@ -153,6 +153,10 @@ function M.attach(bufnr)
   try("org.clock.attach", "attach", bufnr)
   register_crypt_hook()
   try("org.speed", "attach", bufnr)
+  -- reload_on_change: watch the file for changes made by other programs
+  if config.opts.reload_on_change ~= false and vim.api.nvim_buf_get_name(bufnr) ~= "" then
+    try("org.reload", "attach", bufnr)
+  end
   -- #+STARTUP: linkpreviews / latexpreview, ui.images.startup
   try("org.ui.images.startup", "setup_buffer", bufnr)
   -- startup_with_beamer_mode, #+STARTUP: beamer

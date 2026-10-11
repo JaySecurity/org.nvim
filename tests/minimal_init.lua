@@ -30,13 +30,16 @@ vim.api.nvim_create_autocmd("FileChangedShell", {
 -- quit) headless tests: off unless a test turns them on. The agenda index
 -- stays on (agenda views use it and add to it as they are built), but
 -- without background parsing and watchers, whose timing would vary from
--- run to run (agenda_index_spec.lua turns them on).
+-- run to run (agenda_index_spec.lua turns them on). Buffers aren't reloaded
+-- when their file changes on disk either (specs rewrite fixture files under
+-- open buffers; reload_spec.lua turns it on).
 local config = require("org.config")
 local config_setup = config.setup
 config.setup = function(opts)
   return config_setup(vim.tbl_deep_extend("keep", opts or {}, {
     clock = { auto_clock_resolution = false, ask_before_exiting = false, persist_query_resume = false },
     agenda = { index = { background = false, watch = false } },
+    reload_on_change = false,
   }))
 end
 require("org").setup({
