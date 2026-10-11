@@ -115,13 +115,6 @@ end
 return {
   {
     oracle = "export%-org",
-    reason = [[Org export of an item with a checkbox and nothing else, followed
-      by a sub-list: org.nvim puts the first sub-item on the parent's line
-      ("- [X] - [-]").]],
-    ours = "%[[ X%-]%] [%-%+%d]+[%.%)]? ",
-  },
-  {
-    oracle = "export%-org",
     reason = [[Org export aligns headline tags by byte length instead of
       display width: after a non-ASCII title (日本語) they land too far left.]],
     either = "[\128-\255]",

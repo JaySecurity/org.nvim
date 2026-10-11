@@ -262,7 +262,9 @@ function P:item(L, it, iend, struct, by_line, ltype)
   else
     local cb = skip_blank(L, it.line + 1, ce)
     if cb <= ce then
-      node.pre_blank = cb - it.line - 1
+      -- count-lines from the item's line: 1 when the contents start on the
+      -- next line (org-element-item-parser)
+      node.pre_blank = cb - it.line
       body = vim.list_slice(L, cb, ce)
     end
   end

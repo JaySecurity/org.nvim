@@ -687,4 +687,11 @@ describe("export: Emacs parity (difftest known differences)", function()
       out
     )
   end)
+
+  it("Org export keeps a sub-list under an item with only a checkbox", function()
+    -- the item's pre-blank counts lines from the bullet line
+    -- (org-element-item-parser), so the contents start on a new line
+    local out = ox.export_as("org", { "- [X]", "  - [-] a", "  - [ ] b", "-", "", "  text" }, { body_only = true })
+    eq("- [-] \n  - [-] a\n  - [ ] b\n- \n\n  text\n", out)
+  end)
 end)
