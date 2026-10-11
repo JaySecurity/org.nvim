@@ -201,7 +201,6 @@ local function scope_files(scope, cur, lnum)
       local path = utils.expand(p, dir)
       local f = files.get(path)
       if f then
-        f.display_name = p
         list[#list + 1] = f
       end
     end
@@ -503,7 +502,8 @@ local function clocktable_single(params, ctx, ts, te)
       if t.total > 0 or not param_on(params.fileskip0) then
         text[#text + 1] = "|-"
         if multifile then
-          local name = t.file.display_name or vim.fn.fnamemodify(t.file.filename or "", ":t")
+          -- org-clocktable-write-default: file-name-nondirectory
+          local name = vim.fn.fnamemodify(t.file.filename or "", ":t")
           if param_on(params.filetitle) and t.file.settings.title then
             name = t.file.settings.title
           end
