@@ -153,7 +153,13 @@ function M.build_headline(p)
   if #parts == 1 then
     line = line .. " "
   end
-  return M.with_tags(line, p.tags)
+  line = M.with_tags(line, p.tags)
+  -- a headline with only a TODO keyword keeps a space after it (org-todo
+  -- inserts " KEYWORD " in an empty headline)
+  if #parts == 2 and parts[2] == p.todo and not (p.tags and #p.tags > 0) then
+    line = line .. " "
+  end
+  return line
 end
 
 --- Realign the tags of a headline line.
@@ -207,6 +213,11 @@ function M.update_headline(bufnr, lnum, changes)
     end
     new = M.build_headline(vim.tbl_extend("force", p, { tags = {} })) .. gap .. ":" .. table.concat(p.tags, ":") .. ":"
   end
+  -- a headline without title keeps its trailing space, as Emacs edits
+  -- the keyword and the priority in place ("* " -> "* [#B] ")
+  if (p.title or "") == "" and #(p.tags or {}) == 0 and line:match("%s$") and not new:match("%s$") then
+    new = new .. " "
+  end
   if new ~= line then
     vim.api.nvim_buf_set_lines(bufnr, lnum - 1, lnum, false, { new })
   end
@@ -220,17 +231,20 @@ end
 -- Planning
 ---------------------------------------------------------------------------
 
---- Build a planning line from { scheduled, deadline, closed } dates.
-function M.build_planning(planning, indent)
+local PLANNING_WORD = { closed = "CLOSED", deadline = "DEADLINE", scheduled = "SCHEDULED" }
+
+--- Build a planning line from { scheduled, deadline, closed } dates, in
+--- the order of `order` (kinds; default closed, deadline, scheduled).
+---@param order? string[]
+function M.build_planning(planning, indent, order)
   local parts = {}
-  if planning.closed then
-    parts[#parts + 1] = "CLOSED: " .. planning.closed:to_string()
-  end
-  if planning.deadline then
-    parts[#parts + 1] = "DEADLINE: " .. planning.deadline:to_string()
-  end
-  if planning.scheduled then
-    parts[#parts + 1] = "SCHEDULED: " .. planning.scheduled:to_string()
+  local seen = {}
+  local all = vim.list_extend(vim.deepcopy(order or {}), { "closed", "deadline", "scheduled" })
+  for _, kind in ipairs(all) do
+    if planning[kind] and not seen[kind] then
+      seen[kind] = true
+      parts[#parts + 1] = PLANNING_WORD[kind] .. ": " .. planning[kind]:to_string()
+    end
   end
   if #parts == 0 then
     return nil
@@ -239,8 +253,12 @@ function M.build_planning(planning, indent)
 end
 
 --- Set (or remove with nil) a planning entry for the headline at `lnum`.
+--- Like org-add-planning-info, a new or changed entry goes first and the
+--- others keep their order; with `opts.in_place` (a repeater shifting the
+--- date, as org-auto-repeat-maybe does), it stays where it is.
 ---@param kind "scheduled"|"deadline"|"closed"
-function M.set_planning(bufnr, lnum, kind, value)
+---@param opts? { in_place?: boolean }
+function M.set_planning(bufnr, lnum, kind, value, opts)
   local file = files.get_buffer(bufnr)
   local hl = file:headline_at(lnum)
   if not hl then
@@ -260,7 +278,31 @@ function M.set_planning(bufnr, lnum, kind, value)
   if hl.planning_line then
     indent = file.lines[hl.planning_line]:match("^(%s*)")
   end
-  local line = M.build_planning(planning, indent)
+  -- the kinds in the order of the planning line
+  local order = {}
+  if hl.planning_line then
+    local found = {}
+    for pos, word in file.lines[hl.planning_line]:gmatch("()(%u+):") do
+      local k = word:lower()
+      if PLANNING_WORD[k] == word and not found[k] then
+        found[k] = true
+        order[#order + 1] = { pos = pos, kind = k }
+      end
+    end
+    table.sort(order, function(a, b)
+      return a.pos < b.pos
+    end)
+    order = vim.tbl_map(function(o)
+      return o.kind
+    end, order)
+  end
+  if value and not (opts and opts.in_place and vim.tbl_contains(order, kind)) then
+    order = vim.tbl_filter(function(k)
+      return k ~= kind
+    end, order)
+    table.insert(order, 1, kind)
+  end
+  local line = M.build_planning(planning, indent, order)
   if hl.planning_line then
     if line then
       vim.api.nvim_buf_set_lines(bufnr, hl.planning_line - 1, hl.planning_line, false, { line })
@@ -704,13 +746,30 @@ function M.shift_levels(lines, delta)
   return out
 end
 
---- Normalize subtree lines so the first headline has `level`.
+--- Normalize subtree lines so the first headline has `level` (only the
+--- stars change).
 function M.relevel(lines, level)
   local first = lines[1] and (lines[1]:match("^(%*+)") or "")
   if not first or first == "" then
     return lines
   end
   return M.shift_levels(lines, level - #first)
+end
+
+--- Normalize subtree lines so the first headline has `level`, as
+--- org-paste-subtree does for refile and archive: each headline promoted
+--- or demoted like org-promote / org-demote (tags realigned, inline tasks
+--- left alone, the indentation fixed with `adapt_indentation`).
+---@param lines string[]
+---@param level integer
+---@param todo_cfg? table the TODO keywords (default: the global ones)
+function M.paste_relevel(lines, level, todo_cfg)
+  local first = lines[1] and (lines[1]:match("^(%*+)") or "")
+  if not first or first == "" or level == #first then
+    return lines
+  end
+  require("org.structure")
+  return require("org.structure.shared").relevel(lines, level - #first, todo_cfg)
 end
 
 return M

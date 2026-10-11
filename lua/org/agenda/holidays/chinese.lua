@@ -836,7 +836,8 @@ end
 
 --- holiday-chinese-qingming in window W.
 local function qingming_in(w)
-  local y = astro.month_visible_p(w, 4)
+  -- (without N, month_visible_p returns one year, not a list)
+  local y = astro.month_visible_p(w, 4) --[[@as integer?]]
   if not y then
     return {}
   end
@@ -845,7 +846,8 @@ end
 
 --- holiday-chinese-winter-solstice in window W.
 local function winter_solstice_in(w)
-  local y = astro.month_visible_p(w, 12)
+  -- (without N, month_visible_p returns one year, not a list)
+  local y = astro.month_visible_p(w, 12) --[[@as integer?]]
   if not y then
     return {}
   end

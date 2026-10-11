@@ -830,6 +830,20 @@ local function buf_path(b)
   return c
 end
 
+-- path -> its resolved path, for the files looked up (an agenda looks up
+-- every agenda file on each build): resolving a path is a system call per
+-- directory in it. Only paths that exist; dropped with buf_paths below.
+local real_paths = {}
+
+local function path_realpath(path)
+  local real = real_paths[path]
+  if not real then
+    real = M.realpath(path)
+    real_paths[path] = real
+  end
+  return real
+end
+
 local function buf_realpath(c)
   if c.real == nil then
     c.real = M.realpath(c.name) or false
@@ -848,6 +862,7 @@ vim.api.nvim_create_autocmd({ "FocusGained", "ShellCmdPost", "FileChangedShellPo
   group = M.augroup,
   callback = function()
     buf_paths = {}
+    real_paths = {}
   end,
 })
 
@@ -863,7 +878,7 @@ function M.find_buffer(path)
       end
     end
   end
-  local real = M.realpath(path)
+  local real = path_realpath(path)
   if real then
     for _, b in ipairs(bufs) do
       if vim.api.nvim_buf_is_loaded(b) then

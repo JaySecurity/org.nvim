@@ -4,8 +4,9 @@
 --   local gen = require("tests.helpers.gen")
 --   local lines = gen.headlines(10000)
 --
--- Every generator is deterministic (no randomness), so a timing compares the
--- same text from run to run, and returns a list of lines.
+-- Every generator is deterministic (no randomness, or a generator with a
+-- fixed seed), so a timing compares the same text from run to run, and
+-- returns a list of lines.
 local M = {}
 
 local WORDS = { "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta" }
@@ -256,6 +257,143 @@ function M.links_footnotes(n)
   out[#out + 1] = "* Footnotes"
   for i = 1, n do
     out[#out + 1] = ("[fn:%d] Note %d."):format(i, i)
+  end
+  return out
+end
+
+local DAY_NAMES = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" }
+
+--- An Org date `days` days from `anchor` ({ year, month, day }): "2026-05-13
+--- Wed", with `time` ("09:00") when given.
+local function org_date(anchor, days, time)
+  local t = os.time({ year = anchor.year, month = anchor.month, day = anchor.day + days, hour = 12 })
+  local d = os.date("*t", t) --[[@as osdate]]
+  return ("%04d-%02d-%02d %s%s"):format(d.year, d.month, d.day, DAY_NAMES[d.wday], time and (" " .. time) or "")
+end
+
+--- A realistic agenda corpus for benchmarks (scripts/bench.lua): `files`
+--- files of `per_file` headlines each (default 200 x 250, 50,000
+--- headlines), around the date `anchor` (default 2026-05-13). Headlines
+--- are one to three levels deep; about half have a TODO keyword of
+--- `#+TODO: TODO NEXT WAITING | DONE CANCELLED`, and they have
+--- priorities, tags from a pool of 30 (with FILETAGS), SCHEDULED (a third)
+--- and DEADLINE (an eighth) dates within two months of the anchor, some
+--- with times, repeaters (+1w, .+1d, ++1m) and warning periods, habits
+--- (STYLE habit with a logbook of state changes), properties, clocks,
+--- plain active timestamps and a body. Pseudo-random from a fixed seed:
+--- the same corpus every time. Returns a list of { name, lines }.
+---@param files? integer
+---@param per_file? integer
+---@param anchor? { year: integer, month: integer, day: integer }
+---@return { name: string, lines: string[] }[]
+function M.agenda_corpus(files, per_file, anchor)
+  files, per_file = files or 200, per_file or 250
+  anchor = anchor or { year = 2026, month = 5, day = 13 }
+  local seed = 12345
+  -- (Park-Miller: math.random differs between builds; the products stay
+  -- below 2^53, exact in a double)
+  local function rand(n)
+    seed = (seed * 16807) % 2147483647
+    return seed % n + 1
+  end
+  local function pick(list)
+    return list[rand(#list)]
+  end
+  local tags = {}
+  for i = 1, 30 do
+    tags[i] = ({ "work", "home", "errand", "call", "email", "read", "urgent", "project" })[(i - 1) % 8 + 1]
+      .. (i > 8 and tostring(math.floor((i - 1) / 8)) or "")
+  end
+  local kws = { "TODO", "TODO", "TODO", "NEXT", "WAITING", "DONE", "CANCELLED" }
+  local repeaters = { " +1w", " .+1d", " ++1m", " +2d" }
+  local out = {}
+  for f = 1, files do
+    local lines = {
+      "#+TITLE: Project " .. f,
+      "#+TODO: TODO NEXT WAITING | DONE CANCELLED",
+      "#+FILETAGS: :" .. pick(tags) .. ":",
+      "#+CATEGORY: proj" .. f,
+      "",
+    }
+    local level = 1
+    for h = 1, per_file do
+      if h > 1 then
+        level = math.max(1, math.min(3, level + ({ -1, 0, 0, 1 })[rand(4)]))
+      end
+      local kw = rand(2) == 1 and pick(kws) or nil
+      local habit = kw == "TODO" and rand(40) == 1
+      local title = ("%s %s%sTask %d.%d %s"):format(
+        string.rep("*", level),
+        kw and (kw .. " ") or "",
+        rand(5) == 1 and ("[#" .. pick({ "A", "B", "C" }) .. "] ") or "",
+        f,
+        h,
+        M.prose(10 + rand(30))
+      )
+      if rand(3) == 1 then
+        local t1, t2 = pick(tags), pick(tags)
+        title = title .. "   :" .. t1 .. (t2 ~= t1 and (":" .. t2) or "") .. ":"
+      end
+      lines[#lines + 1] = title
+      local planning = {}
+      if habit then
+        planning[#planning + 1] = ("SCHEDULED: <%s .+%dd>"):format(org_date(anchor, rand(5) - 3), rand(3))
+      else
+        if rand(3) == 1 then
+          local time = rand(4) == 1 and ("%02d:%02d"):format(7 + rand(12), (rand(4) - 1) * 15) or nil
+          local rep = rand(12) == 1 and pick(repeaters) or ""
+          planning[#planning + 1] = ("SCHEDULED: <%s%s>"):format(org_date(anchor, rand(120) - 60, time), rep)
+        end
+        if rand(8) == 1 then
+          local warn = rand(3) == 1 and (" -" .. rand(7) .. "d") or ""
+          planning[#planning + 1] = ("DEADLINE: <%s%s>"):format(org_date(anchor, rand(120) - 60), warn)
+        end
+      end
+      if kw == "DONE" or kw == "CANCELLED" then
+        planning[#planning + 1] = ("CLOSED: [%s]"):format(org_date(anchor, -rand(30), "18:00"))
+      end
+      if #planning > 0 then
+        lines[#lines + 1] = table.concat(planning, " ")
+      end
+      if habit or rand(4) == 1 then
+        lines[#lines + 1] = ":PROPERTIES:"
+        lines[#lines + 1] = ":ID: c" .. f .. "-" .. h
+        if habit then
+          lines[#lines + 1] = ":STYLE: habit"
+        else
+          lines[#lines + 1] = ":EFFORT: " .. rand(3) .. ":00"
+        end
+        lines[#lines + 1] = ":END:"
+      end
+      if habit then
+        lines[#lines + 1] = ":LOGBOOK:"
+        for d = 1, 10 do
+          lines[#lines + 1] = ('- State "DONE"       from "TODO"       [%s]'):format(
+            org_date(anchor, -d * rand(3), "08:00")
+          )
+        end
+        lines[#lines + 1] = ":END:"
+      elseif rand(6) == 1 then
+        local d = rand(60) - 50
+        lines[#lines + 1] = ":LOGBOOK:"
+        lines[#lines + 1] = ("CLOCK: [%s]--[%s] =>  1:30"):format(
+          org_date(anchor, d, "09:00"),
+          org_date(anchor, d, "10:30")
+        )
+        lines[#lines + 1] = ":END:"
+      end
+      if rand(20) == 1 then
+        lines[#lines + 1] = ("Meeting on <%s>."):format(org_date(anchor, rand(60) - 30, "14:00"))
+      end
+      for _ = 1, rand(3) - 1 do
+        lines[#lines + 1] = M.prose(40 + rand(60))
+      end
+      if rand(10) == 1 then
+        lines[#lines + 1] = "- [ ] " .. M.prose(20)
+        lines[#lines + 1] = "- [X] " .. M.prose(20)
+      end
+    end
+    out[#out + 1] = { name = ("project%03d.org"):format(f), lines = lines }
   end
   return out
 end

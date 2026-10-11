@@ -92,25 +92,8 @@ local function latex_opts()
   return config.opts.ui.latex_preview or {}
 end
 
---- `#+STARTUP` words of the buffer in order: the last of a pair wins.
-local function startup(bufnr)
-  local links, latex = opts().startup, latex_opts().startup
-  local settings = require("org.files").get_buffer(bufnr).settings.keywords.STARTUP or {}
-  for _, words in ipairs(settings) do
-    for w in words:lower():gmatch("%S+") do
-      if w == "inlineimages" or w == "linkpreviews" then
-        links = true
-      elseif w == "noinlineimages" or w == "nolinkpreviews" then
-        links = false
-      elseif w == "latexpreview" then
-        latex = true
-      elseif w == "nolatexpreview" then
-        latex = false
-      end
-    end
-  end
-  return links, latex
-end
+-- `#+STARTUP` words of the buffer (org.ui.images.startup)
+local startup = require("org.ui.images.startup").startup
 
 ---------------------------------------------------------------------------
 -- Terminal cell size

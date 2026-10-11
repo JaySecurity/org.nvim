@@ -500,12 +500,14 @@ function M.parse_property_line(line)
 end
 
 local function parse_property_drawer(lines, from, to)
-  if from > to or not lines[from]:match("^%s*:PROPERTIES:%s*$") then
+  -- org-property-drawer-re, matched with case-fold-search like
+  -- org-element does: :properties: and :end: open and close one too
+  if from > to or not lines[from]:match("^%s*:[Pp][Rr][Oo][Pp][Ee][Rr][Tt][Ii][Ee][Ss]:%s*$") then
     return nil
   end
   local bases, extra, order = {}, {}, {}
   local j = from + 1
-  while j <= to and not lines[j]:match("^%s*:END:%s*$") do
+  while j <= to and not lines[j]:match("^%s*:[Ee][Nn][Dd]:%s*$") do
     local key, value = M.parse_property_line(lines[j])
     if not key then
       return nil
@@ -784,18 +786,35 @@ function parse_section(hl, lines, from, to, log_drawer, min_inline)
   hl.timestamps = {}
   hl.block_ranges = {}
 
-  -- An inline task's heading ends the section's text: like
-  -- org-back-to-heading, what follows belongs to the inline task.
+  -- Inline tasks in the section are not its text: an inline task's lines
+  -- run to its END line, or without one (like org-clock-sum reads them)
+  -- up to the next heading. What follows an END line is the section's
+  -- again for org-element and org-clock-sum, whose clocks count for the
+  -- entry; but neither the agenda nor org-entry-get (TIMESTAMP) give its
+  -- timestamps to the entry, so only its clocks are read. skip[k]: the
+  -- last line of the inline task whose heading is line k.
+  ---@type table<integer, integer>|nil
+  local skip
   if min_inline then
-    for k = from, to do
+    local k = from
+    while k <= to do
       local l = lines[k]
-      if l:byte(1) == 42 then
-        local lv = M.headline_level(l)
-        if lv and lv >= min_inline then
-          to = k - 1
-          break
+      local lv = l:byte(1) == 42 and M.headline_level(l)
+      if lv and lv >= min_inline then
+        local stop = to
+        for j = k + 1, to do
+          local lj = lines[j]
+          local lvj = lj:byte(1) == 42 and M.headline_level(lj)
+          if lvj then
+            stop = (lvj >= min_inline and lj:match("^%*+%s+END%s*$")) and j or j - 1
+            break
+          end
         end
+        skip = skip or {}
+        skip[k] = stop
+        k = stop
       end
+      k = k + 1
     end
   end
 
@@ -861,9 +880,25 @@ function parse_section(hl, lines, from, to, log_drawer, min_inline)
   -- found once for all the drawers before it
   ---@type integer|false
   local next_end = 0
+  -- past an inline task: only clocks are read
+  local tail = false
   while i <= to do
+    while skip and skip[i] do
+      i = skip[i] + 1
+      tail = true
+    end
+    if i > to then
+      break
+    end
     local line = lines[i]
-    if i <= verbatim_end then
+    if tail then
+      if i > verbatim_end and line:find("^%s*#%+") then
+        verbatim_end = M.verbatim_block_end(lines, i, to) or verbatim_end
+      end
+      if i > verbatim_end and line:find("\\begin{", 1, true) then
+        verbatim_end = latex_environment_end(lines, i, to) or verbatim_end
+      end
+    elseif i <= verbatim_end then
       -- inside a src/example/export/comment block or a LaTeX
       -- environment: no timestamps, but org-agenda-get-blocks only skips
       -- src blocks
@@ -925,7 +960,9 @@ function parse_section(hl, lines, from, to, log_drawer, min_inline)
         add_block_ranges(hl, line, i)
       end
     end
-    local clock = line:find("CLOCK:", 1, true) and M.parse_clock_line(line)
+    -- a CLOCK line in a block or a LaTeX environment is text, not a clock
+    -- (org-clock-sum only counts clock elements)
+    local clock = i > verbatim_end and line:find("CLOCK:", 1, true) and M.parse_clock_line(line)
     if clock then
       clock.line = i
       hl.clocks[#hl.clocks + 1] = clock
@@ -1342,8 +1379,30 @@ local function inheritable(cfg, tag)
   return true
 end
 
+--- Deduplicate `list` keeping the last occurrence of each tag, as Emacs'
+--- (nreverse (delete-dups (nreverse ...))) in org-get-tags: "if a tag
+--- appears multiple times, only the most local tag is returned".
+---@param list string[]
+---@return string[]
+local function dedup_last(list)
+  local seen, rev = {}, {}
+  for i = #list, 1, -1 do
+    local t = list[i]
+    if not seen[t] then
+      seen[t] = true
+      rev[#rev + 1] = t
+    end
+  end
+  local out = {}
+  for i = #rev, 1, -1 do
+    out[#out + 1] = rev[i]
+  end
+  return out
+end
+
 --- The tags `parent` passes down to its children (filetags first, then
---- the ancestors' from the top, deduplicated). Memoized on the headline:
+--- the ancestors' from the top, deduplicated keeping the last, most local
+--- occurrence, as org-get-tags does). Memoized on the headline:
 --- the agenda asks for the tags of every headline several times, and the
 --- memo is reused while the options, the own tags and the parent's list
 --- are the same tables.
@@ -1361,17 +1420,13 @@ local function passed_down(file, parent, cfg)
   then
     return c.list
   end
-  local seen, list = {}, {}
-  for _, t in ipairs(up or {}) do
-    seen[t] = true
-    list[#list + 1] = t
-  end
+  local all = vim.list_slice(up or {})
   for _, t in ipairs(src) do
-    if not seen[t] and inheritable(cfg, t) then
-      seen[t] = true
-      list[#list + 1] = t
+    if inheritable(cfg, t) then
+      all[#all + 1] = t
     end
   end
+  local list = dedup_last(all)
   rawset(holder, "_tags_down", {
     src = src,
     up = up,
@@ -1382,27 +1437,19 @@ local function passed_down(file, parent, cfg)
   return list
 end
 
---- All tags: filetags + inherited + own (deduplicated, own last).
+--- All tags, as Emacs' org-get-tags: filetags, then the ancestors' from
+--- the top, then the own tags as written; a tag that appears more than
+--- once is kept only at its last (most local) place, so a tag both
+--- inherited and set on the headline counts as its own.
 ---@param opts? { inherited?: boolean } inherited=false -> own tags only
 function Headline:get_tags(opts)
-  if opts and opts.inherited == false then
+  local cfg = require("org.config").opts
+  if (opts and opts.inherited == false) or cfg.use_tag_inheritance == false then
     return vim.deepcopy(self.tags)
   end
-  local cfg = require("org.config").opts
-  local seen, out = {}, {}
-  if cfg.use_tag_inheritance ~= false then
-    for _, t in ipairs(passed_down(self.file, self.parent, cfg)) do
-      seen[t] = true
-      out[#out + 1] = t
-    end
-  end
-  for _, t in ipairs(self.tags) do
-    if not seen[t] then
-      seen[t] = true
-      out[#out + 1] = t
-    end
-  end
-  return out
+  local all = vim.list_slice(passed_down(self.file, self.parent, cfg))
+  vim.list_extend(all, self.tags)
+  return dedup_last(all)
 end
 
 --- Inherited tags only (not own).
@@ -1643,6 +1690,13 @@ end
 
 --- Total clocked minutes in this headline's own section (closed clocks),
 --- optionally restricted to clocks starting within [from_min, to_min).
+--- With `include_children`, the clocks of every headline in the subtree
+--- count too, inline tasks included: org-clock-sum adds an inline task's
+--- time to each enclosing headline like a deeper one's.
+---@param from_min? integer
+---@param to_min? integer
+---@param include_children? boolean
+---@return integer
 function Headline:clocked_minutes(from_min, to_min, include_children)
   local total = 0
   local function sum(h)
@@ -1654,13 +1708,20 @@ function Headline:clocked_minutes(from_min, to_min, include_children)
         end
       end
     end
-    if include_children then
-      for _, child in ipairs(h.children) do
-        sum(child)
-      end
-    end
   end
   sum(self)
+  if include_children then
+    -- file.headlines is in buffer order and holds the inline tasks, which
+    -- are no one's children
+    local hls = self.file.headlines
+    for i = self.index + 1, #hls do
+      local h = hls[i]
+      if h.line > self.end_line then
+        break
+      end
+      sum(h)
+    end
+  end
   return total
 end
 

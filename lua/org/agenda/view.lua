@@ -21,12 +21,72 @@ local ns_marks = vim.api.nvim_create_namespace("org.agenda.marks")
 -- the new dates shown after a date change (org-agenda-show-new-time)
 local ns_newtime = vim.api.nvim_create_namespace("org.agenda.newtime")
 
+--- The filters of an agenda buffer (org-agenda-tag-filter, ...).
+---@class org.agenda.Filters
+---@field tag string[]
+---@field category string[]
+---@field regexp string[]
+---@field effort string[]
+---@field top? { key?: string, title: string } the top headline filter
+
+---@return org.agenda.Filters
 local function empty_filters()
   return { tag = {}, category = {}, regexp = {}, effort = {}, top = nil }
 end
 
+--- An agenda view: the blocks of an agenda command.
+---@class org.agenda.View
+---@field blocks table[]
+---@field title? string
+---@field multi? boolean a composite command (several blocks)
+---@field key? string the command's key
+---@field settings? table the command's `settings` (agenda options of the whole view)
+---@field presets? table filter presets (org-agenda-tag-filter-preset, ...)
+
+--- The state of an agenda buffer.
+---@class org.agenda.State
+---@field buf? integer
+---@field win? integer
+---@field win_mode? string
+---@field prev_win? integer
+---@field prev_buf? integer
+---@field layout? table window layout to restore (org-agenda-restore-windows-after-quit)
+---@field name string
+---@field key? string
+---@field view? org.agenda.View
+---@field anchor? integer first day of the agenda span; nil = computed from today
+---@field span? string|integer span override from v* keys
+---@field align boolean
+---@field log_mode boolean|string|string[] false | true | "all" | "clockcheck" | "only" | item list
+---@field clockreport boolean|table
+---@field follow boolean
+---@field entry_text boolean|integer true or the number of lines
+---@field archives false|"trees"|"files"
+---@field inactive boolean
+---@field time_grid_off boolean
+---@field no_deadlines boolean
+---@field include_diary? boolean nil = agenda.include_diary (`D` toggles it)
+---@field dim_blocked boolean|"invisible"
+---@field filters org.agenda.Filters
+---@field limits table
+---@field marks table
+---@field line_items table<integer, org.AgendaItem>
+---@field line_parts table<integer, table[]> line -> { start_col, end_col, group, priority? }
+---@field line_hl_groups table<integer, string>
+---@field line_ctx? table line -> render context of its item (for change_all_lines)
+---@field day_lines table<integer, integer> line -> day
+---@field info table
+---@field restrict? table
+---@field new_buffers table
+---@field block_starts? integer[]
+---@field entry_text_lines? table
+---@field filter_sig? string
+---@field indirect_buf? integer
+---@field tlend? integer
+
 --- State of one agenda buffer. Without `agenda.sticky` there is a single
 --- agenda buffer (like Emacs); with it, one buffer per agenda command.
+---@return org.agenda.State
 local function new_state()
   return {
     buf = nil,
@@ -71,7 +131,7 @@ M.state = S
 
 --- The state of agenda buffer `buf` (nil when it is none).
 ---@param buf integer
----@return table|nil
+---@return org.agenda.State|nil
 function M.state_of(buf)
   return states[buf]
 end
@@ -82,7 +142,8 @@ end
 --- command's let-bound options (org-agenda-finalize, org-agenda-mode);
 --- options of a block of a composite command don't count there.
 ---@param name string
----@param state? table
+---@param state? org.agenda.State
+---@return any
 function M.command_option(name, state)
   state = state or S
   local s = state.view and state.view.settings
@@ -260,13 +321,16 @@ function M.effort_matches(it, f)
 end
 
 --- Identifies the top-level headline an item belongs to.
+---@param it org.AgendaItem
+---@return string|nil
 function M.top_key(it)
   local h = it.headline
   if not h then
     return nil
   end
-  while h.parent do
-    h = h.parent
+  local parent = h.parent
+  while parent do
+    h, parent = parent, parent.parent
   end
   return (it.filename or tostring(it.bufnr)) .. ":" .. h.line
 end
@@ -663,7 +727,8 @@ M.refresh_hooks = {}
 
 --- Re-render into the agenda buffer.
 function M.refresh()
-  if not S.view or not S.buf or not vim.api.nvim_buf_is_valid(S.buf) then
+  local buf = S.buf
+  if not S.view or not buf or not vim.api.nvim_buf_is_valid(buf) then
     return
   end
   local b = M.build(win_width())
@@ -673,7 +738,6 @@ function M.refresh()
   S.block_starts = b.block_starts or { 1 }
   S.entry_text_lines = b.entry_text_lines or {}
   S.line_ctx = b.line_ctx or {}
-  local buf = S.buf
   vim.bo[buf].modifiable = true
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, b.lines)
   vim.bo[buf].modifiable = false
@@ -744,7 +808,7 @@ function M.fit_window()
   local total = vim.o.lines - vim.o.cmdheight
   local n = vim.api.nvim_buf_line_count(S.buf)
   local height = math.max(math.floor(total * lo), math.min(n, math.floor(total * hi)))
-  pcall(vim.api.nvim_win_set_height, win, math.max(height, 1))
+  pcall(vim.api.nvim_win_set_config, win, { height = math.max(height, 1) })
 end
 
 function M.render_marks()

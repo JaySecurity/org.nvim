@@ -93,7 +93,7 @@ local function show_file(path, lnum, insert)
   vim.api.nvim_win_set_buf(win, bufnr)
   lnum = math.min(lnum or vim.api.nvim_buf_line_count(bufnr), vim.api.nvim_buf_line_count(bufnr))
   vim.api.nvim_win_set_cursor(win, { lnum, #(vim.api.nvim_buf_get_lines(bufnr, lnum - 1, lnum, false)[1] or "") })
-  pcall(vim.cmd, "normal! zv")
+  pcall(vim.api.nvim_command, "normal! zv")
   if insert and #vim.api.nvim_list_uis() > 0 then
     vim.cmd("startinsert!")
   end
@@ -189,7 +189,7 @@ end
 --- first child with `first_child`), past trailing blank lines backwards.
 local function insert_point(bufnr, lnum, first_child)
   local file = require("org.files").get_buffer(bufnr)
-  local hl = file:headline_at(lnum)
+  local hl = assert(file and file:headline_at(lnum), "no headline at the insert point")
   local stop = hl.end_line
   if first_child and hl.children[1] then
     stop = hl.children[1].line - 1
@@ -310,7 +310,7 @@ local function org_file_entry(path, d1, d2)
     local a, b = math.min(d1, d2), math.max(d1, d2)
     lnum = insert_entry(bufnr, a, text, ts(a) .. "--" .. ts(b))
   end
-  if text:match("%S") then
+  if text and text:match("%S") then
     local what = kind:sub(1, 1):upper() .. kind:sub(2)
     utils.notify(what .. " entry added to " .. utils.abbreviate(path))
     -- from the agenda (not from the calendar)

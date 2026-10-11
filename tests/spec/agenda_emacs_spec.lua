@@ -645,3 +645,150 @@ describe("agenda blocks that org-tr-regexp finds (difftest #243)", function()
     eq(16 * 60 + 30, list[1].end_time)
   end)
 end)
+
+describe("agenda times of date ranges, as Emacs reads them (difftest seeds 765, 8954028)", function()
+  local A = date.days_from_civil(2026, 9, 28)
+  --- "type time[-end][/sort]" of each entry on day `d` (today Thursday
+  --- 2026-10-01, as in Emacs' run), sorted
+  local function entries(lines, d)
+    local file = parser.parse(lines, "/tmp/agenda_range_times.org")
+    local out = {}
+    local function hm(m)
+      return m and string.format("%d:%02d", math.floor(m / 60), m % 60) or "-"
+    end
+    for _, it in ipairs(items.agenda({ file }, d, d, { today = A + 3 })[d] or {}) do
+      local s = it.type .. " " .. hm(it.time)
+      if it.end_time then
+        s = s .. "-" .. hm(it.end_time)
+      end
+      if it.sort_time then
+        s = s .. "/" .. hm(it.sort_time)
+      end
+      out[#out + 1] = s
+    end
+    table.sort(out)
+    return out
+  end
+
+  -- org-agenda-get-blocks passes the range as written ("<a>--<b>" on a
+  -- day it starts and ends, "<a>" on its first day, "<b>" on its last) to
+  -- org-agenda-format-item, which takes a timestamp's time
+  -- (org-stamp-time-of-day-regexp: a weekday is needed, and a same-day
+  -- end only with the same date and day) or else the first plain time
+  it("a one-day range takes the first time in it", function()
+    eq({ "range 13:15" }, entries({ "** DONE", "<2026-09-28 Mon>--<2026-09-28 13:15>" }, A))
+    eq({ "range 10:00-13:15" }, entries({ "* a", "<2026-09-28 Mon 10:00>--<2026-09-28 Mon 13:15>" }, A))
+    eq({ "range 10:00" }, entries({ "* b", "<2026-09-28 Mon 10:00>--<2026-09-28 13:15>" }, A))
+    -- the end's time is shown, the entry sorts by the first time
+    eq({ "range 13:15/10:00" }, entries({ "* c", "<2026-09-28 10:00>--<2026-09-28 Mon 13:15>" }, A))
+  end)
+
+  it("a range's first and last days take their own stamp's time, else the headline's", function()
+    local lines = { "* g 8:30 meet", "<2026-09-30 Wed>--<2026-10-01 Thu>" }
+    eq({ "range 8:30" }, entries(lines, A + 2))
+    eq({ "range 8:30" }, entries(lines, A + 3))
+  end)
+
+  -- org-agenda-get-scheduled and -deadlines pass the planning value from
+  -- its first " H:MM" on (no closing >)
+  it("a SCHEDULED or DEADLINE range takes the first time in it", function()
+    local d = { "* d", "SCHEDULED: <2026-09-28 Mon>--<2026-09-30 Wed 11:15>" }
+    eq({ "range -", "scheduled 11:15" }, entries(d, A))
+    eq({ "range 11:15" }, entries(d, A + 2))
+    local e = { "* e", "SCHEDULED: <2026-09-29 Tue 10:00>--<2026-09-29 Tue 13:15>" }
+    eq({ "range 10:00-13:15", "scheduled 10:00" }, entries(e, A + 1))
+    local i = { "* i", "DEADLINE: <2026-10-03 Sat>--<2026-10-03 Sat 9:15-10:00>" }
+    eq({ "deadline 9:15-10:00", "range 9:15-10:00" }, entries(i, A + 5))
+  end)
+
+  -- org-tr-regexp's start runs over a `>`: these are one range for Emacs,
+  -- and their timestamps no plain timestamp entries (org-at-date-range-p)
+  it("a range whose start runs over a > is one entry, at the start's time", function()
+    local y = { "* y", "SCHEDULED: <2026-10-02 Fri 06:00> DEADLINE: <2026-09-28 Mon>--<2026-10-02 Fri 09:45>" }
+    eq({ "range 6:00", "scheduled 6:00" }, entries(y, A + 4))
+    eq({ "deadline 9:45" }, entries(y, A))
+    eq({ "range 6:00" }, entries({ "* z", "<2026-10-02 06:00> Mon>--<2026-10-02 09:45>" }, A + 4))
+    eq(
+      { "range 6:00" },
+      entries({ "* x", "<2026-10-02 Fri 06:00> text <2026-09-30 Wed>--<2026-10-02 Fri 09:45>" }, A + 4)
+    )
+  end)
+end)
+
+describe("agenda repeats of a plain timestamp", function()
+  -- org-agenda-get-timestamps finds repeats with a regexp whose repeater
+  -- ends the stamp ("+1w>"): with a warning delay or a habit's "/2w"
+  -- after it, the stamp shows on its own date only (as Emacs shows it)
+  local A = date.days_from_civil(2026, 9, 28)
+  local function days(stamp)
+    local file = parser.parse({ "* x", stamp }, "/tmp/agenda_repeats.org")
+    local by_day = items.agenda({ file }, A, A + 6, { today = A + 3 })
+    local out = {}
+    for d = A, A + 6 do
+      if by_day[d] and #by_day[d] > 0 then
+        out[#out + 1] = d - A
+      end
+    end
+    return out
+  end
+
+  it("repeats only when the repeater ends the stamp", function()
+    eq({}, days("<2026-09-24 Thu +1w -4d>"))
+    eq({ 3 }, days("<2026-09-24 Thu -4d +1w>"))
+    eq({}, days("<2026-09-24 Thu .+1w/2w>"))
+    eq({ 0 }, days("<2026-09-28 Mon +1d -1d>"))
+    eq({ 0, 1, 2, 3, 4, 5, 6 }, days("<2026-09-28 Mon ++1d>"))
+    eq({ 1, 3, 5 }, days("<2026-09-29 Tue 10:00 +2d>"))
+  end)
+end)
+
+describe("agenda lines of a headline with no title", function()
+  -- Emacs trims the headline text: "** TODO" is "TODO", with no space after
+  -- the keyword or priority (lines from Emacs' TODO list and tags match)
+  local files = require("org.files")
+  local path
+
+  local function lines(open)
+    vim.fn.writefile({
+      "* TODO",
+      "* TODO [#A]",
+      "* TODO :work:",
+      "* TODO [#B] :work:",
+      "* DONE",
+      "SCHEDULED: <2026-10-01 Thu>",
+    }, path)
+    files.invalidate(path)
+    open(require("org.agenda"))
+    local name = vim.fn.fnamemodify(path, ":t:r")
+    local got = {}
+    for _, l in ipairs(require("org.agenda.view").build(80).lines) do
+      if l:find(name .. ":", 1, true) then
+        got[#got + 1] = (l:gsub("^%s*[^:]+:%s*", ""))
+      end
+    end
+    vim.cmd("silent! %bwipeout!")
+    return got
+  end
+
+  before_each(function()
+    path = vim.fn.tempname() .. ".org"
+    config.setup({ agenda_files = { path } })
+  end)
+
+  after_each(function()
+    files.invalidate()
+    os.remove(path)
+  end)
+
+  it("ends the line at the keyword or priority", function()
+    local todo = lines(function(a)
+      a.open_todo()
+    end)
+    eq({ "TODO [#A]", "TODO", "TODO [#B]" }, { todo[1], todo[2], todo[4]:match("^(.-)%s+:work:$") })
+    eq("TODO", todo[3]:match("^(%S+)%s+:work:$"))
+    local day = lines(function(a)
+      a.open_day(date.days_from_civil(2026, 10, 1))
+    end)
+    eq({ "Scheduled:  DONE" }, day)
+  end)
+end)

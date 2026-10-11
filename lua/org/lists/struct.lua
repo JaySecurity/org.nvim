@@ -32,9 +32,9 @@ function M.struct_at(bufnr, lnum)
   if not item then
     return nil
   end
-  local top = item
-  while top.parent do
-    top = top.parent
+  local top, parent = item, item.parent
+  while parent do
+    top, parent = parent, parent.parent
   end
   local list = top.list
   local items = {}
@@ -186,21 +186,20 @@ end
 local function fix_bul(struct)
   for _, it in ipairs(struct.items) do
     local prev = new_prev(struct, it)
-    local prev_bul = prev and prev.bul
     local counter = it.counter
     local bullet = it.bul
     local alphap = not prev and use_alpha(struct, it)
     local b
-    if prev and counter and counter:match("%a") and prev_bul:match("%a") then
+    if prev and counter and counter:match("%a") and prev.bul:match("%a") then
       -- alpha counter in an alpha list
       -- lint: allow gsub: a [@N] counter is digits or a letter
-      b = prev_bul:gsub("%a", alpha_count(counter, prev_bul), 1)
-    elseif prev and counter and counter:match("%d+") and prev_bul:match("%d+") then
+      b = prev.bul:gsub("%a", alpha_count(counter, prev.bul), 1)
+    elseif prev and counter and counter:match("%d+") and prev.bul:match("%d+") then
       -- numeric counter in a numbered list
       -- lint: allow gsub: a [@N] counter is digits or a letter
-      b = prev_bul:gsub("%d+", counter, 1)
+      b = prev.bul:gsub("%d+", counter, 1)
     elseif prev then
-      b = inc_bullet(prev_bul)
+      b = inc_bullet(prev.bul)
     elseif counter and use_alpha(struct, it) and counter:match("%a") and bullet:match("%a") then
       -- lint: allow gsub: a [@N] counter is digits or a letter
       b = bullet:gsub("%a", alpha_count(counter, bullet), 1)

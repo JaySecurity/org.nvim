@@ -6,6 +6,17 @@
 --- from `agenda.prefix_format` (org-agenda-prefix-format), the headline
 --- text, and the tags aligned to the right.
 
+-- Not compiled by the JIT: building an agenda over many files ran 3 to 5
+-- times faster interpreted. Its loops are short (an entry's dates, its
+-- tags) and branch a lot, so most traces aborted ("leaving loop", closures)
+-- and the many that were compiled filled the machine-code area, which
+-- flushed every compiled trace in Neovim over and over ("failed to allocate
+-- mcode memory", on macOS arm64). See "Performance budgets" in
+-- CONTRIBUTING.md.
+if jit then
+  jit.off(true, true)
+end
+
 local config = require("org.config")
 local date = require("org.date")
 local habits = require("org.agenda.habits")
@@ -486,14 +497,12 @@ function M.tags_string(item)
     own[t] = true
   end
   local hide = acfg.hide_tags_regexp and acfg.hide_tags_regexp ~= "" and vim.regex(acfg.hide_tags_regexp)
+  -- item.tags is in org-get-tags order (inherited, then own), and a tag
+  -- that is both counts as own
   local inh, loc = {}, {}
-  local inherited_set = {}
-  for _, t in ipairs(hl:get_inherited_tags()) do
-    inherited_set[t] = true
-  end
   for _, t in ipairs(tags) do
     if not (hide and hide:match_str(t)) then
-      if inherited_set[t] and not (own[t] and not inherited_set[t]) then
+      if not own[t] then
         if acfg.show_inherited_tags ~= false then
           inh[#inh + 1] = t
         end
@@ -677,20 +686,27 @@ function M.item_parts(item, ctx)
   else
     push(prefix)
   end
+  -- a headline with no title ("** TODO") is only its keyword (and
+  -- priority), with no space after it (Emacs trims the headline text)
+  local untitled = (item.title or "") == ""
   if item.todo then
     -- org-agenda-todo-keyword-format ("" drops the keyword and its space)
     local fmt = acfg.todo_keyword_format or "%-1s"
     if fmt ~= "" then
       local ok, kw = pcall(string.format, fmt, item.todo)
       push(ok and kw or item.todo, M.todo_group(item))
-      push(" ")
+      if item.priority or not untitled then
+        push(" ")
+      end
     end
   end
   if item.priority then
     local group = M.priority_group(item)
     parts.priority_index = #parts + 1
     push("[#" .. item.priority .. "]", group or item.face)
-    push(" ")
+    if not untitled then
+      push(" ")
+    end
   end
   push(display_title(item.display_title or item.title or ""), item.face)
 
@@ -978,7 +994,10 @@ local function grid_minutes(t)
   return math.floor(t / 100) * 60 + t % 100
 end
 
---- org-agenda-add-time-grid-maybe: should the grid be shown?
+--- org-agenda-add-time-grid-maybe: should the grid be shown, and should
+--- it drop the grid times that an entry has (remove-match)?
+---@return boolean shown
+---@return boolean? remove
 local function show_grid(grid, d, today, ndays, has_timed)
   if not grid or grid.enabled == false or grid.hidden then
     return false
@@ -993,7 +1012,7 @@ local function show_grid(grid, d, today, ndays, has_timed)
   if set["require-timed"] and not has_timed then
     return false
   end
-  return true, set["remove-match"]
+  return true, set["remove-match"] == true
 end
 
 --- Minutes of an org-duration value ("10:00", 30, "1d 2:00").
@@ -1110,11 +1129,11 @@ local function render_day(b, list, d, ctx, sorting)
   for _, it in ipairs(list) do
     if it.time then
       has_timed = true
-      have[it.time] = true
+      have[it.sort_time or it.time] = true
     end
   end
   local rows = list
-  local shown, remove = false, false
+  local shown, remove = false, nil ---@type boolean, boolean?
   if not ctx.time_grid_off then
     shown, remove = show_grid(grid, d, ctx.today, ctx.ndays, has_timed)
   end

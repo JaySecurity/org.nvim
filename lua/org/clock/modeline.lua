@@ -58,6 +58,7 @@ function M.statusline()
 end
 
 --- Headline of the running clock: bufnr, headline (or nil).
+---@return integer|nil bufnr, org.Headline|nil hl
 local function clocked_headline()
   local bufnr, lnum = M.find_open_clock()
   if not bufnr then
@@ -85,10 +86,10 @@ end
 ---@param value? string
 function M.modify_effort(value)
   local bufnr, hl = clocked_headline()
-  if not bufnr then
+  if not bufnr or not hl then
     local _
     bufnr, _, hl = edit.resolve_headline(nil)
-    if not bufnr then
+    if not bufnr or not hl then
       return nil
     end
   end
@@ -129,7 +130,7 @@ end
 --- Set the effort to the next value of `Effort_ALL` (org-inc-effort).
 function M.inc_effort(target)
   local bufnr, _, hl = edit.resolve_headline(target)
-  if not bufnr then
+  if not bufnr or not hl then
     return nil
   end
   local prop = config.opts.effort_property or "Effort"

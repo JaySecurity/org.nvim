@@ -333,7 +333,7 @@ function M.report(opts, failures, distinct, stats, known)
       table.concat(opts.oracles, " ")
     ),
     "",
-    ("%d comparisons: %d same, %d with only known differences, %d where Emacs raised an error or timed out (%d of them in some agenda views, S-TAB steps or tables only, compared without those), %d failing."):format(
+    ("%d comparisons: %d same, %d with only known differences, %d where Emacs raised an error or timed out (%d of them in some agenda views, S-TAB steps, tables or command steps only, compared without those), %d failing."):format(
       stats.compared,
       stats.same,
       stats.known,
@@ -395,6 +395,13 @@ function M.report(opts, failures, distinct, stats, known)
       "",
       "Replay: `" .. M.replay(f.seed, f.oracle) .. "`",
       "",
+    })
+    if f.oracle == "commands" then
+      -- the steps, each on the k-th target of its kind (tests/difftest/commands.lua)
+      local commands = require("tests.difftest.commands")
+      vim.list_extend(t, { "Commands: `" .. commands.encode(commands.plan(f.seed)) .. "`", "" })
+    end
+    vim.list_extend(t, {
       f.unshrunk and ("Input (not shrunk, %d lines):"):format(#f.input)
         or ("Minimal input (%d of %d lines):"):format(#f.minimal, #f.input),
       "",

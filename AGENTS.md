@@ -17,6 +17,7 @@ make playground                            # re-record the tutor lessons for the
 make typecheck                             # lua-language-server --check with .luarc.json
 make coverage                              # specs with line coverage; report in coverage/report.md
 make fuzz                                  # fuzz specs with 40x the seeds, random start
+make bench                                 # first open and a 50,000-headline agenda, timed (CONTRIBUTING.md)
 make extensions-report                     # each extension against the promotion criteria (CONTRIBUTING.md)
 ```
 
@@ -63,6 +64,7 @@ make extensions-report                     # each extension against the promotio
 | `lua/org/mappings.lua` | default keys, bound to actions |
 | `lua/org/parser.lua`, `element.lua`, `files.lua` | parsing and the per-file cache |
 | `lua/org/agenda/`, `babel/`, `capture/`, `export/`, `table/`, `ui/` | larger subsystems |
+| `lua/org/agenda/items.lua`, `agenda/items/` | collecting agenda entries (not compiled by the JIT, each part included): item fields, building items and headline iteration in the facade; times of day, repeats, date ranges, diary sexps, deadlines and scheduled, timestamps, log mode, the day agenda, the TODO / tags / search / stuck lists and sorting in the parts |
 | `lua/org/fold.lua`, `fold/` | fold levels (`foldexpr` and its cache, a hot path) in `fold.lua`; visibility cycling and commands in `fold/` |
 | `lua/org/structure.lua`, `structure/` | outline editing: shared helpers in the facade; heading insertion, templates, promote/demote, moves, kill ring and clone, sorting, narrowing, toggles, motions in the parts |
 | `lua/org/links.lua`, `links/` | hyperlinks: the facade, and parse / search / open / shell / store / insert / commands parts |
@@ -75,6 +77,8 @@ make extensions-report                     # each extension against the promotio
 | `lua/org/api/` | the public Lua API (`:h org-api`); everything else is internal |
 | `lua/org/pickers/` | picker sources and the snacks / fzf-lua / telescope / mini.pick / `vim.ui.select` adapters |
 | `lua/org/extensions/` | optional extensions, each enabled under `extensions` in `setup()` |
+| `lua/org/extensions/transclusion/` | transclusion: options, shared helpers and setup in `init.lua` (the facade); materialized regions, keeping them read-only, rendering, watching sources, actions and saving / export in the parts, beside the keyword, source, highlight and edit modules |
+| `lua/org/extensions/cli/run.lua`, `cli/` | the `org` command line: usage, output, failures, the command table and `main` in `run.lua` (the facade); headless prompts, arguments and config, targets, guarding and saving, the read / info / capture / clock / export commands and the session server in the parts; the write commands in `write.lua` |
 | `lua/org/symbols.lua`, `lua/org/integrations/` | the outline as document symbols, and the aerial.nvim / outline.nvim providers built on it |
 | `lua/aerial/`, `lua/outline/`, `lua/telescope/` | one-line shims those plugins `require` by name; they load only when the plugin is installed |
 | `lua/org/_meta/` | LuaLS type annotations for `setup()` options (no runtime code) |
@@ -108,6 +112,14 @@ make extensions-report                     # each extension against the promotio
   so logic that must run around every write (`:w` or org's own saves)
   registers a hook in `lua/org/write_hooks.lua`, not a
   BufWritePre/BufWritePost autocommand. See CONTRIBUTING.md.
+- **`:checkhealth org` checks what a feature needs.** A feature that
+  needs an external program, a path or a state file adds a check in
+  `lua/org/health/init.lua` (an extension: its `health(h, opts)`). Checks
+  are fast (`executable()`, no running programs, no network, bounded
+  scans), never prompt or notify (report through `h` only; resolve the
+  picker with `pickers.resolve`, not `backend`), warn only when the
+  feature is on, and are documented under `:h org-health`
+  (CONTRIBUTING.md, "Health checks").
 - **Key conflicts matter.** Before adding a default key in `mappings.lua`,
   check it isn't a prefix of, or already taken by, another mapping.
 

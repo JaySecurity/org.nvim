@@ -754,49 +754,17 @@ end
 ---------------------------------------------------------------------------
 
 --- Properties of the property drawer at the top of the file (before the
---- first headline and any other element), like Org's `org-data` node.
+--- first headline and any other element), like Org's `org-data` node. The
+--- parser reads that drawer (in any letter case, like
+--- org-property-drawer-re under case-fold-search).
+---@param file org.File
 local function top_properties(file)
-  if file._babel_top_props then
-    return file._babel_top_props
+  local props, extend = file.properties or {}, {}
+  local base = file.property_base or {}
+  for k in pairs(props) do
+    extend[k] = not base[k] or nil
   end
-  local props, extend = {}, {}
-  local lines = file.lines or {}
-  local i = 1
-  while lines[i] and (lines[i]:match("^%s*$") or lines[i]:match("^%s*#%s") or lines[i]:match("^%s*#$")) do
-    i = i + 1
-  end
-  if lines[i] and lines[i]:match("^%s*:PROPERTIES:%s*$") then
-    local bases, extra, order = {}, {}, {}
-    local j = i + 1
-    while lines[j] and not lines[j]:match("^%s*:END:%s*$") and not lines[j]:match("^%*+%s") do
-      local key, value = lines[j]:match("^%s*:(%S+):%s+(.-)%s*$")
-      if not key then
-        key, value = lines[j]:match("^%s*:(%S+):%s*$"), ""
-      end
-      if key then
-        local base = key:match("^(.-)%+$")
-        local k = (base or key):upper()
-        if not bases[k] and not extra[k] then
-          order[#order + 1] = k
-        end
-        if base then
-          extra[k] = extra[k] or {}
-          table.insert(extra[k], value)
-        else
-          bases[k] = value
-        end
-      end
-      j = j + 1
-    end
-    for _, k in ipairs(order) do
-      local parts = { bases[k] }
-      vim.list_extend(parts, extra[k] or {})
-      props[k] = table.concat(parts, " ")
-      extend[k] = bases[k] == nil or nil
-    end
-  end
-  file._babel_top_props = { props = props, extend = extend }
-  return file._babel_top_props
+  return { props = props, extend = extend }
 end
 
 --- Value of the property `key` at line `lnum` with inheritance, like

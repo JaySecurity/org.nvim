@@ -508,3 +508,44 @@ describe("property options", function()
     config.opts.use_property_inheritance = false
   end)
 end)
+
+describe("planning line order (make difftest, commands oracle)", function()
+  it("a repeater shifts its date in place; CLOSED goes first, the others keep their order", function()
+    local saved = config.opts.log_done
+    config.opts.log_done = "time"
+    local buf = org_buffer({
+      "* TODO x",
+      "SCHEDULED: <2026-10-13 Tue ++3d> DEADLINE: <2026-09-23 Wed>",
+      "* TODO y",
+      "SCHEDULED: <2026-10-13 Tue> DEADLINE: <2026-09-23 Wed>",
+    }, { 1, 0 })
+    local okc, err = pcall(function()
+      todo.select_or_cycle()
+      local l = buf_lines(buf)
+      ok(l[2]:match("^SCHEDULED: <%d+%-%d+%-%d+ %a+ %+%+3d> DEADLINE: <2026%-09%-23 Wed>$"), l[2])
+      vim.api.nvim_win_set_cursor(0, { #l - 1, 0 })
+      todo.select_or_cycle()
+      l = buf_lines(buf)
+      ok(l[#l]:match("^CLOSED: %[[^%]]+%] SCHEDULED: <2026%-10%-13 Tue> DEADLINE: <2026%-09%-23 Wed>$"), l[#l])
+    end)
+    config.opts.log_done = saved
+    ok(okc, err)
+  end)
+end)
+
+describe("org-todo on an empty headline (make difftest, commands oracle)", function()
+  it("keeps a space after the keyword, as Emacs inserts ' TODO '", function()
+    local buf = org_buffer({ "* ", "* A" }, { 1, 0 })
+    todo.select_or_cycle()
+    eq({ "* TODO ", "* A" }, buf_lines(buf))
+    todo.select_or_cycle()
+    eq({ "* DONE ", "* A" }, buf_lines(buf))
+    todo.select_or_cycle()
+    eq({ "* ", "* A" }, buf_lines(buf))
+    -- the priority too
+    priority.up()
+    eq({ "* [#B] ", "* A" }, buf_lines(buf))
+    todo.select_or_cycle()
+    eq({ "* TODO [#B] ", "* A" }, buf_lines(buf))
+  end)
+end)

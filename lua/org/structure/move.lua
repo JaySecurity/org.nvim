@@ -36,9 +36,32 @@ local function move_subtree(dir, n)
   end
   local sibs = siblings(hl)
   local idx = sibling_index(hl)
-  if not sibs[idx + dir * n] then
-    utils.warn("Cannot move past superior level or buffer limit")
-    return
+  -- the sibling to move past, n times, as org-get-next-sibling /
+  -- org-get-previous-sibling find it: deeper headlines (entries before the
+  -- first headline of a lower level, as "** a" then "* b") are skipped, a
+  -- lower level stops; going up, deeper headlines from the top of the
+  -- buffer count as one entry starting there
+  local i, up_to = idx, nil
+  for _ = 1, n do
+    local j = i + dir
+    while sibs[j] and sibs[j].level > hl.level do
+      j = j + dir
+    end
+    if sibs[j] and sibs[j].level == hl.level then
+      i = j
+    elseif
+      dir < 0
+      and not sibs[j]
+      and not hl.parent
+      and hl.line > 1
+      and parser.headline_level(get_lines(bufnr, 1, 1)[1] or "")
+    then
+      up_to = 1
+      break
+    else
+      utils.warn("Cannot move past superior level or buffer limit")
+      return
+    end
   end
   local folded = vim.fn.foldclosed(hl.line) == hl.line
   local pos = cursor()
@@ -46,24 +69,24 @@ local function move_subtree(dir, n)
   local text = get_lines(bufnr, hl.line, hl.end_line)
   local new_start
   if dir > 0 then
-    local other = sibs[idx + n]
+    local other = sibs[i]
     -- insert after the other subtree, then delete the original
     insert_lines(bufnr, other.end_line + 1, text)
     set_lines(bufnr, hl.line, hl.end_line, {})
     new_start = other.end_line + 1 - #text
   else
-    local other = sibs[idx - n]
+    local to = up_to or sibs[i].line
     set_lines(bufnr, hl.line, hl.end_line, {})
-    insert_lines(bufnr, other.line, text)
-    new_start = other.line
+    insert_lines(bufnr, to, text)
+    new_start = to
   end
   vim.api.nvim_win_set_cursor(0, { new_start + offset, pos[2] })
   -- keep the moved subtree folded or open, like Emacs, without resetting
   -- the folds of the rest of the buffer (zx would)
   if folded then
-    pcall(vim.cmd, new_start .. "foldclose")
+    pcall(vim.api.nvim_command, new_start .. "foldclose")
   else
-    pcall(vim.cmd, new_start .. "foldopen")
+    pcall(vim.api.nvim_command, new_start .. "foldopen")
     vim.cmd("silent! normal! zv")
   end
 end

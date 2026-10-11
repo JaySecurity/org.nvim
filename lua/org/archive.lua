@@ -388,7 +388,7 @@ function M.archive_subtree(target, opts)
       return
     end
   end
-  local new = edit.relevel(lines, level)
+  local new = edit.paste_relevel(lines, level, files.get_buffer(abuf).settings.todo)
   if blank then
     table.insert(new, 1, "")
   end
@@ -496,15 +496,23 @@ function M.archive_to_sibling(target)
   local sibling = assert(marks.set(bufnr, sib_line))
   local shl = files.get_buffer(bufnr):headline_at(sib_line)
   local at = config.opts.archive_reversed_order and shl.body_end or shl.end_line
-  vim.api.nvim_buf_set_lines(bufnr, at, at, false, edit.relevel(lines, hl.level + 1))
+  vim.api.nvim_buf_set_lines(
+    bufnr,
+    at,
+    at,
+    false,
+    edit.paste_relevel(lines, hl.level + 1, files.get_buffer(bufnr).settings.todo)
+  )
   edit.set_property(bufnr, at + 1, "ARCHIVE_TIME", archive_time())
   s, e = source:rows()
   vim.api.nvim_buf_set_lines(bufnr, s - 1, e, false, {})
   sib_line = sibling:lnum()
   local pline = parent and parent:lnum()
   marks.del(source, sibling, parent)
-  if pline then
-    pcall(require("org.lists").update_statistics_for, bufnr, pline)
+  if pline and sib_line then
+    -- the parent's TODO cookies (org-update-parent-todo-statistics from
+    -- the Archive sibling)
+    pcall(require("org.lists").update_parent_todo_statistics, bufnr, sib_line)
   end
   if bufnr == vim.api.nvim_get_current_buf() then
     local n = vim.api.nvim_buf_line_count(bufnr)

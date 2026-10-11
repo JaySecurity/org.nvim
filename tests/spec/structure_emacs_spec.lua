@@ -370,3 +370,100 @@ describe("footnotes: maintenance", function()
     eq(5, cursor_line())
   end)
 end)
+
+describe("sort entries alphabetically without markup (make difftest)", function()
+  it("compares the titles as org-sort-remove-invisible leaves them", function()
+    local buf = org_buffer({
+      "* P",
+      "** DONE _*mixed*_ _under_",
+      "** Beta",
+      "** =zz= [[x][Alpha]]",
+      "** ~c~ and [[https://a.b]]",
+    }, { 1, 0 })
+    require("org.structure").sort("a")
+    eq({
+      "* P",
+      "** Beta",
+      "** ~c~ and [[https://a.b]]",
+      "** DONE _*mixed*_ _under_",
+      "** =zz= [[x][Alpha]]",
+    }, buf_lines(buf))
+  end)
+end)
+
+describe("move subtree before the first top-level headline (make difftest)", function()
+  it("doesn't move down past a headline of a lower level, but up past a deeper one", function()
+    local buf = org_buffer({ "** a", "* b", "** c" }, { 1, 0 })
+    require("org.structure").move_subtree_down()
+    eq({ "** a", "* b", "** c" }, buf_lines(buf))
+    vim.api.nvim_win_set_cursor(0, { 2, 0 })
+    require("org.structure").move_subtree_up()
+    eq({ "* b", "** c", "** a" }, buf_lines(buf))
+  end)
+
+  it("moves up past all the deeper entries at the top of the buffer, only from line 1", function()
+    local buf = org_buffer({ "** a", "** a2", "* b", "** c" }, { 3, 0 })
+    require("org.structure").move_subtree_up()
+    eq({ "* b", "** c", "** a", "** a2" }, buf_lines(buf))
+    buf = org_buffer({ "", "** a", "* b" }, { 3, 0 })
+    require("org.structure").move_subtree_up()
+    eq({ "", "** a", "* b" }, buf_lines(buf))
+    -- an inline task on line 1 too
+    config.opts.inlinetask_min_level = 15
+    buf = org_buffer({ "*************** task", "*************** END", "* b" }, { 3, 0 })
+    local okc, err = pcall(require("org.structure").move_subtree_up)
+    config.opts.inlinetask_min_level = false
+    ok(okc, err)
+    eq({ "* b", "*************** task", "*************** END" }, buf_lines(buf))
+  end)
+end)
+
+describe("refile and archive sibling change levels like org-paste-subtree (make difftest)", function()
+  with_config({ inlinetask_min_level = 15 })
+
+  it("refile realigns the tags of the moved headlines and leaves inline tasks alone", function()
+    local buf = org_buffer({
+      "* A",
+      "** B",
+      "* C :y:",
+      "** D :z:",
+      "*************** inline",
+      "*************** END",
+    }, { 3, 0 })
+    require("org.refile").refile(nil, { dest = { bufnr = buf, lnum = 2, level = 2 } })
+    eq({
+      "* A",
+      "** B",
+      "*** C" .. string.rep(" ", 69) .. ":y:",
+      "**** D" .. string.rep(" ", 68) .. ":z:",
+      "*************** inline",
+      "*************** END",
+    }, buf_lines(buf))
+  end)
+
+  it("archive to sibling too, and the parent's cookie counts its TODO children", function()
+    local buf = org_buffer({
+      "* P [/]",
+      "- [ ] box",
+      "** TODO a :x:",
+      "** DONE b :y:",
+      "*************** inline",
+      "*************** END",
+    }, { 4, 0 })
+    require("org.archive").archive_to_sibling()
+    local lines = buf_lines(buf)
+    lines[7] = lines[7]:gsub("%d%d%d%d%-%d%d%-%d%d %a+ %d%d:%d%d", "TIME")
+    eq({
+      "* P [0/1]",
+      "- [ ] box",
+      "** TODO a :x:",
+      "** Archive" .. string.rep(" ", 58) .. ":ARCHIVE:",
+      "*** DONE b" .. string.rep(" ", 64) .. ":y:",
+      ":PROPERTIES:",
+      ":ARCHIVE_TIME: TIME",
+      ":END:",
+      "*************** inline",
+      "*************** END",
+    }, lines)
+  end)
+end)

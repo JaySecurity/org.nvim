@@ -235,6 +235,9 @@ local function entry_matches(e, st)
     and e.cn == st.ctime.nsec
 end
 
+---@alias org.agenda.index.Timer "pump_timer"|"save_timer"|"release_timer"|"poll_timer"|"debounce_timer"
+
+---@param name org.agenda.index.Timer
 local function stop_timer(name)
   local t = S[name]
   if t then
@@ -248,8 +251,12 @@ end
 
 --- Run `fn` on the main loop in `ms` milliseconds, replacing what the
 --- timer `name` was waiting for.
+---@param name org.agenda.index.Timer
+---@param ms integer
+---@param fn function
 local function after(name, ms, fn)
-  local t = S[name]
+  -- (LuaLS can't index S by a union of field names)
+  local t = S[name] --[[@as uv.uv_timer_t?]]
   if not t then
     t = assert(uv.new_timer())
     S[name] = t
@@ -988,7 +995,9 @@ end
 --- Stop the background work and the watchers (the entries stay).
 function M.stop()
   stop_watching()
-  for _, name in ipairs({ "pump_timer", "debounce_timer", "release_timer" }) do
+  ---@type org.agenda.index.Timer[]
+  local timers = { "pump_timer", "debounce_timer", "release_timer" }
+  for _, name in ipairs(timers) do
     stop_timer(name)
   end
   S.queue, S.head, S.queued, S.stated, S.ready, S.done = {}, 1, {}, {}, {}, {}

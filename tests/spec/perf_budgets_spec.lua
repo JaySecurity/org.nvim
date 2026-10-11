@@ -817,6 +817,48 @@ describe("perf: links and footnotes", function()
   end)
 end)
 
+-- Starting Neovim on an org file: setup() and the first :edit of a plain
+-- file (tests/fixtures/first_open.org), each in a Neovim of its own
+-- (tests/helpers/first_open.lua), the median of 5. On a laptop setup()
+-- took 7 ms and the first open 39 ms with 93 org modules loaded, before
+-- what only a command uses was made lazy (46 modules after;
+-- first_open_spec.lua checks which).
+describe("perf: first open", function()
+  local root = vim.fs.normalize(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h:h"))
+
+  it("setup() and opening the first file in budget", function()
+    local setup_ms, open_ms = {}, {}
+    for _ = 1, 5 do
+      local res = vim
+        .system({
+          vim.v.progpath,
+          "--clean",
+          "--headless",
+          "-l",
+          root .. "/tests/helpers/first_open.lua",
+          root,
+          root .. "/tests/fixtures/first_open.org",
+        }, { text = true })
+        :wait(60000)
+      eq(0, res.code, res.stderr)
+      local lines = vim.split(vim.trim(res.stdout), "\n")
+      local r = vim.json.decode(lines[#lines])
+      setup_ms[#setup_ms + 1] = r.setup_ms
+      open_ms[#open_ms + 1] = r.open_ms
+    end
+    table.sort(setup_ms)
+    table.sort(open_ms)
+    for _, b in ipairs({ { "setup()", setup_ms[3], 70 }, { "opening the first org file", open_ms[3], 300 } }) do
+      local label, dt, ms = b[1], b[2], b[3]
+      report(label, dt, (" (median of 5, budget %d)"):format(ms * SCALE))
+      ok(
+        dt <= ms * SCALE or not TIMED,
+        ("%s took %.0f ms, budget %d ms (ORG_PERF_SCALE=%s)"):format(label, dt, ms * SCALE, SCALE)
+      )
+    end
+  end)
+end)
+
 -- Many agenda files (:h org-agenda-index): a first agenda view built from
 -- the index on disk (the files read, their outline found, the rest filled
 -- in), the background parse of them all, and a view after it. Without the

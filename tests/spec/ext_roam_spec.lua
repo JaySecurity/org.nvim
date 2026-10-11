@@ -1083,4 +1083,36 @@ describe("roam extension", function()
     eq(nil, require("org.actions").list.roam_node_find)
     eq(nil, require("org.config").opts.links.types.roam)
   end)
+
+  it(":checkhealth reports a missing picker without a notification", function()
+    local pickers = require("org.pickers")
+    stub(pickers, "available", function(name)
+      return name == "select"
+    end)
+    local notes = {}
+    stub(vim, "notify", function(msg)
+      notes[#notes + 1] = msg
+    end)
+    for _, cfg in ipairs({ { picker = "telescope" }, { picker = "auto" } }) do
+      require("org").setup({
+        org_directory = root .. "/tests/fixtures",
+        picker = "fzf-lua",
+        extensions = {
+          roam = vim.tbl_extend("force", { directory = dir, index_file = dir .. "/../roam-index.json" }, cfg),
+        },
+      })
+      vim.cmd("checkhealth org")
+      vim.wait(10000, function()
+        return vim.bo.filetype == "checkhealth"
+      end)
+      local text = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
+      vim.cmd("bwipeout!")
+      local want = cfg.picker == "auto" and "fzf-lua" or "telescope"
+      ok(text:find("node picker: Picker " .. want .. " is not installed, using vim.ui.select", 1, true), text)
+    end
+    eq({}, notes)
+    -- outside :checkhealth the fallback is still announced
+    pickers.backend("telescope")
+    eq({ "Picker telescope is not installed, using vim.ui.select" }, notes)
+  end)
 end)

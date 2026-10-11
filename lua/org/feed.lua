@@ -677,11 +677,12 @@ end
 --- inbox subtree, so that rewriting it never deletes the text after it.
 local function find_drawer(lines, lnum, drawer)
   local stop = subtree_end(lines, lnum)
-  local pat = "^[ \t]*:" .. vim.pesc(drawer) .. ":[ \t]*$"
+  -- matched ignoring case, like Emacs' re-search-forward under case-fold-search
+  local pat = "^[ \t]*:" .. vim.pesc(drawer:upper()) .. ":[ \t]*$"
   for k = lnum + 1, stop do
-    if lines[k]:match(pat) then
+    if lines[k]:upper():match(pat) then
       for j = k + 1, stop do
-        if lines[j]:match("^[ \t]*:END:") then
+        if lines[j]:upper():match("^[ \t]*:END:") then
           return k, j
         end
       end

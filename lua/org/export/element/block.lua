@@ -16,6 +16,7 @@ local is_clock_line = shared.is_clock_line
 local is_planning_line = shared.is_planning_line
 local drawer_name = shared.drawer_name
 local is_end_line = shared.is_end_line
+local property_drawer_end = shared.property_drawer_end
 local is_fixed_width = shared.is_fixed_width
 local is_footnote_def = shared.is_footnote_def
 local is_hr = shared.is_hr
@@ -281,14 +282,9 @@ function P:element_at(L, i, e, mode, parent, not_bol)
   if mode == "planning" and i > 1 and self.prev_is_headline and is_planning_line(l) then
     return self:planning(L, i, e)
   end
-  if
-    ((mode == "planning" and self.prev_is_headline) or mode == "property-drawer" or mode == "top-comment")
-    and l:match("^[ \t]*:[Pp][Rr][Oo][Pp][Ee][Rr][Tt][Ii][Ee][Ss]:[ \t]*$")
-  then
-    local j = find_line(L, i + 1, e, function(x)
-      return is_end_line(x) or not x:match("^[ \t]*:%S+:")
-    end)
-    if j and is_end_line(L[j]) then
+  if (mode == "planning" and self.prev_is_headline) or mode == "property-drawer" or mode == "top-comment" then
+    local j = property_drawer_end(L, i, e)
+    if j then
       return self:property_drawer(L, i, j, e)
     end
   end

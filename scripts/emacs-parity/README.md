@@ -34,7 +34,9 @@ section is one test.
 
 - **Time.** "Now" is frozen at 2026-10-01 Thu 12:00 by advising
   `current-time`, `org-today`, `time-since` and the time functions that
-  take a nil time. The specs do the same with `os.time`/`os.date`
+  take a nil time, arithmetic included (`time-add`, `time-subtract`,
+  ...: org-habit draws its graphs around `(time-subtract nil ...)`,
+  which reads the clock in C, not through `current-time`). The specs do the same with `os.time`/`os.date`
   (`P.freeze_time()` in `tests/emacs_parity.lua`).
 - **Zone and locale.** `generate.sh` runs Emacs with `TZ=UTC0` and
   `LC_ALL=C`, and the specs use `TZ=UTC0` too.
@@ -82,14 +84,20 @@ Then regenerate the fixtures and run
 `difftest.el` is the Emacs side of `make difftest` (CONTRIBUTING.md,
 "Differential testing"): instead of writing fixtures, it keeps running and
 answers requests from `tests/difftest/emacs.lua` on stdin, one per line
-(`<oracle> TAB <input.org> TAB <output file>`), with `common.el`'s fixed
+(`<oracle> TAB <input.org> TAB <output file>`, plus `TAB <plan>` for the
+`commands` oracle), with `common.el`'s fixed
 "now", zone and locale. The org.nvim side of each oracle is in
 `tests/difftest/oracles.lua`; keep the two in step. An oracle that
 signals an error writes an `!error <message>` line: in place of the whole
 output for an export, of one view for the agenda or one S-TAB step for
 visibility (S-TAB is `org-cycle-global`, as `org-shifttab` would move
 between table fields in a table at the top of the file), and after the
-table, put back unchanged, for a table whose formulas fail.
+table, put back unchanged, for a table whose formulas fail. The
+`commands` oracle replays its plan (`tests/difftest/commands.lua`) on the
+visited file with everything unfolded, calling each command with its own
+`this-command` and running `post-command-hook` after it (log notes wait
+for it); a step that signals an error without changing the buffer has
+declined, one that changed it first adds an `!error` line to its step.
 `common.el` deletes its temporary `org-id-locations-file` when Emacs
 exits.
 

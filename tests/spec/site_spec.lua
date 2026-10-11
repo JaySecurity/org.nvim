@@ -382,13 +382,40 @@ describe("site", function()
     end)
   end)
 
+  describe("extension report as a module", function()
+    it("measures without printing or exiting", function()
+      local report = require("extension_report")
+      local data = report.measure({ only = { "heatmap", "review" }, gh = false })
+      eq({ "heatmap", "review" }, { data.extensions[1].name, data.extensions[2].name })
+      eq("stable", data.extensions[1].stability)
+      -- unmeasured: no coverage file, no gh, no demo config
+      eq(nil, data.extensions[1].criteria.coverage.pass)
+      eq(nil, data.extensions[1].criteria.bugs.pass)
+      eq(nil, data.extensions[1].criteria.demo.pass)
+      eq(#report.CRITERIA, #report.bar_rows())
+      for _, b in ipairs(report.bar_rows()) do
+        ok(b.text and b.text ~= "", b.key)
+      end
+      -- coverage is required: an unmeasured one blocks a promotion
+      ok(vim.tbl_contains(report.blockers(data.extensions[2]), "coverage"))
+      ok(report.why(data.extensions[2], { "coverage" }):find("coverage not measured", 1, true))
+      local okk, msg = pcall(report.measure, { only = { "nope" } })
+      eq(false, okk)
+      eq("no built-in extension nope", msg)
+    end)
+  end)
+
   -- the build exports every example with org.nvim and checks every
   -- internal link and anchor; the site is only built on Linux
   if vim.fn.has("win32") == 0 then
     it("builds with no broken links", function()
       local out = vim.fn.tempname()
       local res = vim
-        .system({ vim.v.progpath, "--headless", "--clean", "-l", root .. "/scripts/site/build.lua", out }, { text = true })
+        .system(
+          { vim.v.progpath, "--headless", "--clean", "-l", root .. "/scripts/site/build.lua", out },
+          -- no GitHub from the specs
+          { text = true, env = { ORG_SITE_ISSUES = "0" } }
+        )
         :wait(120000)
       ok(res.code == 0, (res.stdout or "") .. (res.stderr or ""))
       ok(vim.uv.fs_stat(out .. "/manual/org-agenda.html"))
@@ -409,6 +436,24 @@ describe("site", function()
       has(pg, '<script src="assets/playground.js" defer></script>')
       has(index, 'href="playground.html"')
       ok(vim.uv.fs_stat(out .. "/playground/workflow.cast"))
+      -- the extensions status: a row per built-in extension, in the nav
+      local status = table.concat(vim.fn.readfile(out .. "/extensions.html"), "\n")
+      for _, name in ipairs(require("org.extensions").builtin()) do
+        has(status, '<tr id="ext-' .. name .. '"')
+      end
+      has(status, '<h2 id="bar">The bar</h2>')
+      has(index, 'href="extensions.html"')
+      -- the known differences: a section per item of :h org-differences
+      local diff = table.concat(vim.fn.readfile(out .. "/parity/differences.html"), "\n")
+      local doc = table.concat(vim.fn.readfile(root .. "/doc/org.txt"), "\n")
+      local chapter = doc:match("%*org%-differences%*\n(.-)\n=====")
+      local _, items = ("\n" .. chapter):gsub("\n%- ", "")
+      local _, sections = diff:gsub('<section class="difference"', "")
+      ok(items > 20, items)
+      eq(items, sections)
+      has(diff, '<section class="difference" id="d-table-formulas">')
+      has(diff, 'href="../manual/org-tables.html#org-table-calc"')
+      has(index, 'href="parity/differences.html"')
       vim.fn.delete(out, "rf")
     end)
   end

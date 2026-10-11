@@ -574,16 +574,10 @@ local custom_ns = vim.api.nvim_create_namespace("org.timestamps.custom")
 
 --- Is the custom display on in `bufnr`? The buffer's toggle, else
 --- `#+STARTUP: customtime`, else `display_custom_times`.
+---@param bufnr integer
+---@return boolean
 function M.custom_display_enabled(bufnr)
-  local v = vim.b[bufnr].org_custom_times
-  if v ~= nil then
-    return v
-  end
-  local ok, file = pcall(require("org.files").get_buffer, bufnr)
-  if ok and file.settings.startup.customtime then
-    return true
-  end
-  return config.opts.display_custom_times == true
+  return require("org.buffer").custom_times(bufnr)
 end
 
 --- The text a timestamp is displayed as: `time_stamp_custom_formats`

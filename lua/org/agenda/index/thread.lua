@@ -73,7 +73,7 @@ local codec ---@type string.buffer|nil
 ---@return string.buffer
 function M.codec()
   if not codec then
-    codec = require("string.buffer").new({ metatable = { require("org.date").Date }, dict = M.DICT })
+    codec = require("string.buffer").new(nil, { metatable = { require("org.date").Date }, dict = M.DICT })
   end
   return codec
 end

@@ -43,6 +43,12 @@
                   (if (car args) args (cons parity-now (cdr args)))))))
 (advice-add 'time-since :override
             (lambda (time) (time-subtract parity-now time)))
+;; nil is "now" to the time arithmetic too, read in C without calling
+;; current-time: org-habit draws its graphs around (time-subtract nil ...)
+(dolist (fn '(time-add time-subtract time-less-p time-equal-p))
+  (advice-add fn :filter-args
+              (lambda (args)
+                (list (or (car args) parity-now) (or (cadr args) parity-now)))))
 
 ;; Quiet, side-effect free batch runs
 (setq make-backup-files nil

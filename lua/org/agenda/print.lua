@@ -304,7 +304,7 @@ end
 --- column, tabs expanded), wrapped at `width` columns and grouped in runs of
 --- one style.
 ---@param lines string[]
----@param spans? table<integer, {s: integer, e: integer, group: string}[]> 0-based row -> byte spans
+---@param spans? table<integer, {s: integer, e: integer, group: string, line?: boolean}[]> 0-based row -> byte spans
 ---@param width integer
 ---@param color boolean
 ---@return {text: string, font: integer, fg?: number[]}[][]

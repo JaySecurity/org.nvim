@@ -9,7 +9,12 @@
 --- `data = { bufnr, enabled }`.
 
 local config = require("org.config")
-local edit = require("org.edit")
+-- (org.edit loads on the first edit: every org buffer loads this module)
+local edit = setmetatable({}, {
+  __index = function(_, k)
+    return require("org.edit")[k]
+  end,
+})
 local utils = require("org.utils")
 
 local M = {}

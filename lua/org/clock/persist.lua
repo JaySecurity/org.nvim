@@ -38,7 +38,7 @@ end
 ---@return "in"|"out"|nil what changed
 ---@return org.ClockState|nil state the clock that started or stopped
 function M.sync()
-  pcall(vim.cmd, "silent! checktime")
+  pcall(vim.api.nvim_command, "silent! checktime")
   if M.state then
     if M.find_open_clock() then
       return nil
@@ -46,7 +46,7 @@ function M.sync()
     local st = M.state
     M.state = nil
     stop_timers()
-    pcall(vim.cmd, "redrawstatus")
+    pcall(vim.api.nvim_command, "redrawstatus")
     return "out", st
   end
   for _, f in ipairs(files.agenda_files()) do
@@ -62,7 +62,7 @@ function M.sync()
           }
           start_timers()
           hook_rename()
-          pcall(vim.cmd, "redrawstatus")
+          pcall(vim.api.nvim_command, "redrawstatus")
           return "in", M.state
         end
       end

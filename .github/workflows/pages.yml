@@ -1,8 +1,8 @@
 name: Pages
 
 # The documentation website (make site, scripts/site/build.lua): the manual,
-# README, examples and parity docs as HTML, deployed to GitHub Pages
-# (https://org-nvim.com/) for every release. A release
+# README, examples, parity docs and extensions status as HTML, deployed to
+# GitHub Pages (https://org-nvim.com/) for every release. A release
 # published by release.yml can't start this workflow through its `release`
 # event (events made with GITHUB_TOKEN don't run workflows), so release.yml
 # runs it with workflow_dispatch instead; `release` covers a release
@@ -29,11 +29,15 @@ on:
       - README.md
       - docs/parity-review.md
       - docs/parity/**
+      - scripts/extension_report.lua
       - lua/org/export/**
       - .github/workflows/pages.yml
 
 permissions:
   contents: read
+  # the Extensions status page: open bug issues, the latest coverage report
+  issues: read
+  actions: read
 
 concurrency:
   group: pages-${{ github.event_name == 'pull_request' && github.ref || 'deploy' }}
@@ -50,11 +54,30 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref || github.event.release.tag_name || github.ref }}
+          # the history and tags, for the Extensions status page (releases
+          # since an extension was added and since its last breaking change)
+          fetch-depth: 0
       - uses: rhysd/action-setup-vim@v1
         with:
           neovim: true
           version: stable
+      # line coverage for the Extensions status page, as in release.yml's
+      # extensions report: the latest Coverage run that tested dev
+      - name: Coverage from the latest Coverage run
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow coverage.yml --status completed \
+            --limit 50 --json databaseId,headBranch,event \
+            --jq '[.[] | select(.headBranch == "dev" or .event == "schedule")][0].databaseId // empty' || true)
+          if [[ -n "$id" ]]; then
+            gh run download "$id" --repo "$GITHUB_REPOSITORY" --name coverage --dir coverage || true
+          fi
       - name: Build the site
+        env:
+          # open bug issues for the Extensions status page
+          GH_TOKEN: ${{ github.token }}
         run: ORG_SITE_REF="$REF" make site
       - if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3

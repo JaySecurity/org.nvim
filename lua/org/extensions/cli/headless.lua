@@ -1,0 +1,153 @@
+---@mod org.extensions.cli.headless Headless safety: prompts and notifications
+---
+--- Prompts are answered from `--field` or fail with `input_needed`, and
+--- notifications go to stderr and the JSON envelope (`headless`). Part of
+--- org.extensions.cli.run, which loads it.
+
+local shared = require("org.extensions.cli.shared")
+
+local M = require("org.extensions.cli.run")
+
+local fail = M.fail
+local state = shared.state
+local err = shared.err
+
+--- The question a prompt asks, without its ": ", default and date hint:
+--- "Title [x]: " -> "Title", "Deadline Date+time [2026-10-01]: " -> "Deadline".
+function M.prompt_label(p)
+  if type(p) == "table" then
+    p = p.prompt
+  end
+  p = vim.trim(tostring(p or ""))
+  p = p:gsub(":$", "")
+  p = vim.trim(p)
+  p = p:gsub("%s*%[[^%]]*%]$", "")
+  p = p:gsub("%s*Date%+time$", "")
+  return vim.trim(p)
+end
+
+--- The `--field` answer to a prompt, or a failure (exit 3).
+local function ask(prompt)
+  local label = M.prompt_label(prompt)
+  local v = state.answers[label:lower()]
+  if v == nil and label == "" then
+    v = state.answers.date
+  end
+  if v ~= nil then
+    return v
+  end
+  state.prompted = state.prompted or (label ~= "" and label or "input")
+  fail(
+    "interactive input needed ("
+      .. state.prompted
+      .. "); not available in the CLI"
+      .. (label ~= "" and (" (answer it with --field '" .. label .. "=...')") or ""),
+    "input_needed",
+    { prompt = state.prompted }
+  )
+end
+
+--- A prompt `--field` doesn't answer (a confirmation, a passphrase, a
+--- key press): fail with `input_needed`, naming its question (else `what`).
+local function no_input(what)
+  return function(prompt)
+    local label = type(prompt) == "string" and M.prompt_label(prompt) or ""
+    label = label ~= "" and label or what
+    state.prompted = state.prompted or label
+    fail("interactive input needed (" .. label .. "); not available in the CLI", "input_needed", { prompt = label })
+  end
+end
+
+--- Replace prompts with `--field` answers or errors, and route
+--- notifications to stderr (and the JSON envelope). Returns a function
+--- that puts the replaced functions back (the session server runs a
+--- command and then restores them; `nvim -l` just exits).
+---@return fun()
+function M.headless()
+  local utils = require("org.utils")
+  local saved = {}
+  local function keep(tbl, names)
+    for _, k in ipairs(names) do
+      saved[#saved + 1] = { tbl, k, rawget(tbl, k) }
+    end
+  end
+  keep(vim.fn, { "input", "inputdialog", "inputsecret", "inputlist", "confirm", "getchar", "getcharstr" })
+  keep(vim.ui, { "input", "select" })
+  keep(utils, { "input", "input_complete", "input_note", "confirm", "getchar" })
+  keep(vim, { "notify" })
+  keep(vim.api, { "nvim_echo" })
+  local notify = vim.notify
+  vim.fn.input = function(opts)
+    return ask(opts)
+  end
+  vim.fn.inputdialog = function(opts)
+    return ask(opts)
+  end
+  -- (under `nvim -l` an unanswered inputsecret() ends Neovim, exit 0)
+  vim.fn.inputsecret = no_input("passphrase")
+  vim.fn.inputlist = no_input("inputlist")
+  vim.fn.confirm = no_input("confirm")
+  vim.fn.getchar = no_input("getchar")
+  vim.fn.getcharstr = no_input("getchar")
+  vim.ui.input = function(opts, cb)
+    cb(ask(opts))
+  end
+  vim.ui.select = no_input("vim.ui.select")
+  utils.input = function(opts)
+    return ask(opts)
+  end
+  utils.input_complete = function(prompt)
+    return ask(prompt)
+  end
+  -- a log note the command records: --note, else an empty note (the
+  -- entry is logged with its time only, as C-c C-c on an empty note)
+  utils.input_note = function()
+    return state.note or ""
+  end
+  utils.confirm = no_input("confirm")
+  utils.getchar = no_input("getchar")
+  vim.notify = function(msg, level)
+    level = level or vim.log.levels.INFO
+    msg = tostring(msg)
+    state.messages[#state.messages + 1] = { msg = msg, level = level }
+    if level >= vim.log.levels.WARN then
+      state.warnings[#state.warnings + 1] = msg
+    end
+    local show
+    if state.machine then
+      show = state.verbose
+    else
+      show = (level >= vim.log.levels.WARN and not state.quiet) or state.verbose
+    end
+    if show then
+      err(msg)
+    end
+    if state.session and level >= vim.log.levels.INFO then
+      -- the session's user sees what the command line did there
+      pcall(notify, msg, level)
+    end
+  end
+  -- nvim_echo() writes to stderr under `nvim -l`: make its messages
+  -- notifications like the others (org-crypt's "No crypt key set, ...")
+  vim.api.nvim_echo = function(chunks)
+    local text, level = {}, vim.log.levels.INFO
+    for _, c in ipairs(chunks or {}) do
+      text[#text + 1] = c[1] or ""
+      if c[2] == "ErrorMsg" then
+        level = vim.log.levels.ERROR
+      elseif c[2] == "WarningMsg" then
+        level = math.max(level, vim.log.levels.WARN)
+      end
+    end
+    local msg = table.concat(text)
+    if msg ~= "" then
+      vim.notify(msg, level)
+    end
+  end
+  return function()
+    for i = #saved, 1, -1 do
+      local e = saved[i]
+      rawset(e[1], e[2], e[3])
+    end
+  end
+end

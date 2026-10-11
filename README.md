@@ -1163,7 +1163,9 @@ its options may still change):
 
 An experimental extension is promoted once it meets measurable criteria
 (specs, coverage, docs, releases without a breaking change, no open bugs),
-checked at every release; the release notes say when.
+checked at every release; the release notes say when. The
+[extensions status](https://org-nvim.com/extensions.html) page shows where
+each one stands.
 
 > [!NOTE]
 > 🧪 Experimental extensions are prone to change. Their options, commands,
@@ -1445,6 +1447,7 @@ git clone https://github.com/xheisenbugx/org.nvim && cd org.nvim
 make test                                 # run all specs headlessly
 make test SPEC=tests/spec/agenda_spec.lua # one spec
 make lint                                 # stylua --check + source lint rules
+make bench                                # time the first open and a 50,000-headline agenda
 ```
 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) explains how the code is organised

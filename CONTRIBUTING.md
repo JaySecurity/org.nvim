@@ -213,6 +213,26 @@ nil check (an `assert` where the value can't be nil) over
 `---@diagnostic disable`; a disable that stays needs a comment saying why.
 Don't take a path off the list to make the check pass.
 
+### Health checks
+
+`:checkhealth org` (`lua/org/health/init.lua`, `:h org-health`) is what a
+user runs first when something doesn't work, and what a bug report
+includes. A feature that needs an external program, a path or a file of
+its own adds a check there, in the section it belongs to (or an
+extension's `health(h, opts)` function, which `org.extensions.check` calls
+under the extension's name). Checks must be fast and never prompt: look
+for programs with `vim.fn.executable()` rather than running them, bound any
+file scan, no network. Report only through the `h` reporter: nothing a
+check calls may notify, so resolve the picker with `pickers.resolve()`
+(which returns the fallback's reason) rather than `pickers.backend()`
+(which warns). Warn only when the feature is turned on (a missing
+`gpg` is a warning with `crypt.encrypt_on_save`, an info line otherwise),
+and say what to do and which option or `:h` tag to read in the advice
+(write `see :h tag` at the end: a `)` right after the tag ends up in the
+link). Each check is a function taking `vim.health`, so
+`tests/spec/health_spec.lua` can run it with a stub and stubbed
+executables; document it under `:h org-health`.
+
 ### Fuzzing
 
 The fuzz specs (`tests/spec/fuzz_*_spec.lua`) generate random Org text
@@ -307,6 +327,21 @@ runs each through Emacs Org 9.8.10 and org.nvim, and compares what a set of
 | `agenda` | week and day agendas, the TODO list, a tags and a tags-todo match over the file |
 | `table` | the file after recalculating every table that has a `#+TBLFM` line |
 | `visibility` | the visible lines at startup and after each of three S-TABs |
+| `commands` | the buffer after each step of one to three editing commands, picked from the seed |
+
+The `commands` oracle (`tests/difftest/commands.lua`) replays editing
+commands on the document: promoting, demoting and moving subtrees, `C-c
+C-t` (also with `org-log-done` set to `time`), priority up and down,
+clocking in and out (at the frozen "now"), toggling a checkbox (statistics
+cookies updated), `S-up` / `S-down` on a timestamp's day, sorting entries
+alphabetically, `C-RET`, archiving to the Archive sibling and refiling to
+another headline of the file. Each step targets the k-th headline,
+checkbox item or timestamp of the buffer as it is at that step, so a
+shrunk document still replays the same steps; Emacs runs the interactive
+commands (`org-promote-subtree`, `org-todo`, `org-clock-in`, ...) and
+org.nvim the matching actions of `lua/org/actions.lua`, both with the
+document unfolded and inline tasks on. The report shows the steps of a
+failure next to its replay command.
 
 It needs Emacs and Org 9.8.10 (see `scripts/emacs-parity/README.md`):
 
@@ -332,7 +367,7 @@ it must be empty or hold the `.difftest-out` file of an earlier run.
 Emacs and org.nvim work in parallel (`DIFFTEST_JOBS` Emacs workers,
 default one per CPU up to 8); a request Emacs doesn't answer in 20
 seconds counts as an Emacs error, like any input Emacs raises an error on.
-An error in one agenda view, S-TAB step or table leaves only that part
+An error in one agenda view, S-TAB step, table or command step leaves only that part
 out of the comparison; an error in an export leaves out the whole output.
 When Emacs errors or times out on more than a tenth of the comparisons
 (and more than two), or on every comparison of an oracle, the Emacs side
@@ -422,9 +457,12 @@ The website at <https://org-nvim.com/> is generated, never
 edited by hand: [`scripts/site/build.lua`](scripts/site/build.lua) turns
 `doc/org.txt` into one page per chapter (help tags become anchors, `|links|`
 hyperlinks and `>lua` blocks highlighted code), renders `README.md` and
-`docs/parity-review.md`, scores `docs/parity/inventory.tsv`, and exports
-every `examples/*.org` with org.nvim's own HTML exporter. Build it with
-nothing but Neovim:
+`docs/parity-review.md`, scores `docs/parity/inventory.tsv`, lists the
+known differences from Emacs (the items of `:h org-differences`), publishes
+the extension promotion report (`scripts/extension_report.lua`, required as
+a module) as the "Extensions status" page, and exports every
+`examples/*.org` with org.nvim's own HTML exporter. Build it with nothing
+but Neovim:
 
 ```sh
 make site                # into site/ (not committed); open site/index.html
@@ -434,6 +472,14 @@ The build checks every internal link, `#anchor` and search entry, and
 fails on a broken one or on a `|tag|` that is neither an org.nvim nor a
 Neovim help tag. `tests/spec/site_spec.lua` runs it too. The look and the
 search live in `scripts/site/assets/`.
+
+The Extensions status page measures what the build can see: the history
+needs every commit and the release tags (a shallow clone leaves those
+criteria at "not measured"), coverage comes from `coverage/coverage.json`
+(`make coverage`, or `ORG_SITE_COVERAGE=FILE`), open bugs from `gh`
+(`ORG_SITE_ISSUES=0` skips them) and the live demo only from
+`ORG_DEMO_CONFIG`. The Pages workflow fetches the full history and the
+latest Coverage run's report for it.
 
 ### Playground
 
@@ -525,6 +571,101 @@ fail fast (a literal character), keep `.*` out of look-behinds (`.\{-}`
 stops where the look-behind ends), or use `lc=N` for a fixed leading
 context.
 
+### Opening a file
+
+Starting Neovim on an org file runs `setup()` and attaches the buffer:
+keymaps, folds, syntax, decorations. That path should load only what
+editing, folding and drawing a plain file need; everything a command
+uses (agenda views, babel, export, the table editor, the clock, image
+previews, link following, crypt, pickers, ...) loads on first use.
+`tests/spec/first_open_spec.lua` opens `tests/fixtures/first_open.org`
+in a Neovim of its own (`tests/helpers/first_open.lua`) and fails when a
+module on its deny-list loads, or more than 60 org modules do; it is
+deterministic and runs in the main suite. `perf_budgets_spec.lua` times
+`setup()` and the first open against budgets (70 ms and 300 ms, times
+`ORG_PERF_SCALE`).
+
+When the deny-list fails, find what requires the module (wrap `require`
+and print `debug.getinfo(2, "Sl")`) and make that use lazy: keep the
+per-buffer part of a subsystem in a small module (`org.table.attach`,
+`org.clock.attach`, `org.ui.images.startup`), check the cheap condition
+first and require the module only when it holds, or, for a facade whose
+own functions are a hot path, load its parts on first use with
+`require("org.lazy").parts(M, shared, { ... })` (`org.lists`). What the
+first pass found (Neovim 0.13-dev, Apple M1 Ultra, medians of 15 runs
+on a machine busy with other jobs, so the times are slower than a
+laptop's):
+
+| | Before | After |
+| --- | ---: | ---: |
+| org modules loaded by `setup()` | 14 | 14 |
+| org modules loaded by opening a plain file | 93 | 46 |
+| opening a 12-line file | 74 ms | 56 ms |
+| opening `tests/fixtures/first_open.org` (35 lines) | 74 ms | 55 ms |
+
+The rest of the first open is mostly Neovim's own work: about 450 buffer
+keymaps (`nvim_buf_set_keymap`, about 15 µs each), the first definition
+of about 150 highlight groups, and compiling the syntax patterns.
+
+### Benchmarks
+
+```sh
+make bench                    # 5 runs of each, a table of medians
+make bench ARGS="--runs 9"    # more runs
+make bench ARGS="--files 50"  # a smaller corpus
+make bench ARGS="--json"      # the numbers as JSON
+```
+
+[`scripts/bench.lua`](scripts/bench.lua) times the first open and the
+agenda over a generated corpus (`gen.agenda_corpus` in
+`tests/helpers/gen.lua`: 200 files, 50,000 headlines with TODO keywords,
+priorities, tags, SCHEDULED and DEADLINE dates around 2026-05-13 with
+times, repeaters and warnings, habits, properties, clocks and plain
+timestamps, the same every time). Each measurement runs in a new Neovim
+with throwaway data and cache directories, `agenda.index.background` and
+`watch` off. `tests/spec/bench_spec.lua` runs it on a tiny corpus so
+that it keeps working. Numbers from Neovim 0.13.0-dev on an Apple M1
+Ultra (20 threads, 128 GB, macOS 26, load average about 10 from other
+jobs), medians of 5:
+
+| Operation | Before | After | Agenda lines |
+| --- | ---: | ---: | ---: |
+| `setup()` | 8 ms | 9 ms | |
+| open the first org file (35 lines) | 57 ms | 55 ms | |
+| cold week agenda (no index: 200 files read and parsed) | 2,869 ms | 2,286 ms | 1,627 |
+| warm week agenda (from the agenda index) | 1,035 ms | 519 ms | 1,627 |
+| hot week agenda (files in memory) | 645 ms | 123 ms | 1,627 |
+| tags match `+work-home` | 200 ms | 119 ms | 2,575 |
+| TODO list | 471 ms | 339 ms | 17,901 |
+| refresh the week after editing one file | 683 ms | 138 ms | 1,628 |
+
+("Before" is the first-open work above without the agenda fixes below.)
+The cold view is mostly the parse of 8.8 MB of Org; it varies from
+about 1 to 3 seconds from run to run on macOS arm64, with the JIT
+(below).
+
+What the agenda pass found:
+
+- **The JIT.** `require("jit.p")` with the `v` mode showed three quarters
+  of a week view spent in the JIT compiler. The entry finders and the
+  renderer run short, branchy loops (an entry's dates, its tags): most
+  traces aborted ("leaving loop in root trace", closures created in a
+  loop), and the ones compiled filled the machine-code area, which on
+  macOS arm64 often can't grow (`jit.v` logs "failed to allocate mcode
+  memory") and then flushes every trace in Neovim, about 100 times per
+  view. Interpreted, the same view took a quarter of the time, and still
+  less than with a larger machine-code area. `org.agenda.items` (and
+  each of its parts in `agenda/items/`: the call covers only the
+  functions of the file that makes it), `org.agenda.render` and
+  `org.agenda.habits` call `jit.off(true, true)`;
+  the parser keeps the JIT, which helps it when it doesn't flush. To check
+  a module, load it with the JIT off (`jit.off(loadfile(path), true)`
+  in `package.preload`) and compare.
+- A date-range pattern ran over every planning line on every build;
+  it now runs only on lines with a `>-`.
+- `utils.find_buffer` resolved each agenda file's path (`realpath`) on
+  every build; the result is kept until a shell command or focus change.
+
 ## Promoting an extension
 
 Every extension is ✅ stable or 🧪 experimental (`:h
@@ -549,7 +690,9 @@ extension and lists the candidates (experimental extensions that pass all
 of them), the near misses and stable extensions that have fallen below
 the bar. The release pull request into `main` shows the same report in
 its job summary (with coverage from the latest Coverage run), and so does
-the weekly Coverage workflow. An experimental extension becomes stable
+the weekly Coverage workflow; the website publishes it as the
+[Extensions status](https://org-nvim.com/extensions.html) page at every
+release. An experimental extension becomes stable
 when it meets **every** criterion:
 
 | Criterion | Measured as | Bar |

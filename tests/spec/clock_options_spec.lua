@@ -74,6 +74,29 @@ describe("clock table options", function()
     }, vim.list_slice(l, 2, 10))
   end)
 
+  -- Emacs names each file of a list scope with file-name-nondirectory, and
+  -- the name of one table must not stick to the cached file for the next
+  it("names the files of a list scope without their directory", function()
+    local dir = vim.fn.tempname()
+    vim.fn.mkdir(dir .. "/sub", "p")
+    utils.writefile(dir .. "/sub/A.org", { "* A", "CLOCK: [2026-09-25 Fri 10:00]--[2026-09-25 Fri 11:30] =>  1:30" })
+    utils.writefile(dir .. "/B.org", { "* B", "CLOCK: [2026-09-25 Fri 12:00]--[2026-09-25 Fri 12:15] =>  0:15" })
+    local buf = org_buffer({ "" })
+    vim.api.nvim_buf_set_name(buf, dir .. "/main.org")
+    local function file_rows(scope)
+      local out = {}
+      for _, l in ipairs(clock.clocktable({ maxlevel = 2, scope = scope }, buf)) do
+        local name = l:match("^| (%S+) +| %*File time%*")
+        if name then
+          out[#out + 1] = name
+        end
+      end
+      return out
+    end
+    eq({ "A.org", "B.org" }, file_rows('("sub/A.org" "B.org")'))
+    eq({ "A.org", "B.org" }, file_rows('("' .. dir .. '/sub/A.org" "' .. dir .. '/B.org")'))
+  end)
+
   it("hands the data to clocktable_formatter", function()
     local got
     set_clock({
