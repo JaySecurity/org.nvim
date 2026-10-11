@@ -390,3 +390,30 @@ describe("sort entries alphabetically without markup (make difftest)", function(
     }, buf_lines(buf))
   end)
 end)
+
+describe("move subtree before the first top-level headline (make difftest)", function()
+  it("doesn't move down past a headline of a lower level, but up past a deeper one", function()
+    local buf = org_buffer({ "** a", "* b", "** c" }, { 1, 0 })
+    require("org.structure").move_subtree_down()
+    eq({ "** a", "* b", "** c" }, buf_lines(buf))
+    vim.api.nvim_win_set_cursor(0, { 2, 0 })
+    require("org.structure").move_subtree_up()
+    eq({ "* b", "** c", "** a" }, buf_lines(buf))
+  end)
+
+  it("moves up past all the deeper entries at the top of the buffer, only from line 1", function()
+    local buf = org_buffer({ "** a", "** a2", "* b", "** c" }, { 3, 0 })
+    require("org.structure").move_subtree_up()
+    eq({ "* b", "** c", "** a", "** a2" }, buf_lines(buf))
+    buf = org_buffer({ "", "** a", "* b" }, { 3, 0 })
+    require("org.structure").move_subtree_up()
+    eq({ "", "** a", "* b" }, buf_lines(buf))
+    -- an inline task on line 1 too
+    config.opts.inlinetask_min_level = 15
+    buf = org_buffer({ "*************** task", "*************** END", "* b" }, { 3, 0 })
+    local okc, err = pcall(require("org.structure").move_subtree_up)
+    config.opts.inlinetask_min_level = false
+    ok(okc, err)
+    eq({ "* b", "*************** task", "*************** END" }, buf_lines(buf))
+  end)
+end)
