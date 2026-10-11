@@ -41,6 +41,7 @@ CONTENTS                                                        *org-contents*
   32. Linting ................................... |org-lint|
   33. Differences from Emacs .................... |org-differences|
   34. Extensions ................................ |org-extensions|
+  35. Migrating from nvim-orgmode ............... |org-migrate|
 
 ==============================================================================
 1. INTRODUCTION                                             *org-introduction*
@@ -183,6 +184,9 @@ lazy.nvim / LazyVim: >lua
 Without lazy.nvim, any plugin manager works: org.nvim has no build step
 and no dependencies. Point it at `xheisenbugx/org.nvim` and call
 `require("org").setup({ ... })`.
+
+Coming from nvim-orgmode? |org-migrate| maps its options and keys to
+org.nvim's, and `:Org migrate_config` converts your setup.
 
 Neovim 0.12+ built-in manager (`vim.pack`), in |init.lua|: >lua
     vim.pack.add({ "https://github.com/xheisenbugx/org.nvim" })
@@ -7727,6 +7731,8 @@ Additional subcommands:
     `feed_show_raw [name]` (|org-feed|)
   - `:Org mobile_push`, `mobile_pull`, `mobile_apply`, `mobile_goto_inbox`,
     `mobile_flagged` (|org-mobile|)
+  - `:Org migrate_config [file]`: an nvim-orgmode setup as org.nvim's
+    (|org-migrate-config|)
 
 Live previews                                           *org-command-preview*
 Some subcommands show what they will do while you type them, before
@@ -10210,12 +10216,8 @@ Body text conflicts always get markers.
 Conflict markers wrap only the lines in conflict (the headline and
 planning line of one entry, one property line, or a few lines of text):
 >
-    <<<<<<< HEAD
-    * WAITING Plan the offsite                                    :team:
-    =======
-    * DONE Plan the offsite                                       :team:
-    CLOSED: [2026-09-29 Tue 18:10]
-    >>>>>>> phone
+        * WAITING Plan the offsite                                    :team:
+      35. Migrating from nvim-orgmode ............... |org-migrate|
     Venue ideas.
 <
 Files with CRLF line ends or a UTF-8 BOM keep them. An ID used by two
@@ -12248,5 +12250,443 @@ Differences from org-journal: files open in the current window
 one is added, the search results are a picker instead of a buffer, and
 encryption is left to |org-crypt| (tag entries `:crypt:`). `:CREATED:`
 values are always `%Y%m%d` (any `YYYY-MM-DD` value is read too).
+
+==============================================================================
+35. MIGRATING FROM NVIM-ORGMODE       *org-migrate* *org-migrate-nvim-orgmode*
+
+nvim-orgmode (https://github.com/nvim-orgmode/orgmode) and org.nvim read
+and write the same Org files, so your notes need no change. What changes
+is the plugin, its options and some keys. This chapter maps them, and
+`:Org migrate_config` converts a setup for you.
+
+Swapping the plugin ~
+                                                     *org-migrate-install*
+Remove nvim-orgmode and add org.nvim. Don't keep both: they both define
+the `org` filetype and the `:Org` command. With lazy.nvim: >lua
+    -- before
+    {
+      "nvim-orgmode/orgmode",
+      event = "VeryLazy",
+      config = function()
+        require("orgmode").setup({ org_agenda_files = "~/orgfiles/**/*" })
+      end,
+    }
+    -- after
+    {
+      "xheisenbugx/org.nvim",
+      main = "org",
+      lazy = false,
+      opts = { agenda_files = { "~/orgfiles/**/*" } },
+    }
+<
+Other plugin managers: see |org-installation|. Then:
+  - Completion: the nvim-cmp and blink.cmp source of nvim-orgmode is
+    `orgmode`; org.nvim's is `org` (modules `org.completion.cmp` and
+    `org.completion.blink`, see |org-completion|). Omni completion
+    (<C-x><C-o>) works as before.
+  - Tree-sitter: org.nvim parses and highlights Org itself and doesn't
+    use the `org` tree-sitter parser of nvim-orgmode. If you added `org`
+    to nvim-treesitter's `ensure_installed` or its highlighting, take it
+    out so it doesn't take over the highlighting of org buffers.
+  - Run `:checkhealth org` afterwards: it lists the options it doesn't
+    know.
+
+Converting a setup                                     *org-migrate-config*
+
+:Org migrate_config [file]
+                        Read the nvim-orgmode setup in the Lua file
+                        [file] (default: the current buffer, which must
+                        be Lua; unsaved changes count) and open the
+                        org.nvim `require("org").setup({ ... })` doing the
+                        same in a new scratch buffer. Save it where you
+                        keep your config or copy what you need. The file
+                        is only read, never written.
+
+The file can call `require("orgmode").setup({ ... })`, return a lazy.nvim
+spec for nvim-orgmode (its `opts`, a table or a function, and its
+`config` function), or return the options table itself. It is run as Lua
+to get the options, in a sandbox: other `require`s get an inert stand-in,
+and the keymaps, autocommands, user commands, highlights and option
+changes it makes are ignored, so converting your whole plugin spec does
+no harm.
+
+The result has:
+  - every option converted: renamed, or rewritten where the format
+    differs (TODO keywords, capture templates, custom agenda commands,
+    the time grid, windows, notifications, mappings);
+  - `-- TODO:` comments above what needs a look: a key that is also
+    org.nvim's default for another action, a template field or block
+    option with no equivalent, a function copied from your config whose
+    arguments differ;
+  - the options with no equivalent, each with a TODO saying why and its
+    value commented out;
+  - commented out at the end, nvim-orgmode's defaults that differ from
+    org.nvim's (indentation, folding, logging, the tag column, keys):
+    uncomment the ones whose behaviour you want to keep.
+Functions in your options (a custom notifier, a capture `headline`
+function) are copied from the file when they are written in place as
+`function(...) ... end`; otherwise a TODO says where they are.
+
+Options ~
+                                                    *org-migrate-options*
+nvim-orgmode options and their org.nvim names (|org-config|):
+
+  org_agenda_files                agenda_files (a list; globs work)
+  org_default_notes_file          default_notes_file
+  org_todo_keywords               todo_keywords: one string per sequence,
+                                  { "TODO NEXT | DONE" }
+  org_todo_repeat_to_state        todo_repeat_to_state
+  org_todo_keyword_faces          ui.todo_keyword_faces (same format)
+  org_deadline_warning_days       deadline_warning_days
+  org_agenda_span                 agenda.span
+  org_agenda_start_on_weekday     agenda.start_on_weekday
+  org_agenda_start_day            agenda.start_day
+  org_agenda_min_height           none: the agenda split is sized by
+                                  agenda.window_frame_fractions
+  org_agenda_skip_scheduled_if_done
+                                  agenda.skip_scheduled_if_done
+  org_agenda_skip_deadline_if_done
+                                  agenda.skip_deadline_if_done
+  org_agenda_text_search_extra_files
+                                  agenda.text_search_extra_files
+  org_agenda_custom_commands      agenda.custom_commands
+                                  (|org-migrate-agenda|)
+  org_agenda_hide_empty_blocks    none: empty blocks are shown, as in Emacs
+  org_agenda_block_separator      agenda.block_separator
+  org_agenda_sorting_strategy     agenda.sorting (no clocked-up /
+                                  clocked-down)
+  org_agenda_remove_tags          agenda.remove_tags
+  org_agenda_time_grid            agenda.time_grid: `type`, `times`,
+                                  `separator` (time_separator with a space on
+                                  each side), `time_string` (time_label)
+  org_agenda_use_time_grid        agenda.time_grid.enabled
+  org_agenda_current_time_string  agenda.current_time_string
+  org_agenda_show_future_repeats  agenda.show_future_repeats (true, false or
+                                  "next"; no count)
+  org_capture_templates           capture.templates (|org-migrate-capture|)
+  org_startup_folded              startup_folded ("inherit": none)
+  org_priority_highest            priority_highest
+  org_priority_default            priority_default
+  org_priority_lowest             priority_lowest
+  org_priority_start_cycle_with_default
+                                  priority_start_cycle_with_default
+  org_archive_location            archive_location
+  org_tags_column                 tags_column
+  org_use_tag_inheritance         use_tag_inheritance
+  org_tags_exclude_from_inheritance
+                                  tags_exclude_from_inheritance
+  org_use_property_inheritance    use_property_inheritance
+  org_hide_leading_stars          ui.hide_leading_stars
+  org_hide_emphasis_markers       ui.hide_emphasis_markers
+  org_ellipsis                    ellipsis
+  org_log_done                    log_done
+  org_log_repeat                  log_repeat
+  org_log_into_drawer             log_into_drawer
+  org_highlight_latex_and_related
+                                  ui.highlight_latex_and_related, a list:
+                                  "native" is { "native" }, "entities" is
+                                  { "latex", "entities" }
+  org_custom_exports              none: export is built in (HTML, LaTeX/PDF,
+                                  Markdown, ODT, ... and pandoc formats,
+                                  |org-export|)
+  org_adapt_indentation           adapt_indentation
+  org_startup_indented            ui.indent_mode
+  org_indent_mode_turns_off_org_adapt_indentation
+                                  ui.indent_mode_turns_off_adapt_indentation
+  org_indent_mode_turns_on_hiding_stars
+                                  not needed: indent mode hides the leading
+                                  stars, as in Emacs
+  org_time_stamp_rounding_minutes
+                                  time_stamp_rounding_minutes = { 0, N }
+  org_cycle_separator_lines       cycle_separator_lines
+  org_blank_before_new_entry      blank_before_new_entry
+  org_src_window_setup            win_split_mode, the window of edit buffers:
+                                  "float", "split", "vsplit", "tab" or
+                                  "current"
+  org_edit_src_content_indentation
+                                  edit_src_content_indentation
+  org_edit_src_filetype_map       src_lang_modes
+  org_id_uuid_program             not needed: UUIDs are made in Lua
+  org_id_ts_format                id.ts_format
+  org_id_method                   id.method
+  org_id_prefix                   id.prefix
+  org_id_link_to_org_use_id       links.use_id
+  org_babel_default_header_args   babel.default_header_args, without the
+                                  colons: { tangle = "no" }
+  calendar_week_start_day         none: the calendar starts on Monday
+  calendar.*                      none
+  win_split_mode                  agenda.window and capture.window ("split",
+                                  "vsplit", "float", "tab", "current"; no
+                                  function)
+  win_border                      win_border
+  notifications.enabled           notifications.enabled
+  notifications.reminder_time     notifications.reminder_time (a list)
+  notifications.notifier          notifications.notifier, called once per
+                                  reminder with { title, body, item, minutes }
+  notifications.cron_*            none: reminders run in Neovim
+                                  (|org-notifications|)
+  notifications.*_reminder*       none: timed deadlines and scheduled entries
+                                  are always reminded
+  hyperlinks.sources              links.types (|org-links|): a `follow(path)`
+                                  and `complete()` per link type
+  emacs_config                    not needed: export doesn't use Emacs;
+                                  `executable_path` becomes
+                                  babel.emacs_lisp.command (Emacs Lisp src
+                                  blocks and %(sexp))
+  ui.folds.colored                none: folded headlines keep their colours
+  ui.menu.handler                 none: ui.menus = false uses vim.ui.select
+                                  (|org-key-menus|)
+  ui.input.use_vim_ui             none
+  ui.agenda.preview_window        none: <Space> shows the entry
+  mappings.disable_all            mappings.disable_all
+  mappings.prefix                 mappings.prefix
+  mappings.org_return_uses_meta_return
+                                  none: <M-CR> adds a heading, item or row in
+                                  Insert mode
+
+Defaults that differ (nvim-orgmode / org.nvim, which follows Emacs):
+
+  adapt_indentation               true / false
+  startup_folded                  "overview" / "showeverything"
+  log_done                        "time" / false
+  tags_column                     -80 / -77
+  blank_before_new_entry          { heading = true, plain_list_item = false }
+                                  / "auto" for both
+  edit_src_content_indentation    0 / 2
+  agenda.sorting                  priority-down / urgency-down (the priority
+                                  and how close the deadline or scheduled date
+                                  is)
+  agenda.block_separator          "-" / "─"
+  win_border                      "single" / "rounded"
+
+`:Org migrate_config` offers nvim-orgmode's values, commented out.
+
+Capture templates ~
+                                                    *org-migrate-capture*
+The fields `description`, `template` (a string or a list of lines),
+`target`, `headline` (a string or a function), `prepend` and `regexp`
+are the same (|org-capture-templates|). The others:
+
+  datetree = true                 the same
+  datetree = { time_prompt = true }
+                                  datetree = true, time_prompt = true
+  datetree = { tree_type = "month" }
+                                  datetree = true, tree_type = "month"
+  datetree = { reversed = true }  none: date nodes stay in date order
+  tree_type = "custom"            tree_type = function(date) returning {
+                                  { title, compare } ... }
+  properties = { empty_lines = N }
+                                  empty_lines = N
+  properties = { empty_lines = { before = B, after = A } }
+                                  empty_lines_before = B,
+                                  empty_lines_after = A
+  subtemplates = { r = {...} }    a key per template ("er", "eo") and the
+                                  label of the group under its own key
+                                  (e = "Event"), as in Emacs
+
+In the template text:
+  - `%(return EXPR)` (a Lua function body) is `%(EXPR)` (an expression,
+    or Emacs Lisp: `%(format-time-string "%Y")`).
+  - `%n` is your full name (Emacs's user-full-name), not $USER; use
+    `%(os.getenv("USER"))` for the old value.
+  - A relative `target` is relative to `org_directory` ("~/org").
+  - `%<...>` date formats in a `target` aren't expanded: make the target
+    a function, `target = function() return os.date("~/org/%Y-%m.org")
+    end` (`:Org migrate_config` writes one).
+  - org.nvim knows more fields: `olp`, `id`, `type = "item"`,
+    `clock_in`, `immediate_finish`, ... (|org-capture-templates|).
+With no templates at all, org.nvim uses Emacs's default `t` template,
+which files tasks under a "Tasks" headline of `default_notes_file`.
+
+Custom agenda commands and agenda files ~
+                                                     *org-migrate-agenda*
+`org_agenda_custom_commands` keeps its shape: a `description` and a list
+of blocks in `types`, each with a `type` ("agenda", "tags", "tags_todo")
+and a `match`. org.nvim accepts the `org_agenda_*` names in blocks, but
+its own are shorter (|org-agenda-custom-commands|):
+
+  org_agenda_overriding_header    header
+  org_agenda_files                files (a list)
+  org_agenda_tag_filter_preset    tag_filter_preset, a list: "NOTES-REFACTOR"
+                                  is { "+NOTES", "-REFACTOR" }
+  org_agenda_category_filter_preset
+                                  category_filter_preset, a list: "todos" is
+                                  { "+todos" }
+  org_agenda_sorting_strategy     sorting
+  org_agenda_remove_tags          remove_tags
+  org_agenda_span                 span
+  org_agenda_start_on_weekday     start_on_weekday
+  org_agenda_start_day            start_day
+  org_agenda_todo_ignore_scheduled
+                                  todo_ignore_scheduled
+  org_agenda_todo_ignore_deadlines
+                                  todo_ignore_deadlines
+
+In a `tags_todo` block, org.nvim (like Emacs) applies the todo_ignore_*
+options only with `tags_todo_honor_ignore_options = true` in the block;
+the converter adds it. Blocks may also be `todo`, `search` and `stuck`,
+and a command's `settings` apply to all its blocks.
+
+Agenda files: "~/org/**/*" works as it is (only `.org` and `.org_archive`
+files are read). A directory without a glob adds its `*.org` files, not
+recursively, as in Emacs.
+
+Keys ~
+                                                       *org-migrate-keys*
+`<prefix>` is `mappings.prefix`, <Leader>o in both. Keys are set by
+action name under the same sections, `mappings.org.<action>`,
+`mappings.agenda.<action>`, ... (|org-keymaps|). A list of keys works;
+nvim-orgmode's `desc` doesn't (org.nvim names keys after their action).
+org.nvim also binds Emacs's keys (<C-c><C-t>, <C-c><C-s>, ...;
+|org-emacs-keys|).
+
+Org buffers (nvim-orgmode mapping, key: org.nvim action, key):
+
+  org_refile                      <prefix>r: refile, the same key
+  org_timestamp_up_day            <S-Up>: shift_up, the same key
+  org_timestamp_down_day          <S-Down>: shift_down, the same key
+  org_timestamp_up                <C-a>: increment, the same key
+  org_timestamp_down              <C-x>: decrement, the same key
+  org_change_date                 cid: timestamp, org.nvim key <prefix>i.
+  org_priority                    <prefix>,: priority, the same key
+  org_priority_up                 ciR: shift_up, org.nvim key <S-Up>
+  org_priority_down               cir: shift_down, org.nvim key <S-Down>
+  org_todo                        cit: todo_next, the same key
+  org_todo_prev                   ciT: todo_prev, the same key
+  org_toggle_checkbox             <C-Space>: toggle_checkbox, the same key
+  org_toggle_heading              <prefix>*: toggle_heading, the same key
+  org_open_at_point               <prefix>o: open_at_point, org.nvim key
+                                  <prefix>o, <CR>, gx
+  org_edit_special                <prefix>': edit_special, the same key
+  org_add_note                    <prefix>na: add_note, org.nvim key
+                                  <C-c><C-z>
+  org_cycle                       <Tab>: cycle, the same key
+  org_global_cycle                <S-Tab>: global_cycle, the same key
+  org_archive_subtree             <prefix>$: archive_subtree, the same key
+  org_set_tags_command            <prefix>t: set_tags, the same key
+  org_toggle_archive_tag          <prefix>A: toggle_archive_tag, org.nvim key
+                                  <prefix>hA
+  org_do_promote                  <<: promote_heading, the same key
+  org_do_demote                   >>: demote_heading, the same key
+  org_promote_subtree             <s: promote_subtree, the same key
+  org_demote_subtree              >s: demote_subtree, the same key
+  org_meta_return                 <Leader><CR>: meta_return, org.nvim key
+                                  <M-CR>
+  org_return                      <CR> in Insert mode: none; <CR> moves to the
+                                  next table row
+  org_insert_heading_respect_content
+                                  <prefix>ih: insert_heading, the same key
+  org_insert_todo_heading         <prefix>iT: meta_shift_return, org.nvim key
+                                  <M-S-CR>
+  org_insert_todo_heading_respect_content
+                                  <prefix>it: insert_todo_heading, the same
+                                  key
+  org_move_subtree_up             <prefix>K: move_subtree_up, the same key
+  org_move_subtree_down           <prefix>J: move_subtree_down, the same key
+  org_export                      <prefix>e: export, the same key
+  org_next_visible_heading        }: next_heading, org.nvim key ]]
+  org_previous_visible_heading    {: prev_heading, org.nvim key [[
+  org_forward_heading_same_level  ]]: next_sibling, org.nvim key ][
+  org_backward_heading_same_level
+                                  [[: prev_sibling, org.nvim key []
+  outline_up_heading              g{: goto_parent, the same key
+  org_deadline                    <prefix>id: deadline, org.nvim key <prefix>d
+  org_schedule                    <prefix>is: schedule, org.nvim key <prefix>s
+  org_time_stamp                  <prefix>i.: timestamp, the same key
+  org_time_stamp_inactive         <prefix>i!: timestamp_inactive, the same key
+  org_toggle_timestamp_type       <prefix>d!: toggle_timestamp_type, no
+                                  org.nvim key
+  org_insert_link                 <prefix>li: insert_link, the same key
+  org_store_link                  <prefix>ls: store_link, the same key
+  org_clock_in                    <prefix>xi: clock_in, the same key
+  org_clock_out                   <prefix>xo: clock_out, the same key
+  org_clock_cancel                <prefix>xq: clock_cancel, the same key
+  org_clock_goto                  <prefix>xj: clock_goto, the same key
+  org_set_effort                  <prefix>xe: set_effort, the same key
+  org_show_help                   g?: help, the same key
+  org_babel_tangle                <prefix>bt: babel_tangle, the same key
+
+Keys that do something else in org.nvim: <prefix>id inserts a drawer,
+<prefix>is a subheading, <prefix>A attaches a file, and }, { are Vim's
+paragraph motions again. <prefix>d sets the deadline: mapping <prefix>d!
+as well makes Vim wait 'timeoutlen' after <prefix>d.
+
+Agenda (`mappings.agenda`):
+
+  org_agenda_later                f: later, the same key
+  org_agenda_earlier              b: earlier, the same key
+  org_agenda_goto_today           .: today, the same key
+  org_agenda_day_view             vd: day_view, the same key
+  org_agenda_week_view            vw: week_view, the same key
+  org_agenda_month_view           vm: month_view, the same key
+  org_agenda_year_view            vy: year_view, the same key
+  org_agenda_quit                 q: quit, the same key
+  org_agenda_switch_to            <CR>: switch_to, the same key
+  org_agenda_goto                 <Tab>: goto, the same key
+  org_agenda_goto_date            J: goto_date, org.nvim key gd
+  org_agenda_redo                 r: redo, the same key
+  org_agenda_todo                 t: todo, the same key
+  org_agenda_open_at_point        <prefix>o: open_link, org.nvim key
+                                  <C-c><C-o>
+  org_agenda_clock_goto           <prefix>xj: clock_goto, org.nvim key J
+  org_agenda_set_effort           <prefix>xe: set_effort, org.nvim key e
+  org_agenda_clock_in             I: clock_in, the same key
+  org_agenda_clock_out            O: clock_out, the same key
+  org_agenda_clock_cancel         X: clock_cancel, the same key
+  org_agenda_clockreport_mode     R: clockreport_mode, org.nvim key C, vR
+  org_agenda_priority             <prefix>,: priority, org.nvim key ,
+  org_agenda_priority_up          +: priority_up, the same key
+  org_agenda_priority_down        -: priority_down, the same key
+  org_agenda_archive              <prefix>$: archive, org.nvim key $
+  org_agenda_toggle_archive_tag   <prefix>A: toggle_archive_tag, org.nvim key
+                                  <C-c><C-x>a
+  org_agenda_set_tags             <prefix>t: set_tags, org.nvim key :
+  org_agenda_deadline             <prefix>id: deadline, org.nvim key d
+  org_agenda_schedule             <prefix>is: schedule, org.nvim key s
+  org_agenda_filter               /: filter, the same key
+  org_agenda_refile               <prefix>r: refile, org.nvim key R
+  org_agenda_add_note             <prefix>na: add_note, org.nvim key z
+  org_agenda_preview              K: show, org.nvim key <Space>
+  org_agenda_show_help            g?: help, the same key
+
+In the agenda, K captures, J goes to the clocked task and R refiles.
+
+Capture, note and edit buffers:
+
+  org_capture_finalize            <C-c>: capture.finalize, org.nvim key
+                                  <C-c><C-c>, <prefix>w
+  org_capture_refile              <prefix>r: capture.refile, org.nvim key
+                                  <prefix>r, <C-c><C-w>
+  org_capture_kill                <prefix>k: capture.kill, org.nvim key
+                                  <prefix>k, <C-c><C-k>
+  org_capture_show_help           g?: help, the same key
+  org_note_finalize               <C-c>: none; <C-c><C-c> stores the note
+  org_note_kill                   <prefix>k: none; <C-c><C-k> cancels it
+  org_edit_src_save_exit          <prefix>': edit_src.save_exit, org.nvim key
+                                  <prefix>', <C-c>'
+  org_edit_src_abort              <prefix>k: edit_src.abort, org.nvim key
+                                  <prefix>k, <C-c><C-k>
+  org_edit_src_save               <prefix>w: none; :w writes the block back
+  org_edit_src_show_help          g?: help, the same key
+
+Text objects ih, ah, ir and ar are the same (`mappings.text_objects`);
+the ones from the root heading (Oh, OH, Or, OR) have no equivalent.
+
+Other differences ~
+                                                *org-migrate-differences*
+  - org.nvim follows Emacs Org 9.8: options carry Emacs's defaults and
+    names (without the `org_` prefix), and most Emacs options exist
+    (|org-config|). `:Org customize` lists them all.
+  - Export is built in: HTML, LaTeX/PDF, Beamer, Markdown, ASCII, ODT,
+    iCalendar and Texinfo run without Emacs; pandoc adds DOCX, EPUB, ...
+    (|org-export|).
+  - Reminders (`notifications.enabled`) run inside Neovim; there is no
+    cron mode. Plain timestamps with a time get reminders too.
+  - Log notes open a small `*Org Note*` window: <C-c><C-c> stores the
+    note, <C-c><C-k> cancels it.
+  - <CR> on a link opens it; in Insert mode, <CR> in a table moves to the
+    next row.
+  - Menus (the agenda dispatcher, capture, export) are org.nvim's own key
+    menus, which Esc closes (|org-key-menus|).
 
  vim:tw=78:ts=8:ft=help:norl:

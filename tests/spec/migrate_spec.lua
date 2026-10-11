@@ -745,3 +745,60 @@ describe("migrate: :Org migrate_config", function()
     ok(vim.tbl_contains(items, root .. "/README.md"))
   end)
 end)
+
+describe("migrate: the guide (:h org-migrate)", function()
+  local lines = vim.fn.readfile(root .. "/doc/org.txt")
+  local function section(from, to)
+    local out, inside = {}, false
+    for _, l in ipairs(lines) do
+      if l:find(from, 1, true) == 1 then
+        inside = true
+      elseif inside and l:find(to, 1, true) == 1 then
+        break
+      elseif inside then
+        out[#out + 1] = l
+      end
+    end
+    return out
+  end
+
+  --- Rows of a key table: { [nvim-orgmode name] = org.nvim action }.
+  local function key_rows(rows)
+    local out, name = {}, nil
+    for _, l in ipairs(rows) do
+      local n, rest = l:match("^  ([%w_]+)%s*(.*)$")
+      if n then
+        name = n
+      end
+      local action = (rest or l):match("^%s*%S+: ([%w_.]+),")
+      if name and action then
+        out[name] = action
+        name = nil
+      end
+    end
+    return out
+  end
+
+  it("names the converter's actions in the key tables", function()
+    local org = key_rows(section("Org buffers (", "Keys that do"))
+    local agenda = key_rows(section("Agenda (`mappings.agenda`)", "In the agenda,"))
+    eq(#vim.tbl_keys(org) > 40, true)
+    for name, action in pairs(org) do
+      eq(migrate.MAPS.org[name][2], action)
+    end
+    for name, action in pairs(agenda) do
+      eq(migrate.MAPS.agenda[name][2], action)
+    end
+    eq(vim.tbl_count(migrate.MAPS.agenda), vim.tbl_count(agenda))
+  end)
+
+  it("lists every renamed option with its org.nvim name", function()
+    local text = table.concat(section("nvim-orgmode options and their org.nvim names", "Defaults that differ"), "\n")
+    for their, to in pairs(migrate.RENAMES) do
+      to = type(to) == "table" and to[1] or to
+      local row = text:match("\n  " .. their .. "%s+([^\n]*\n?[^\n]*)")
+      ok(row, their)
+      ok(row:find(to, 1, true), their .. " -> " .. to .. ": " .. tostring(row))
+    end
+  end)
+end)

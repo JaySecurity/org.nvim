@@ -57,6 +57,9 @@ formulas, Babel and export.
 How does it compare with nvim-orgmode and Neorg? See [why another Org
 plugin?](docs/guide.md#-why-another-org-plugin).
 
+Switching from nvim-orgmode? [`:h org-migrate`](doc/org.txt) maps its
+options and keys to org.nvim's, and `:Org migrate_config` converts your setup.
+
 **On AI:** org.nvim is written with AI assistance
 ([Claude Code](https://claude.com/claude-code)). To keep that honest, its
 behaviour is checked against the Emacs Org source rather than guessed,
