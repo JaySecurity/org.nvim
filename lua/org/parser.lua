@@ -500,12 +500,14 @@ function M.parse_property_line(line)
 end
 
 local function parse_property_drawer(lines, from, to)
-  if from > to or not lines[from]:match("^%s*:PROPERTIES:%s*$") then
+  -- org-property-drawer-re, matched with case-fold-search like
+  -- org-element does: :properties: and :end: open and close one too
+  if from > to or not lines[from]:match("^%s*:[Pp][Rr][Oo][Pp][Ee][Rr][Tt][Ii][Ee][Ss]:%s*$") then
     return nil
   end
   local bases, extra, order = {}, {}, {}
   local j = from + 1
-  while j <= to and not lines[j]:match("^%s*:END:%s*$") do
+  while j <= to and not lines[j]:match("^%s*:[Ee][Nn][Dd]:%s*$") do
     local key, value = M.parse_property_line(lines[j])
     if not key then
       return nil

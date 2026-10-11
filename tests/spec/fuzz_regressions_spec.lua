@@ -57,4 +57,19 @@ describe("fuzz regressions", function()
     hl = E.parse({ "* x", "SCHEDULED: <2024-01-01 Mon> SCHEDULED: none" }).contents[1]
     eq(nil, hl.scheduled)
   end)
+
+  it("reads a property drawer written in lower case", function()
+    -- org-property-drawer-re is matched with case-fold-search (Emacs Org
+    -- 9.8.10: org-entry-get reads A here)
+    local file =
+      require("org.parser").parse({ "* H", ":properties:", ":A: 1", ":end:", "* I", ":Properties:", ":B: 2", ":End:" })
+    eq({ A = "1" }, file.headlines[1].properties)
+    eq({ 2, 4 }, file.headlines[1].properties_range)
+    eq({ B = "2" }, file.headlines[2].properties)
+    eq({ A = "1" }, require("org.parser").parse({ ":properties:", ":A: 1", ":end:", "* H" }).properties)
+    -- setting a property writes into that drawer
+    local buf = org_buffer({ "* H", ":properties:", ":A: 1", ":end:" }, { 1, 0 })
+    require("org.properties").set_property(nil, "B", "2")
+    eq({ "* H", ":properties:", ":A: 1", ":B:        2", ":end:" }, buf_lines(buf))
+  end)
 end)
