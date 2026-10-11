@@ -25,3 +25,5 @@ lua/org/columns.lua
 lua/org/columns
 lua/org/mobile.lua
 lua/org/mobile
+lua/org/capture.lua
+lua/org/capture

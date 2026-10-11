@@ -136,8 +136,7 @@ local function map_unnarrowed(s)
         if not seen[lhs] then
           seen[lhs] = true
           local prev = vim.fn.maparg(lhs, "n", false, true)
-          prev = not vim.tbl_isempty(prev) and prev or nil
-          s.maps[#s.maps + 1] = { lhs = lhs, prev = prev and prev.buffer == 1 and prev or nil }
+          s.maps[#s.maps + 1] = { lhs = lhs, prev = not vim.tbl_isempty(prev) and prev.buffer == 1 and prev or nil }
           vim.keymap.set("n", lhs, function()
             if M.sessions[bufnr] == s and vim.api.nvim_get_current_win() == s.win then
               a[2]()
@@ -355,13 +354,16 @@ end
 ---@return string|nil # with immediate_finish, the file of the stored entry (its buffer may be gone: kill_buffer)
 function M.capture(tpl_or_key, opts)
   opts = opts or {}
-  local tpl = tpl_or_key
+  local tpl ---@type table
   if type(tpl_or_key) == "string" then
-    tpl = M.get_template(tpl_or_key)
-    if not tpl then
+    local found = M.get_template(tpl_or_key)
+    if not found then
       utils.warn("No capture template for key: " .. tpl_or_key)
       return
     end
+    tpl = found
+  else
+    tpl = tpl_or_key
   end
   local ctx = origin_context(opts)
   ctx.date = opts.date
