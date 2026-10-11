@@ -234,9 +234,8 @@ local function toggle_checkbox_range(bufnr, s, e, arg, singlep)
         it.box = ref
       end
     end
-    fix_ind(struct)
-    fix_bul(struct)
-    fix_ind(struct)
+    -- only the checkboxes: org-toggle-checkbox applies the structure
+    -- without fixing bullets or indentation (C-c C-c on an item does)
     local block = fix_box(struct, ordered)
     if singlep and block and s > block.lnum then
       utils.warn(string.format("Checkbox blocked because of unchecked box at line %d", block.lnum))

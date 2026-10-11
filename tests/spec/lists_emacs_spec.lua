@@ -342,3 +342,13 @@ describe("lists: checkbox radio mode", function()
     vim.api.nvim_del_autocmd(id)
   end)
 end)
+
+describe("lists: org-toggle-checkbox (make difftest, commands oracle)", function()
+  it("toggles the box without renumbering the list", function()
+    -- org-toggle-checkbox fixes the boxes only (C-c C-c on an item goes
+    -- through org-list-write-struct, which renumbers)
+    local buf = org_buffer({ "* H", "1. [@8] [ ] a", "2. b", "3. [ ] c" }, { 4, 0 })
+    lists.toggle_checkbox()
+    eq({ "* H", "1. [@8] [ ] a", "2. b", "3. [X] c" }, buf_lines(buf))
+  end)
+end)
