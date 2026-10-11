@@ -720,4 +720,13 @@ describe("export: Emacs parity (difftest known differences)", function()
     has(out, "<2026-10-01 Thu .+2d/4d>")
     has(out, "[2026-10-01 Thu +1d/3d -2d]")
   end)
+
+  it("a date range whose end has no time takes the start's time", function()
+    -- org-element-timestamp-parser: hour-end defaults to hour-start (the
+    -- two spaces after a timestamp are Emacs's too)
+    local out = ox.export_as("org", { "<2026-10-01 Thu 17:30>--<2026-10-03 Sat> <2026-10-01 Thu>--<2026-10-03 Sat 10:00>" }, {
+      body_only = true,
+    })
+    eq("<2026-10-01 Thu 17:30>--<2026-10-03 Sat 17:30>  <2026-10-01 Thu>--<2026-10-03 Sat 10:00>\n", out)
+  end)
 end)

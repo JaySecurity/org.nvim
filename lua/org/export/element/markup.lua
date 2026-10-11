@@ -208,7 +208,9 @@ function P:parse_timestamp(s, p)
   })
   if inner2 then
     local y2, mo2, d2, h2, mi2 = parse_date(inner2)
-    node.year_end, node.month_end, node.day_end, node.hour_end, node.minute_end = y2, mo2, d2, h2, mi2
+    -- an end without a time takes the start's (org-element-timestamp-parser)
+    node.year_end, node.month_end, node.day_end = y2, mo2, d2
+    node.hour_end, node.minute_end = h2 or h1, mi2 or mi1
   else
     node.year_end, node.month_end, node.day_end = y1, mo1, d1
     node.hour_end = tonumber(th) or h1

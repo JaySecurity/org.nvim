@@ -38,11 +38,6 @@
 
 local INLINETASK = "^%*%*%*%*%*%*%*%*%*%*%*%*%*%*%*+ "
 
---- `s` with all whitespace runs as one space.
-local function squash(s)
-  return (s:gsub("%s+", " "))
-end
-
 --- `s` line by line through `fn`.
 local function each_line(s, fn)
   local out = {}
@@ -229,19 +224,6 @@ return {
       with the enclosing headline.]],
     input = timestamp_after_inline_end,
     emacs = "%sEND%f[%s:%z]",
-  },
-  {
-    oracle = "export%-.*",
-    reason = [[A date range whose start has a time and whose end has none, as
-      <2026-10-01 17:30>--<2026-10-03 Sat>, is exported by Emacs with the
-      start's time on the end too (org-element-timestamp-interpreter), by
-      org.nvim without. The longer line can wrap elsewhere, and a line break
-      next to CJK text (日本語) is filled without a space.]],
-    emacs = "%a%a%a %d%d:%d%d[%]>&]",
-    same = function(s)
-      s = squash(s):gsub("(%d%d%d%d%-%d%d%-%d%d %a+) %d%d:%d%d", "%1"):gsub("(%a%a%a) %d%d:%d%d([%]>])", "%1%2")
-      return (s:gsub("([\128-\255]) ", "%1"):gsub(" ([\128-\255])", "%1"))
-    end,
   },
   {
     oracle = "export%-.*",
