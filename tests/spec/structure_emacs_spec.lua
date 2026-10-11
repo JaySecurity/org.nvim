@@ -370,3 +370,23 @@ describe("footnotes: maintenance", function()
     eq(5, cursor_line())
   end)
 end)
+
+describe("sort entries alphabetically without markup (make difftest)", function()
+  it("compares the titles as org-sort-remove-invisible leaves them", function()
+    local buf = org_buffer({
+      "* P",
+      "** DONE _*mixed*_ _under_",
+      "** Beta",
+      "** =zz= [[x][Alpha]]",
+      "** ~c~ and [[https://a.b]]",
+    }, { 1, 0 })
+    require("org.structure").sort("a")
+    eq({
+      "* P",
+      "** Beta",
+      "** ~c~ and [[https://a.b]]",
+      "** DONE _*mixed*_ _under_",
+      "** =zz= [[x][Alpha]]",
+    }, buf_lines(buf))
+  end)
+end)

@@ -49,9 +49,38 @@ local SORT_LIST = {
 
 --- Text as displayed: link descriptions instead of links
 --- (org-sort-remove-invisible).
-local function visible_text(s)
+local function links_text(s)
   s = s:gsub("%[%[([^%]]-)%]%[([^%]]-)%]%]", "%2"):gsub("%[%[([^%]]-)%]%]", "%1")
   return s
+end
+
+--- `s` as org-sort-remove-invisible gives it: emphasis markers removed,
+--- code and verbatim as their value, links as their description (or
+--- target).
+local function visible_text(s)
+  local element = require("org.export.element")
+  local okp, tree = pcall(element.parse_secondary, s, "paragraph")
+  if not okp or type(tree) ~= "table" then
+    return links_text(s)
+  end
+  local function interpret(nodes)
+    local out = {}
+    for _, n in ipairs(nodes) do
+      local pb = string.rep(" ", n.post_blank or 0)
+      local t = n.type
+      if t == "bold" or t == "italic" or t == "underline" or t == "strike-through" then
+        out[#out + 1] = interpret(n.contents or {}) .. pb
+      elseif t == "code" or t == "verbatim" then
+        out[#out + 1] = (n.value or "") .. pb
+      elseif t == "link" then
+        out[#out + 1] = (#(n.contents or {}) > 0 and interpret(n.contents) or (n.raw_link or "")) .. pb
+      else
+        out[#out + 1] = element.interpret(n)
+      end
+    end
+    return table.concat(out)
+  end
+  return interpret(tree)
 end
 
 --- Emacs `string-to-number`: the number at the start of `s`, else 0.
