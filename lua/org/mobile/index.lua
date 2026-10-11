@@ -185,7 +185,11 @@ function M.index_lines(alist, has_agendas)
   local done_kwds = uniq(done_kw)
   local todo_kwds = delete_all(uniq(all_kw), done_kwds)
   local lines = { "#+READONLY" }
-  for _, seq in ipairs(require("org.todo_keywords").normalize(config.opts.todo_keywords)) do
+  local todo_keywords = require("org.todo_keywords")
+  for _, entry in ipairs(todo_keywords.normalize(config.opts.todo_keywords)) do
+    -- a `{ type = ... }` sequence is listed like any other (Emacs takes the
+    -- cdr of each org-todo-keywords entry, sequence or type)
+    local seq = todo_keywords.sequence_spec(entry)
     local kwds = {}
     for tok in seq:gmatch("%S+") do
       kwds[#kwds + 1] = strip_key(tok)

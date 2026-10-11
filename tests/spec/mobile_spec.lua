@@ -127,6 +127,15 @@ describe("org-mobile", function()
     ok(text:find(":ORIGINAL_ID: " .. id2, 1, true))
   end)
 
+  it("lists type sequences in index.org like sequence ones", function()
+    dir = setup({ ["a.org"] = { "* TODO Task", "* Fred Other" } }, {
+      todo_keywords = { "TODO | DONE", { type = "Fred(f) Sara | FINISHED" } },
+    })
+    ok(mobile.push())
+    local index = utils.readfile(dir .. "/stage/index.org")
+    eq({ "#+READONLY", "#+TODO: TODO | DONE", "#+TODO: Fred Sara | FINISHED" }, vim.list_slice(index, 1, 3))
+  end)
+
   it("uses outline path links without forced IDs", function()
     dir = setup(
       { ["a.org"] = { "* Project", "** TODO Sub: task/x" } },
