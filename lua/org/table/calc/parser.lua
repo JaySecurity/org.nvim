@@ -15,6 +15,49 @@ local parse_date = values.parse_date
 -- Tokenizer
 ---------------------------------------------------------------------------
 
+-- the escapes of an Emacs Lisp string: `\n` is 10, ...
+local ESCAPES = { a = 7, b = 8, t = 9, n = 10, v = 11, f = 12, r = 13, e = 27, s = 32, d = 127 }
+
+--- The character codes of the string starting at `s[i]` (after its opening
+--- quote), read as Emacs reads a Lisp string (math-read-string), and the
+--- index after its closing quote.
+---@param s string
+---@param i integer
+---@return integer[] codes, integer next
+local function read_string(s, i)
+  local codes, n = {}, #s
+  while true do
+    if i > n then
+      error("syntax error: unterminated string")
+    end
+    local ch = s:sub(i, i)
+    if ch == '"' then
+      return codes, i + 1
+    elseif ch == "\\" then
+      local e = s:sub(i + 1, i + 1)
+      local oct = s:match("^[0-7][0-7]?[0-7]?", i + 1)
+      local hex = s:match("^x(%x+)", i + 1)
+      if oct then
+        codes[#codes + 1] = tonumber(oct, 8)
+        i = i + 1 + #oct
+      elseif hex then
+        codes[#codes + 1] = tonumber(hex, 16)
+        i = i + 2 + #hex
+      elseif e == "\n" or e == " " then
+        -- an escaped newline or space is ignored
+        i = i + 2
+      else
+        codes[#codes + 1] = ESCAPES[e] or vim.fn.char2nr(s:sub(i + 1, i + 1 + vim.str_utf_end(s, i + 1)))
+        i = i + 2 + vim.str_utf_end(s, i + 1)
+      end
+    else
+      local last = i + vim.str_utf_end(s, i)
+      codes[#codes + 1] = vim.fn.char2nr(s:sub(i, last))
+      i = last + 1
+    end
+  end
+end
+
 local function tokenize(s)
   local toks, i, n = {}, 1, #s
   local function push(kind, value, space)
@@ -76,28 +119,19 @@ local function tokenize(s)
         push("float", num, space)
       end
     elseif ch:match("[%a]") then
-      local id = s:match("^[%a][%w_']*", i)
-      -- a number subscript ends a name: Calc reads H_2O as H_2 times O
-      local cut = id:match("_%d+()%a")
-      if cut then
-        id = id:sub(1, cut - 1)
-      end
+      -- names have no `_`: it is the subscript operator (H_2O is H_2 O)
+      local id = s:match("^[%a][%w'#]*", i)
       i = i + #id
       push("id", id, space)
+    elseif ch == "_" and s:match("^_%.?%d", i) and (i == 1 or not s:sub(i - 1, i - 1):match("[%]%)}\"%w'$]")) then
+      -- `_2` is the number -2 (math-read-token), but not after a name
+      -- or a closing bracket, where `_` is the subscript operator
+      i = i + 1
+      push("op", "_neg", space)
     elseif ch == '"' then
-      local j, buf = i + 1, {}
-      while j <= n and s:sub(j, j) ~= '"' do
-        if s:sub(j, j) == "\\" then
-          j = j + 1
-        end
-        buf[#buf + 1] = s:sub(j, j)
-        j = j + 1
-      end
-      if j > n then
-        error("syntax error: unterminated string")
-      end
-      push("str", table.concat(buf), space)
-      i = j + 1
+      local codes, j = read_string(s, i + 1)
+      push("str", codes, space)
+      i = j
     elseif ch == "<" and s:match("^<%d%d%d%d%-%d%d%-%d%d[^>]*>", i) then
       local ts = s:match("^<(%d%d%d%d%-%d%d%-%d%d[^>]*)>", i)
       i = i + #ts + 2
@@ -112,7 +146,7 @@ local function tokenize(s)
         or s:match("^!=", i)
         or s:match("^&&", i)
         or s:match("^||", i)
-        or s:match("^[-+*/\\%%^()%[%],;<>=!|?:]", i)
+        or s:match("^[-+*/\\%%^()%[%]{},;<>=!|?:_]", i)
       if not op then
         error("syntax error near: " .. s:sub(i, i + 5))
       end
@@ -131,6 +165,7 @@ end
 -- binary operators: { left precedence, right precedence }
 local BINARY = {
   ["+/-"] = { 300, 300 },
+  ["_"] = { 1200, 1201 },
   ["^"] = { 201, 200 },
   ["**"] = { 201, 200 },
   ["*"] = { 196, 195 },
@@ -181,7 +216,7 @@ local function starts_factor(t)
     or t.kind == "str"
     or t.kind == "date"
     or t.kind == "hms"
-    or (t.kind == "op" and (t.value == "(" or t.value == "["))
+    or (t.kind == "op" and (t.value == "(" or t.value == "[" or t.value == "{" or t.value == "_neg"))
 end
 
 --- Run `f` inside parentheses (`vector` false) or brackets (true): in the
@@ -203,9 +238,9 @@ function Parser:has_comma()
   for i = self.i, #self.toks do
     local t = self.toks[i]
     if t.kind == "op" then
-      if t.value == "(" or t.value == "[" then
+      if t.value == "(" or t.value == "[" or t.value == "{" then
         depth = depth + 1
-      elseif t.value == ")" or t.value == "]" then
+      elseif t.value == ")" or t.value == "]" or t.value == "}" then
         if depth == 0 then
           return false
         end
@@ -254,7 +289,12 @@ function Parser:factor()
     local w, a, b = t.value[1], t.value[2], t.value[3]
     return { k = "val", v = make_frac(w * b + a, b) }
   elseif t.kind == "str" then
-    return { k = "val", v = { tag = "str", s = t.value } }
+    -- math-read-string: a string is the vector of its character codes
+    local codes = { tag = "vec" }
+    for _, c in ipairs(t.value) do
+      codes[#codes + 1] = c
+    end
+    return { k = "val", v = codes }
   elseif t.kind == "date" then
     local d = parse_date(t.value)
     if not d then
@@ -280,7 +320,12 @@ function Parser:factor()
       return self:nested(false, self.paren)
     elseif t.value == "[" then
       -- without commas, spaces separate the elements (math-read-brackets)
-      return self:nested(not self:has_comma(), self.bracket)
+      return self:nested(not self:has_comma(), self.bracket, "]")
+    elseif t.value == "{" then
+      -- braces are brackets where spaces don't separate elements
+      return self:nested(false, self.bracket, "}")
+    elseif t.value == "_neg" then
+      return { k = "neg", a = self:factor() }
     elseif t.value == "-" then
       return { k = "neg", a = self:level(197) }
     elseif t.value == "+" then
@@ -314,10 +359,10 @@ function Parser:paren()
   return e
 end
 
---- The rest of a vector or interval after `[`.
-function Parser:bracket()
+--- The rest of a vector or interval after `[` (`close` "]") or `{` ("}").
+function Parser:bracket(close)
   local nxt = self:peek()
-  if nxt.kind == "op" and nxt.value == "]" then
+  if nxt.kind == "op" and nxt.value == close then
     self:next()
     return { k = "vec", items = {} }
   end
@@ -325,32 +370,34 @@ function Parser:bracket()
   nxt = self:peek()
   if nxt.kind == "op" and nxt.value == ".." then
     self:next()
-    return self:interval(first, true)
+    return self:interval(first, true, close)
   end
   local items = { first }
   while true do
     local c = self:peek()
-    if c.kind == "op" and c.value == "]" then
+    if c.kind == "op" and c.value == close then
       self:next()
       return { k = "vec", items = items }
     elseif c.kind == "op" and c.value == "," then
       self:next()
-    elseif not (self:in_vector() and c.space and (starts_factor(c) or is_sign(c))) then
-      error("syntax error: expected , or ]")
     end
+    -- math-read-vector: without a comma, what follows is the next element
+    -- (`[a{1}]` is `[a, [1]]`)
     items[#items + 1] = self:level(0)
   end
 end
 
 --- The rest of an interval `[lo .. hi]` after `..`; `closed_lo` tells the
---- opening bracket.
-function Parser:interval(lo, closed_lo)
+--- opening bracket, `close` the closing one of a closed interval ("]" or
+--- "}").
+function Parser:interval(lo, closed_lo, close)
+  close = close or "]"
   local hi = self:level(0)
   local c = self:next()
-  if not (c.kind == "op" and (c.value == "]" or c.value == ")")) then
-    error("syntax error: expected ] or )")
+  if not (c.kind == "op" and (c.value == close or c.value == ")")) then
+    error("syntax error: expected " .. close .. " or )")
   end
-  return { k = "intv", mask = (closed_lo and 2 or 0) + (c.value == "]" and 1 or 0), lo = lo, hi = hi }
+  return { k = "intv", mask = (closed_lo and 2 or 0) + (c.value == close and 1 or 0), lo = lo, hi = hi }
 end
 
 function Parser:level(prec)
@@ -386,7 +433,8 @@ function Parser:level(prec)
           goto continue
         end
       end
-    elseif starts_factor(t) then
+    elseif starts_factor(t) and t.kind ~= "str" then
+      -- a string after a factor does not multiply it (math-read-expr-level)
       op, lp, rp = "*", IMPLICIT[1], IMPLICIT[2]
       if lp >= prec then
         x = { k = "bin", op = "*", a = x, b = self:level(rp) }

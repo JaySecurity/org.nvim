@@ -8492,8 +8492,7 @@ Differences from Emacs:
   of Calc's units; fsolve, roots, taylor, the polynomial functions
   (pdiv, pgcd, factor), spn/midi/freq, lud, kron, histogram and other
   rarer functions stay symbolic.
-  Quoted strings (`"big"`) are kept as text; Calc makes them vectors of
-  character codes. Emacs Lisp formulas `'(...)` run on a small
+  Emacs Lisp formulas `'(...)` run on a small
   Lisp interpreter (the functions listed in `lua/org/table/elisp.lua`),
   not in Emacs: starting an Emacs for every field would be far too slow.
   Any other `'(...)` is a Lua expression.

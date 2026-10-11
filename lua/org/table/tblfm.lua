@@ -41,6 +41,20 @@ local function read_formulas(bufnr, info, line)
   return text:match("^%s*#%+[Tt][Bb][Ll][Ff][Mm]:%s*(.-)%s*$") or ""
 end
 
+--- Does the #+TBLFM text hold a formula (a `@...=rhs` or `$...=rhs`
+--- part, rhs not blank: org-table-get-stored-formulas ignores the
+--- others)?
+---@param tblfm string
+---@return boolean
+local function has_formula(tblfm)
+  for part in (tblfm .. "::"):gmatch("(.-)::") do
+    if part:match("^%s*[@$][^=]*=%s*%S") then
+      return true
+    end
+  end
+  return false
+end
+
 --- Constants for `$name` in formulas: the global option, overridden by the
 --- buffer's `#+CONSTANTS: name=value ...` lines.
 local function formula_constants(bufnr)
@@ -140,7 +154,13 @@ function M.recalc(bufnr, lnum, opts)
       row = dline(t, opts.line - info.start + 1)
     end
   end
-  local lines = M.recalc_lines(bufnr, info.lines, read_formulas(bufnr, info, opts.tblfm_line), info.start, {
+  local tblfm = read_formulas(bufnr, info, opts.tblfm_line)
+  if not has_formula(tblfm) then
+    -- Emacs org-table-recalculate does nothing (not even align) without
+    -- a stored formula
+    return true
+  end
+  local lines = M.recalc_lines(bufnr, info.lines, tblfm, info.start, {
     row = row,
     only_row = opts.line ~= nil,
   })

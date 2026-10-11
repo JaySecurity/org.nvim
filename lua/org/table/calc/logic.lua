@@ -40,8 +40,42 @@ F.lnot = function(args)
   return c and 0 or 1
 end
 
-local function compare(o, a, b)
-  if is_real(a) and is_real(b) then
+local compare
+
+--- math-two-eq: 1 when `a` and `b` are equal, 0 when they differ, nil when
+--- that is not known (formulas). Vectors are equal element by element;
+--- a vector is never equal to a number.
+---@return integer?
+local function two_eq(a, b)
+  local ta, tb = tag(a), tag(b)
+  if ta == "vec" then
+    if tb ~= "vec" then
+      return arith.is_object(b) and 0 or nil
+    elseif #a ~= #b then
+      return 0
+    end
+    local res = 1
+    for i = 1, #a do
+      local r = two_eq(a[i], b[i])
+      if r == 0 then
+        return 0
+      elseif r == nil then
+        res = nil
+      end
+    end
+    return res
+  elseif tb == "vec" then
+    return arith.is_object(a) and 0 or nil
+  end
+  local r = compare("==", a, b)
+  return type(r) == "number" and r or nil
+end
+
+compare = function(o, a, b)
+  if arith.is_nan(a) or arith.is_nan(b) then
+    -- nan is not ordered: the comparison stays (math-compare gives 2)
+    return op(o == "=" and "==" or o, a, b)
+  elseif is_real(a) and is_real(b) then
     local c = num_cmp(a, b)
     local r = (o == "<" and c < 0)
       or (o == ">" and c > 0)
@@ -58,20 +92,21 @@ local function compare(o, a, b)
     and (tag(b) == "hms" or is_real(b))
   then
     return compare(o, tag(a) == "hms" and hms_value(a) or a, tag(b) == "hms" and hms_value(b) or b)
-  elseif tag(a) == "str" and tag(b) == "str" then
-    local r = (o == "==" or o == "=") and a.s == b.s or (o == "!=" and a.s ~= b.s)
-    return r and 1 or 0
+  elseif (o == "==" or o == "=" or o == "!=") and (tag(a) == "vec" or tag(b) == "vec") then
+    local r = two_eq(a, b)
+    if r ~= nil then
+      return o == "!=" and 1 - r or r
+    end
   end
-  if (o == "==" or o == "=") and same(a, b) then
-    return 1
+  if same(a, b) then
+    -- math-compare of equal formulas is 0: `x > x` is 0, `x >= x` 1
+    return (o == "==" or o == "=" or o == "<=" or o == ">=") and 1 or 0
   end
   return op(o == "=" and "==" or o, a, b)
 end
 
 local function concat(a, b)
-  if tag(a) == "str" and tag(b) == "str" then
-    return { tag = "str", s = a.s .. b.s }
-  elseif not (is_objvec(a) or tag(a) == "str") or not (is_objvec(b) or tag(b) == "str") then
+  if not is_objvec(a) or not is_objvec(b) then
     return op("|", a, b)
   end
   local out = { tag = "vec" }

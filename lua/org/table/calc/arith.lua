@@ -95,6 +95,19 @@ local function is_objvec(v)
   return is_object(v) or tag(v) == "vec"
 end
 
+--- math-matrixp: a non-empty vector of vectors of one length.
+local function is_matrix(v)
+  if tag(v) ~= "vec" or #v == 0 or tag(v[1]) ~= "vec" then
+    return false
+  end
+  for _, row in ipairs(v) do
+    if tag(row) ~= "vec" or #row ~= #v[1] then
+      return false
+    end
+  end
+  return true
+end
+
 local function is_number(v)
   return is_real(v) or tag(v) == "cplx" or tag(v) == "polar"
 end
@@ -157,8 +170,12 @@ local function map_vec2(f, a, b)
   local out = { tag = "vec" }
   local ta, tb = tag(a), tag(b)
   if ta == "vec" and tb == "vec" then
-    -- the shorter length, like math-map-vec-2
-    for i = 1, math.min(#a, #b) do
+    -- math-map-vec-2: the elements of `a`, and `b` must have as many (more
+    -- are ignored)
+    if #a > #b then
+      error("dimension error")
+    end
+    for i = 1, #a do
       out[i] = f(a[i], b[i])
     end
   elseif ta == "vec" then
@@ -398,7 +415,7 @@ neg = function(a)
     return out
   elseif FANCY_TAGS[t] then
     return ext_op("neg", a)
-  elseif t == "str" or t == "date" then
+  elseif t == "date" then
     error("bad argument for negation")
   end
   -- math-neg-fancy
@@ -714,7 +731,8 @@ end
 
 add = function(a, b)
   local ta, tb = tag(a), tag(b)
-  if is_nan(a) or is_nan(b) then
+  if (is_nan(a) or is_nan(b)) and ta ~= "vec" and tb ~= "vec" then
+    -- nan with a vector goes into its elements: `[1, 2] + nan`
     return float(0 / 0)
   end
   if is_real(a) and is_real(b) then
@@ -735,7 +753,7 @@ add = function(a, b)
     return { tag = "date", v = decimal_sum(a.v, tofloat(b)) }
   elseif tb == "date" and is_real(a) then
     return { tag = "date", v = decimal_sum(b.v, tofloat(a)) }
-  elseif ta == "str" or tb == "str" or ta == "date" or tb == "date" then
+  elseif ta == "date" or tb == "date" then
     error("bad argument for +")
   elseif (ta == "vec" or tb == "vec") and is_objvec(a) and is_objvec(b) then
     return map_vec2(add, a, b)
@@ -745,7 +763,8 @@ end
 
 sub = function(a, b)
   local ta, tb = tag(a), tag(b)
-  if is_nan(a) or is_nan(b) then
+  if (is_nan(a) or is_nan(b)) and ta ~= "vec" and tb ~= "vec" then
+    -- nan with a vector goes into its elements: `[1, 2] + nan`
     return float(0 / 0)
   end
   if is_real(a) and is_real(b) then
@@ -759,7 +778,7 @@ sub = function(a, b)
     return d == math.floor(d) and d or float(d)
   elseif ta == "date" and is_real(b) then
     return { tag = "date", v = decimal_sum(a.v, -tofloat(b)) }
-  elseif ta == "str" or tb == "str" or ta == "date" or tb == "date" then
+  elseif ta == "date" or tb == "date" then
     error("bad argument for -")
   end
   return add(a, neg(b))
@@ -767,13 +786,14 @@ end
 
 mul = function(a, b)
   local ta, tb = tag(a), tag(b)
-  if is_nan(a) or is_nan(b) then
+  if (is_nan(a) or is_nan(b)) and ta ~= "vec" and tb ~= "vec" then
+    -- nan with a vector goes into its elements: `[1, 2] + nan`
     return float(0 / 0)
   end
   if is_real(a) and is_real(b) then
     return real_mul(a, b)
   end
-  if ta == "str" or tb == "str" or ta == "date" or tb == "date" then
+  if ta == "date" or tb == "date" then
     error("bad argument for *")
   end
   if is_zero(a) and tb ~= "mod" and tb ~= "vec" and not FANCY_TAGS[tb] then
@@ -797,7 +817,8 @@ end
 
 div = function(a, b)
   local ta, tb = tag(a), tag(b)
-  if is_nan(a) or is_nan(b) then
+  if (is_nan(a) or is_nan(b)) and ta ~= "vec" and tb ~= "vec" then
+    -- nan with a vector goes into its elements: `[1, 2] + nan`
     return float(0 / 0)
   end
   if is_real(a) and is_real(b) then
@@ -807,16 +828,26 @@ div = function(a, b)
     end
     return r
   end
-  if ta == "str" or tb == "str" or ta == "date" or tb == "date" then
+  if ta == "date" or tb == "date" then
     error("bad argument for /")
   end
   if is_zero(b) then
     return op("/", a, b)
   end
+  if is_zero(a) and tb == "vec" then
+    -- math-div-zero: zero over each element
+    return map_vec2(div, a, b)
+  end
+  if tb == "vec" and not is_matrix(b) then
+    -- math-div-objects-fancy: "*Incompatible arguments for /", an error
+    -- for calc-eval (`3 / [1, 2]`, also `x / [1, 2]`)
+    error("incompatible arguments for /")
+  end
   if is_zero(a) and tb ~= "mod" and tb ~= "vec" then
     return (tag(a) ~= "float" and is_float_obj(b)) and float(0) or a
   end
-  if tb == "vec" and is_objvec(a) then
+  if tb == "vec" then
+    -- a formula over a matrix too (math-div-symb-fancy: times its inverse)
     return mat_div(a, b)
   elseif ta == "vec" and is_object(b) then
     return map_vec2(div, a, b)
@@ -863,7 +894,7 @@ pow = function(a, b)
   if is_nan(a) or is_nan(b) then
     return float(0 / 0)
   end
-  if ta == "str" or tb == "str" or ta == "date" or tb == "date" then
+  if ta == "date" or tb == "date" then
     error("bad argument for ^")
   end
   if ta == "vec" and is_int(b) then

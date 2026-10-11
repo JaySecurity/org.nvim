@@ -1096,7 +1096,7 @@ return function(K)
         return 1
       end
       local t = tag(e)
-      if is_object(e) or t == "sym" or t == "str" then
+      if is_object(e) or t == "sym" then
         return 0
       elseif t == "op" then
         local o = e.op

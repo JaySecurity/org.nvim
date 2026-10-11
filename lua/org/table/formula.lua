@@ -686,6 +686,18 @@ local function read_ref(m, s, i, r, c, ctx)
   if c1 > c2 then
     c1, c2 = c2, c1
   end
+  local hline_end = (spec.row and spec.row.kind == "hline") or (spec2.row and spec2.row.kind == "hline")
+  if spec.row and not hline_end and r1 == r2 and c1 == c2 then
+    -- org-table-get-range: an @ range of one field is that field, not a
+    -- vector (`vsum(@2..@-1)` on one row is `vsum(x)`); `$1..$1` stays a
+    -- vector (Emacs reads it as a range of the current row), and so does
+    -- a range ending on an hline (Emacs compares the hline's line)
+    local row = m.data[r1]
+    if not row or c1 < 1 or c1 > m.ncols then
+      error("reference out of range")
+    end
+    return "field", row[c1] or "", j
+  end
   local vals = {}
   for rr = r1, r2 do
     local row = m.data[rr]

@@ -54,6 +54,55 @@ local function flatten(args)
   return out
 end
 
+--- math-flatten-many-vecs: the elements of the vectors and the objects
+--- (numbers, HMS forms, ...) among `args`, or nil when one is neither (a
+--- formula: Calc rejects the argument and the call stays, `vmean(x)`).
+local function flatten_many(args)
+  for _, a in ipairs(args) do
+    if tag(a) ~= "vec" and not arith.is_object(a) then
+      return nil
+    end
+  end
+  return flatten(args)
+end
+
+--- math-reduce-many-vecs: `fold` (over a list of values) of the vectors
+--- and objects among `args`; the formulas among them stay in a call of
+--- `name` added to that (`vsum(x, 2)` is `2 + vsum(x)`). With `whole`, a
+--- formula leaves the whole call alone instead (`vmax(1, x)`).
+---@param name string
+---@param fold fun(vals: table[]): any
+---@param ident any the value of no arguments
+---@param whole? boolean
+local function reduce_many(name, fold, ident, whole)
+  return function(args)
+    local const, symb = nil, {}
+    for _, v in ipairs(args) do
+      if tag(v) == "vec" then
+        local vals = flatten({ v })
+        if const ~= nil then
+          table.insert(vals, 1, const)
+        end
+        if #vals > 0 then
+          const = fold(vals)
+        else
+          const = ident
+        end
+      elseif arith.is_object(v) then
+        const = const ~= nil and fold({ const, v }) or v
+      else
+        symb[#symb + 1] = v
+      end
+    end
+    if #symb > 0 and (whole and const ~= nil) then
+      return call(name, args)
+    elseif const ~= nil then
+      return #symb > 0 and fold({ const, call(name, symb) }) or const
+    end
+    return #symb > 0 and call(name, symb) or ident
+  end
+end
+
 local function real_arg(v, name)
   if not is_real(v) then
     error("bad argument for " .. name)
@@ -85,6 +134,9 @@ local VEC_MAP = {
 --- Apply a numeric function, leaving it symbolic for symbolic arguments.
 local function numeric(name, fn)
   return function(args)
+    if #args == 1 and is_nan(args[1]) then
+      return args[1] -- `round(nan)` is nan
+    end
     for _, a in ipairs(args) do
       if FANCY_TAGS[tag(a)] then
         local r = EXT_FN[name] and EXT_FN[name](unpack(args))
@@ -99,11 +151,17 @@ local function numeric(name, fn)
         if tag(a) == "vec" and #args == 1 and VEC_MAP[name] then
           local out = { tag = "vec" }
           for i, x in ipairs(a) do
-            out[i] = F[name]({ x })
+            local r = F[name]({ x })
+            if tag(r) == "call" and r.name == name then
+              -- an element it rejects leaves the whole call alone
+              -- (math-normalize catches the error): `round([x / 3])`
+              return call(name, args)
+            end
+            out[i] = r
           end
           return out
         end
-        if tag(a) == "str" or tag(a) == "date" then
+        if tag(a) == "date" then
           error("bad argument for " .. name)
         end
         return call(name, args)
@@ -190,7 +248,7 @@ end)
 -- exp10(x) is 10.^x (a float, like Calc's calcFunc-exp10)
 F.exp10 = function(args)
   local x = args[1]
-  if #args ~= 1 or FANCY_TAGS[tag(x)] or tag(x) == "str" or tag(x) == "date" then
+  if #args ~= 1 or FANCY_TAGS[tag(x)] or tag(x) == "date" then
     return call("exp10", args)
   end
   return pow(float(10), x)
@@ -381,7 +439,7 @@ local function min_max(name, better)
     local r = vals[1]
     for i = 2, #vals do
       local v = vals[i]
-      if is_nan(r) or is_nan(v) then
+      if (is_nan(r) or is_nan(v)) and is_real(r) and is_real(v) then
         r = float(0 / 0)
       elseif is_real(r) and is_real(v) then
         if better(num_cmp(v, r), 0) then
@@ -416,7 +474,8 @@ end)
 F.min = min_max("min", function(a, b)
   return a < b
 end)
-F.vmax, F.vmin = F.max, F.min
+F.vmax = reduce_many("vmax", F.max, float(-math.huge), true)
+F.vmin = reduce_many("vmin", F.min, float(math.huge), true)
 -- max and min of a vector stay symbolic in Calc (vmax, vmin take vectors)
 for _, name in ipairs({ "max", "min" }) do
   local f = F[name]
@@ -430,36 +489,41 @@ for _, name in ipairs({ "max", "min" }) do
   end
 end
 
-F.vsum = function(args)
+--- The sum of a list of values.
+local function sum_of(vals)
   local r = 0
-  for _, v in ipairs(flatten(args)) do
+  for _, v in ipairs(vals) do
     r = add(r, v)
   end
   return r
 end
-F.vprod = function(args)
+F.vsum = reduce_many("vsum", sum_of, 0)
+F.vprod = reduce_many("vprod", function(vals)
   local r = 1
-  for _, v in ipairs(flatten(args)) do
+  for _, v in ipairs(vals) do
     r = mul(r, v)
   end
   return r
-end
+end, 1)
 F.vcount = function(args)
-  return #flatten(args)
+  local vals = flatten_many(args)
+  return vals and #vals or call("vcount", args)
 end
 F.vlen = function(args)
   local v = args[1]
   return tag(v) == "vec" and #v or 0
 end
 F.vmean = function(args)
-  local vals = flatten(args)
-  if #vals == 0 then
+  local vals = flatten_many(args)
+  if not vals then
+    return call("vmean", args)
+  elseif #vals == 0 then
     return call("vmean", { { tag = "vec" } })
   end
-  return div(F.vsum(vals), #vals)
+  return div(sum_of(vals), #vals)
 end
 F.vmedian = function(args)
-  local vals = flatten(args)
+  local vals = flatten_many(args) or { call("vmedian", args) }
   for _, v in ipairs(vals) do
     if not is_real(v) then
       return call("vmedian", args)
@@ -478,7 +542,10 @@ F.vmedian = function(args)
   return div(add(vals[n / 2], vals[n / 2 + 1]), 2)
 end
 local function variance(args, pop)
-  local vals = flatten(args)
+  local vals = flatten_many(args)
+  if not vals then
+    return nil
+  end
   local n = #vals
   for _, v in ipairs(vals) do
     if not is_real(v) then
@@ -488,7 +555,7 @@ local function variance(args, pop)
   if n < (pop and 1 or 2) then
     return 0
   end
-  local mean = div(F.vsum(vals), n)
+  local mean = div(sum_of(vals), n)
   local s = 0
   for _, v in ipairs(vals) do
     local d = sub(v, mean)
@@ -622,6 +689,7 @@ end
 
 return {
   flatten = flatten,
+  flatten_many = flatten_many,
   EXT_FN = EXT_FN,
   numeric = numeric,
   from_angle = from_angle,

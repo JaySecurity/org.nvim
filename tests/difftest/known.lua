@@ -286,35 +286,6 @@ return {
     emacs = "%s(:[%w_@:]+:)%s+%1",
   },
   {
-    oracle = "table",
-    reason = [[Formulas over text or out-of-range references: Emacs (Calc)
-      keeps symbolic results ("42 + title") or leaves the field; org.nvim
-      writes #ERROR.]],
-    ours = "#ERROR",
-  },
-  {
-    oracle = "table",
-    reason = [[A Calc function over a text field: Emacs keeps the call
-      unevaluated ("vsum(task)"), org.nvim gives the text.]],
-    emacs = "%l+%(%a",
-  },
-  {
-    oracle = "table",
-    reason = [[A Calc vector over a quoted field ($3=$1..$2 with "quoted"):
-      Emacs shows the string as character codes ([113, 117, ...]),
-      org.nvim as the text.]],
-    emacs = "%[%d+, %d+, %d+",
-  },
-  {
-    oracle = "table",
-    reason = [[A table with an empty #+TBLFM line: Emacs leaves it alone
-      (nothing to compute), org.nvim aligns it.]],
-    input = "^#%+TBLFM:%s*$",
-    same = function(s)
-      return (s:gsub("[ %-]+", ""))
-    end,
-  },
-  {
     oracle = "visibility",
     reason = [[Indented lines (sub-items, item bodies, blank lines between
       them) of a plain list before the first headline: org.nvim folds them
