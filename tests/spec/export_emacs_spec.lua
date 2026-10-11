@@ -646,4 +646,45 @@ describe("export: Emacs parity (difftest known differences)", function()
     local out = latex({ "#+CAPTION[Short \\gamma]: A \\alpha\\beta and \\pi *b \\delta*", "| a |" })
     has(out, "\\caption[Short \\(\\gamma\\)]{A \\(\\alpha \\beta\\) and \\(\\pi\\) \\textbf{b \\(\\delta\\)}}")
   end)
+
+  it("Org export repairs plain lists like org-list-repair", function()
+    -- "1." bullets whatever the source used, sub-lists under their
+    -- parent's text, parent checkboxes from their children
+    local out = ox.export_as("org", {
+      "1) one",
+      "2) two",
+      "   1) sub",
+      "   2) [@5] subtwo",
+      "",
+      "- tag :: body",
+      "  - nested [X]",
+      "  - [ ] child",
+      "- [ ] parent",
+      "  - [X] c",
+      "  - [ ] d",
+      "    + [X] e",
+      "- [X] desc :: with",
+      "  1. [X] f",
+    }, { body_only = true })
+    eq(
+      table.concat({
+        "1. one",
+        "2. two",
+        "   1. sub",
+        "   5. [@5] subtwo",
+        "",
+        "3. tag :: body",
+        "   - nested [X]",
+        "   - [ ] child",
+        "4. [X] parent",
+        "   - [X] c",
+        "   - [X] d",
+        "     - [X] e",
+        "5. [X] desc :: with",
+        "   1. [X] f",
+        "",
+      }, "\n"),
+      out
+    )
+  end)
 end)

@@ -116,42 +116,28 @@ I["plain-list"] = function(el, contents)
   if not contents then
     return contents
   end
-  -- org-list-repair: every item gets the bullet of the first one, and
-  -- ordered items are renumbered
-  local first = el.contents[1]
-  local ordered = first and first.bullet and first.bullet:match("[%w]") ~= nil
-  local term = ordered and (first.bullet:match("[%.%)]") or ".") or nil
-  local n = 0
-  local out = {}
-  for line in (contents:match("\n$") and contents or (contents .. "\n")):gmatch("(.-)\n") do
-    local bullet, rest = line:match("^(%d+[%.%)])(.*)$")
-    if not bullet then
-      bullet, rest = line:match("^([%-%+])(.*)$")
-    end
-    if bullet and (rest == "" or rest:match("^ ")) then
-      if ordered then
-        local counter = rest:match("^ %[@(%d+)%]")
-        n = counter and tonumber(counter) or (n + 1)
-        line = tostring(n) .. term .. rest
-      else
-        line = "-" .. rest
-      end
-    end
-    out[#out + 1] = line
-  end
-  return table.concat(out, "\n") .. "\n"
+  -- org-list-repair in a scratch buffer, as Emacs does: ordered items are
+  -- renumbered, sub-lists indented under their parent's text and the
+  -- checkboxes of parents follow their children
+  local lines = vim.split((contents:gsub("\n$", "")), "\n", { plain = true })
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  pcall(require("org.lists").repair, buf, 1)
+  lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  vim.api.nvim_buf_delete(buf, { force = true })
+  return table.concat(lines, "\n") .. "\n"
 end
 
 I.item = function(el, contents)
   local tag = el.tag and (element.interpret(el.tag) .. " :: ") or nil
-  -- the bullet style of the list's first item (org-list-repair)
-  local first = el.parent and el.parent.contents and el.parent.contents[1] or el
-  local bullet = first.bullet or "- "
-  if not bullet:match("[%w]") then
-    bullet = "- "
-  else
-    bullet = "1" .. (bullet:match("[%.%)]") or ".") .. " "
+  -- "- ", or "1." whatever the source used ("1)" when
+  -- lists.ordered_item_terminator is ")"); the plain list is repaired after
+  local lists = require("org.lists")
+  local bullet = "-"
+  if (el.bullet or "-"):match("[%w]") then
+    bullet = lists.opt("ordered_item_terminator") == ")" and "1)" or "1."
   end
+  bullet = lists.bullet_string(bullet)
   local s = bullet
     .. (el.counter and fmt("[@%d] ", el.counter) or "")
     .. (({ on = "[X] ", off = "[ ] ", trans = "[-] " })[el.checkbox or ""] or "")

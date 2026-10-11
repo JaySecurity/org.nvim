@@ -52,10 +52,6 @@ local function each_line(s, fn)
   return table.concat(out, "\n")
 end
 
-local function is_item(l)
-  return l:match("^%s*[%-%+] ") or l:match("^%s*[%-%+]$") or l:match("^%s*%d+[%.%)] ") or l:match("^%s*%d+[%.%)]$")
-end
-
 --- Is there an active timestamp after an inline task's END line, before
 --- the next heading?
 local function timestamp_after_inline_end(lines)
@@ -117,33 +113,6 @@ end
 
 ---@type difftest.Known[]
 return {
-  {
-    oracle = "export%-org",
-    reason = [[Org export of plain lists: Emacs writes ordered bullets with
-      "." whatever the source used (org-plain-list-ordered-item-terminator
-      is t); org.nvim keeps "1)".]],
-    ours = "%d%) ",
-    same = function(s)
-      return each_line(s, function(l)
-        return (l:gsub("^(%s*%d+)%)", "%1."))
-      end)
-    end,
-  },
-  {
-    oracle = "export%-org",
-    reason = [[Org export of nested plain lists: sub-lists are indented deeper
-      than in Emacs (by a description tag's width), and a parent's checkbox
-      isn't recomputed from its children as Emacs does.]],
-    either = "\n%s+[%-%+] ",
-    same = function(s)
-      return each_line(s, function(l)
-        if is_item(l) or l:match("^%s+%S") then
-          l = vim.trim(l):gsub("%[[ X%-]%]", "[?]")
-        end
-        return l
-      end)
-    end,
-  },
   {
     oracle = "export%-org",
     reason = [[Org export of an item with a checkbox and nothing else, followed
