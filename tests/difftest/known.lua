@@ -67,12 +67,6 @@ end
 return {
   {
     oracle = "agenda",
-    reason = [[A headline that is only tags ("* :work:"): Emacs shows the tags
-      as the title too, org.nvim an empty title.]],
-    emacs = "%s(:[%w_@:]+:)%s+%1",
-  },
-  {
-    oracle = "agenda",
     reason = [[A timestamp after an inline task's END line (in the text of
       the enclosing headline): Emacs' agenda titles it "END" (the line
       org-agenda-get-timestamps finds with org-outline-regexp-bol), org.nvim

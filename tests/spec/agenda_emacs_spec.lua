@@ -792,3 +792,57 @@ describe("agenda lines of a headline with no title", function()
     eq({ "Scheduled:  DONE" }, day)
   end)
 end)
+
+describe("agenda lines of a headline that is only tags", function()
+  -- "* :work:": Emacs removes the tags from the agenda text only after a
+  -- blank (org-agenda-fix-displayed-tags), so they are the title too
+  -- (lines from Emacs' week agenda and tags match, whitespace squashed)
+  local files = require("org.files")
+  local path
+
+  local function lines(open)
+    vim.fn.writefile({
+      "* :work:",
+      "SCHEDULED: <2026-10-01 Thu>",
+      "* TODO :home:",
+      "* [#A] :work:home:",
+      "<2026-10-02 Fri>",
+    }, path)
+    files.invalidate(path)
+    open(require("org.agenda"))
+    local name = vim.fn.fnamemodify(path, ":t:r")
+    local got = {}
+    for _, l in ipairs(require("org.agenda.view").build(80).lines) do
+      if l:find(name .. ":", 1, true) then
+        got[#got + 1] = vim.trim((l:gsub("^%s*[^:]+:%s*", ""):gsub("%s+", " ")))
+      end
+    end
+    vim.cmd("silent! %bwipeout!")
+    return got
+  end
+
+  before_each(function()
+    path = vim.fn.tempname() .. ".org"
+    config.setup({ agenda_files = { path } })
+  end)
+
+  after_each(function()
+    files.invalidate()
+    os.remove(path)
+  end)
+
+  it("shows the tags as the title", function()
+    eq(
+      { "Scheduled: :work: :work:", "[#A] :work:home:" },
+      lines(function(a)
+        a.open_agenda({ span = "week", anchor = date.days_from_civil(2026, 9, 28) })
+      end)
+    )
+    eq(
+      { "[#A] :work:home:", ":work: :work:" },
+      lines(function(a)
+        a.open_tags("work", false)
+      end)
+    )
+  end)
+end)
