@@ -510,7 +510,7 @@ function M.check_picker(h)
       'install it, or set picker = "auto"; see :h org-pickers',
     })
   else
-    local used = pickers.backend(name)
+    local used = pickers.resolve(name)
     h.ok(
       ("pickers use %s%s"):format(
         used == "select" and "vim.ui.select" or used,

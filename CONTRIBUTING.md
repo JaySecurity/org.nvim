@@ -222,7 +222,10 @@ its own adds a check there, in the section it belongs to (or an
 extension's `health(h, opts)` function, which `org.extensions.check` calls
 under the extension's name). Checks must be fast and never prompt: look
 for programs with `vim.fn.executable()` rather than running them, bound any
-file scan, no network. Warn only when the feature is turned on (a missing
+file scan, no network. Report only through the `h` reporter: nothing a
+check calls may notify, so resolve the picker with `pickers.resolve()`
+(which returns the fallback's reason) rather than `pickers.backend()`
+(which warns). Warn only when the feature is turned on (a missing
 `gpg` is a warning with `crypt.encrypt_on_save`, an info line otherwise),
 and say what to do and which option or `:h` tag to read in the advice
 (write `see :h tag` at the end: a `)` right after the tag ends up in the

@@ -347,7 +347,12 @@ function M.health(h, opts)
   if not opts.update_on_save then
     h.info("update_on_save is off: run :Org roam_db_sync after editing notes")
   end
-  h.info("node picker: " .. require(R .. ".node").picker())
+  local picker, problem = require(R .. ".node").picker(true)
+  if problem then
+    h.warn("node picker: " .. problem)
+  else
+    h.info("node picker: " .. picker)
+  end
   local exe = (opts.graph or {}).executable or "dot"
   if vim.fn.executable(exe) == 1 then
     h.ok("Graphviz found: roam_graph renders the node graph")

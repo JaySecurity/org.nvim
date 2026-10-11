@@ -132,17 +132,26 @@ local GENERIC = { ["fzf-lua"] = true, telescope = true, mini = true }
 --- Which picker `read` uses: the `picker` option, with "auto" resolved to
 --- the backend of org's own `picker` option (`:h org-pickers`; its "auto"
 --- takes LazyVim's picker, else snacks.nvim first).
+--- With `quiet` (for `:checkhealth`), nothing is notified when the picker
+--- falls back to vim.ui.select; the second result says why instead.
+---@param quiet? boolean
 ---@return "snacks"|"fzf-lua"|"telescope"|"mini"|"select"|"input"
-function M.picker()
+---@return string|nil problem
+function M.picker(quiet)
+  local pickers = require("org.pickers")
+  local resolve = quiet and pickers.resolve or pickers.backend
   local p = ropts().picker or "auto"
   if p == "auto" then
-    return require("org.pickers").backend()
+    return resolve()
   end
   if p == "snacks" then
-    return has_snacks_picker() and "snacks" or "select"
+    if has_snacks_picker() then
+      return "snacks"
+    end
+    return "select", "snacks.nvim's picker is not installed, using vim.ui.select"
   end
   if GENERIC[p] then
-    return require("org.pickers").backend(p)
+    return resolve(p)
   end
   ---@cast p "snacks"|"select"|"input"
   return p
