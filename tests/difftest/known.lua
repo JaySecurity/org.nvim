@@ -353,14 +353,6 @@ return {
   },
   {
     oracle = "agenda",
-    reason = [[A date range in a planning line whose end has a time
-      (SCHEDULED: <a>--<b 11:15>): Emacs shows the entry at that time,
-      org.nvim without one.]],
-    input = "%u+: <[^>]+>%-%-<[^>]* %d%d?:%d%d>",
-    either = "[DS]%l+[:%.]",
-  },
-  {
-    oracle = "agenda",
     reason = [[A timestamp after an inline task's END line (in the text of
       the enclosing headline): Emacs' agenda titles it "END" (the line
       org-agenda-get-timestamps finds with org-outline-regexp-bol), org.nvim

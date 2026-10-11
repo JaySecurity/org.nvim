@@ -1108,7 +1108,7 @@ local function render_day(b, list, d, ctx, sorting)
   for _, it in ipairs(list) do
     if it.time then
       has_timed = true
-      have[it.time] = true
+      have[it.sort_time or it.time] = true
     end
   end
   local rows = list

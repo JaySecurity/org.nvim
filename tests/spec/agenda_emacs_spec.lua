@@ -645,3 +645,59 @@ describe("agenda blocks that org-tr-regexp finds (difftest #243)", function()
     eq(16 * 60 + 30, list[1].end_time)
   end)
 end)
+
+describe("agenda times of date ranges, as Emacs reads them (difftest seeds 765, 8954028)", function()
+  local A = date.days_from_civil(2026, 9, 28)
+  --- "type time[-end][/sort]" of each entry on day `d` (today Thursday
+  --- 2026-10-01, as in Emacs' run), sorted
+  local function entries(lines, d)
+    local file = parser.parse(lines, "/tmp/agenda_range_times.org")
+    local out = {}
+    local function hm(m)
+      return m and string.format("%d:%02d", math.floor(m / 60), m % 60) or "-"
+    end
+    for _, it in ipairs(items.agenda({ file }, d, d, { today = A + 3 })[d] or {}) do
+      local s = it.type .. " " .. hm(it.time)
+      if it.end_time then
+        s = s .. "-" .. hm(it.end_time)
+      end
+      if it.sort_time then
+        s = s .. "/" .. hm(it.sort_time)
+      end
+      out[#out + 1] = s
+    end
+    table.sort(out)
+    return out
+  end
+
+  -- org-agenda-get-blocks passes the range as written ("<a>--<b>" on a
+  -- day it starts and ends, "<a>" on its first day, "<b>" on its last) to
+  -- org-agenda-format-item, which takes a timestamp's time
+  -- (org-stamp-time-of-day-regexp: a weekday is needed, and a same-day
+  -- end only with the same date and day) or else the first plain time
+  it("a one-day range takes the first time in it", function()
+    eq({ "range 13:15" }, entries({ "** DONE", "<2026-09-28 Mon>--<2026-09-28 13:15>" }, A))
+    eq({ "range 10:00-13:15" }, entries({ "* a", "<2026-09-28 Mon 10:00>--<2026-09-28 Mon 13:15>" }, A))
+    eq({ "range 10:00" }, entries({ "* b", "<2026-09-28 Mon 10:00>--<2026-09-28 13:15>" }, A))
+    -- the end's time is shown, the entry sorts by the first time
+    eq({ "range 13:15/10:00" }, entries({ "* c", "<2026-09-28 10:00>--<2026-09-28 Mon 13:15>" }, A))
+  end)
+
+  it("a range's first and last days take their own stamp's time, else the headline's", function()
+    local lines = { "* g 8:30 meet", "<2026-09-30 Wed>--<2026-10-01 Thu>" }
+    eq({ "range 8:30" }, entries(lines, A + 2))
+    eq({ "range 8:30" }, entries(lines, A + 3))
+  end)
+
+  -- org-agenda-get-scheduled and -deadlines pass the planning value from
+  -- its first " H:MM" on (no closing >)
+  it("a SCHEDULED or DEADLINE range takes the first time in it", function()
+    local d = { "* d", "SCHEDULED: <2026-09-28 Mon>--<2026-09-30 Wed 11:15>" }
+    eq({ "range -", "scheduled 11:15" }, entries(d, A))
+    eq({ "range 11:15" }, entries(d, A + 2))
+    local e = { "* e", "SCHEDULED: <2026-09-29 Tue 10:00>--<2026-09-29 Tue 13:15>" }
+    eq({ "range 10:00-13:15", "scheduled 10:00" }, entries(e, A + 1))
+    local i = { "* i", "DEADLINE: <2026-10-03 Sat>--<2026-10-03 Sat 9:15-10:00>" }
+    eq({ "deadline 9:15-10:00", "range 9:15-10:00" }, entries(i, A + 5))
+  end)
+end)

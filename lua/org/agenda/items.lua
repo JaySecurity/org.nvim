@@ -43,6 +43,7 @@ M.day_sources = {}
 ---@field day integer|nil day the item is displayed on
 ---@field date table|nil the timestamp the item comes from
 ---@field time integer|nil minutes since midnight (time-of-day)
+---@field sort_time? integer the time it sorts by, when not `time` (the first time in its DOTIME)
 ---@field end_time integer|nil
 ---@field extra string|nil leader ("Scheduled: ", "In   3 d.: ", ...)
 ---@field face string|nil highlight group for the text
@@ -234,6 +235,49 @@ function M.find_time(s)
   return nil
 end
 
+--- The first `<date day HH:MM...>` in `s` (org-stamp-time-of-day-regexp:
+--- a weekday is needed), ending at `HH:MM-HH:MM` inside it, else at the
+--- end of a same-day range `<date day HH:MM>--<date day HH:MM>` (the same
+--- date and day, nothing after the time).
+---@return { start: integer, stop?: integer, s: integer, e: integer, text: string }|nil
+local function stamp_time(s)
+  local init = 1
+  while true do
+    local p = s:find("<", init, true)
+    if not p then
+      return nil
+    end
+    local day, h, mi, j = s:match("^<(%d%d%d%d%-%d%d%-%d%d +[%w\128-\255]+ +)([012]%d):([0-5]%d)()", p)
+    if day then
+      local res = { start = tonumber(h) * 60 + tonumber(mi), s = p }
+      local h2, m2, k = s:match("^%-([012]%d):([0-5]%d)()", j)
+      if h2 then
+        res.stop, j = tonumber(h2) * 60 + tonumber(m2), k
+      end
+      local close = s:find(">", j, true)
+      if close and not s:sub(j, close - 1):find("[\r\n]") then
+        res.e = close
+        local h3, m3, e = s:match("^%-%-?<" .. vim.pesc(day) .. "([012]%d):([0-5]%d)>()", close + 1)
+        if h3 then
+          res.e = e - 1
+          if not h2 then
+            res.stop = tonumber(h3) * 60 + tonumber(m3)
+          end
+        end
+        res.text = s:sub(res.s, res.e)
+        return res
+      end
+    end
+    init = p + 1
+  end
+end
+
+--- The time org-agenda-format-item takes from a DOTIME string: a timestamp
+--- time (org-stamp-time-of-day-regexp), else the first plain time.
+function M.dotime_time(s)
+  return stamp_time(s) or M.find_time(s)
+end
+
 --- Remove active and inactive timestamps from a string.
 local function strip_timestamps(s)
   local out = s
@@ -274,14 +318,26 @@ end
 --- (org-agenda-search-headline-for-time); a time found in the headline is
 --- removed from the displayed title (org-agenda-remove-times-when-in-prefix).
 --- `sexp_stamp` is the text of a `<%%(...)>` stamp, searched for a time
---- before the headline, as Emacs passes the stamp as DOTIME.
-local function set_time(item, stamp, acfg, remove_stamps, sexp_stamp)
+--- before the headline, as Emacs passes the stamp as DOTIME. `dotime` is
+--- the DOTIME string Emacs passes (a date range, the text after a planning
+--- time), in place of `stamp`: its time (M.dotime_time), else the
+--- headline's.
+local function set_time(item, stamp, acfg, remove_stamps, sexp_stamp, dotime)
   local title = item.title
   if remove_stamps then
     title = strip_active_timestamps(title)
   end
-  local found
-  if stamp and stamp.hour then
+  local found = dotime and M.dotime_time(dotime)
+  if found then
+    item.time, item.end_time = found.start, found.stop
+    -- the entry sorts by the first time in DOTIME (org-get-time-of-day),
+    -- which a timestamp's time can follow: "<a 10:00>--<a Mon 13:15>"
+    -- shows 13:15 and sorts at 10:00
+    local first = M.find_time(dotime)
+    if first and first.start ~= found.start then
+      item.sort_time = first.start
+    end
+  elseif stamp and stamp.hour and not dotime then
     item.time, item.end_time = time_of(stamp), end_time_of(stamp)
     -- the time as written, e.g. "10:30-11:45", for removal from the title
     local t = string.format("%02d:%02d", stamp.hour, stamp.min or 0)
@@ -627,6 +683,40 @@ local function tr_ranges(line)
     end
   end
   return out
+end
+
+--- The DOTIME org-agenda-get-scheduled and org-agenda-get-deadlines pass
+--- for the SCHEDULED or DEADLINE (`key`) of `hl`: its value from the first
+--- " H:MM" on, or false when it has none (the headline is searched); nil
+--- when the planning line can't be read.
+local function planning_dotime(hl, key)
+  local line = hl.planning_line and hl.file.lines[hl.planning_line]
+  local p = line and line:find(key .. ":", 1, true)
+  local first = p and date.parse_all(line:sub(p + #key + 1))[1]
+  if not first then
+    return nil
+  end
+  local inner = first.raw:sub(2, -2)
+  local t = inner:find(" [012]?%d:%d%d")
+  return t and (inner:sub(t + 1) .. " ") or false
+end
+
+--- org-agenda-get-blocks' DOTIME on a day of the range written `raw` (from
+--- the `<` org-tr-regexp starts at): "<a>--<b>" when the range starts and
+--- ends that day (`which` "both"), "<a>" on its first day ("start"), "<b>"
+--- on its last ("end"), with a and b as org-tr-regexp matches them (a runs
+--- to the first `>--<date`), in angle brackets even when inactive.
+local function range_dotime(raw, which)
+  local s, e = raw:find("[>%]]%-%-?%-?[<%[]%d%d%d%d%-%d%d%-%d%d")
+  if not s then
+    return nil
+  end
+  local a = raw:sub(2, s - 1)
+  local b = raw:sub(e - 9):match("^(.-)[>%]]") or raw:sub(e - 9)
+  if which == "both" then
+    return "<" .. a .. ">--<" .. b .. ">"
+  end
+  return "<" .. (which == "start" and a or b) .. ">"
 end
 
 --- The active timestamps of an entry for org-agenda-get-timestamps and
@@ -975,7 +1065,8 @@ function M.agenda(files, from, to, opts)
           })
           item.urgency = item.prio + (c == today and (today - base) or 0)
           if c == base or kind == "repeat" then
-            set_time(item, dl, acfg)
+            local dotime = planning_dotime(hl, "DEADLINE")
+            set_time(item, dotime == nil and dl or nil, acfg, nil, nil, dotime or nil)
           end
           add(c, item)
           dl_shown[c] = true
@@ -1093,7 +1184,8 @@ function M.agenda(files, from, to, opts)
             item.urgency = 99 + diff + item.prio
           end
           if is_habit or c == base or kind == "repeat" then
-            set_time(item, s, acfg)
+            local dotime = planning_dotime(hl, "SCHEDULED")
+            set_time(item, dotime == nil and s or nil, acfg, nil, nil, dotime or nil)
           end
           add(c, item)
         end
@@ -1139,15 +1231,23 @@ function M.agenda(files, from, to, opts)
                 item.title = item.title:sub(1, s - 1) .. item.title:sub(e + 1)
               end
             end
-            if d == a and d == b then
+            -- the time comes from the range as written, as Emacs reads it:
+            -- "<a>--<b 13:15>" is at 13:15, "<a 06:00> x>--<a 09:45>" at
+            -- 6:00 without an end
+            local which = (d == a and d == b) and "both" or (d == a and "start") or (d == b and "end") or nil
+            local raw = which and t.start_col and t.end_col and hl.file.lines[t.line]
+            local dotime = raw and range_dotime(raw:sub(t.start_col, t.end_col), which)
+            if dotime then
+              set_time(item, nil, block_acfg, nil, nil, dotime)
+            elseif which == "both" then
               set_time(
                 item,
                 ts.hour and ts:clone({ end_hour = ts.range_end.hour, end_min = ts.range_end.min }) or ts,
                 block_acfg
               )
-            elseif d == a then
+            elseif which == "start" then
               set_time(item, ts, block_acfg)
-            elseif d == b then
+            elseif which == "end" then
               set_time(item, ts.range_end, block_acfg)
             end
             add(d, item)
@@ -1299,7 +1399,13 @@ function M.agenda(files, from, to, opts)
                       fixface = true,
                       inactive = true,
                     })
-                    set_time(item, d == a and ts or (d == b and ts.range_end) or nil, block_acfg)
+                    local which = (d == a and d == b) and "both" or (d == a and "start") or (d == b and "end") or nil
+                    local dotime = which and range_dotime(m.raw, which)
+                    if dotime then
+                      set_time(item, nil, block_acfg, nil, nil, dotime)
+                    else
+                      set_time(item, d == a and ts or (d == b and ts.range_end) or nil, block_acfg)
+                    end
                     add(d, item)
                   end
                 else
@@ -1846,7 +1952,7 @@ end
 
 local function time_value(item)
   if item.time then
-    return item.time
+    return item.sort_time or item.time
   end
   return config.opts.agenda.sort_notime_is_late ~= false and 99 * 60 + 1 or -1
 end
