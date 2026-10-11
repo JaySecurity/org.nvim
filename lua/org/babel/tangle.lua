@@ -405,8 +405,17 @@ local function read_bytes(path)
   return s
 end
 
+---@class org.babel.TangleOpts
+---@field bufnr? integer the buffer to tangle (default: the current one)
+---@field target? string only tangle this file
+---@field only_line? integer only the block starting on this line
+---@field tangle_file? string only the blocks with this `:tangle` value
+---@field lang_re? string only the blocks whose language matches this Vim regex
+---@field default_tangle? string a default `:tangle` header argument for the blocks
+---@field silent? boolean no message
+
 --- Tangle `bufnr` (org-babel-tangle). Returns the list of written files.
----@param opts? { bufnr?: integer, target?: string, only_line?: integer, tangle_file?: string, lang_re?: string, default_tangle?: string, silent?: boolean }
+---@param opts? org.babel.TangleOpts
 function M.tangle(opts)
   opts = opts or {}
   local bufnr = opts.bufnr
@@ -711,7 +720,7 @@ function M.jump_to_org()
     row, col = b.start + 1, 0
   end
   pcall(vim.api.nvim_win_set_cursor, 0, { math.min(row, vim.api.nvim_buf_line_count(obuf)), col })
-  pcall(vim.cmd, "normal! zv")
+  pcall(vim.api.nvim_command, "normal! zv")
   return body
 end
 

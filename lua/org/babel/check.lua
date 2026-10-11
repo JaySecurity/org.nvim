@@ -252,7 +252,7 @@ function M.goto_named_block(name)
   end
   vim.cmd("normal! m'")
   vim.api.nvim_win_set_cursor(0, { b.name_line or b.start, 0 })
-  pcall(vim.cmd, "normal! zv")
+  pcall(vim.api.nvim_command, "normal! zv")
 end
 
 --- C-c C-v r: go to a named result (org-babel-goto-named-result).
@@ -279,7 +279,7 @@ function M.goto_named_result(name)
     if blocks_mod.match_results(l) == name then
       vim.cmd("normal! m'")
       vim.api.nvim_win_set_cursor(0, { i, 0 })
-      pcall(vim.cmd, "normal! zv")
+      pcall(vim.api.nvim_command, "normal! zv")
       return
     end
   end

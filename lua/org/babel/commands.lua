@@ -25,7 +25,7 @@ local get_session = P.get_session
 ---------------------------------------------------------------------------
 
 --- Tangle `bufnr` (org-babel-tangle). Returns the list of written files.
----@param opts? { bufnr?: integer, target?: string, only_line?: integer, tangle_file?: string, silent?: boolean } target: only tangle this file
+---@param opts? org.babel.TangleOpts
 function M.tangle(opts)
   return require("org.babel.tangle").tangle(opts)
 end
@@ -65,7 +65,7 @@ end
 function M.tangle_file(path)
   if not path then
     local ok, v = pcall(vim.fn.input, { prompt = "File to tangle: ", completion = "file", cancelreturn = vim.NIL })
-    if not ok or v == vim.NIL or vim.trim(v) == "" then
+    if not ok or type(v) ~= "string" or vim.trim(v) == "" then
       return
     end
     path = vim.trim(v)
@@ -129,7 +129,7 @@ function M.hide_all_results()
   for i, l in ipairs(lines) do
     if blocks_mod.match_results(l) and blocks_mod.results_end(lines, i) > i then
       if vim.fn.foldlevel(i) > 0 and vim.fn.foldclosed(i) == -1 then
-        pcall(vim.cmd, i .. "foldclose")
+        pcall(vim.api.nvim_command, i .. "foldclose")
         n = n + 1
       end
     end
@@ -240,7 +240,7 @@ function M.lob_ingest(path)
       completion = "file",
       cancelreturn = vim.NIL,
     })
-    if not ok or v == vim.NIL then
+    if not ok or type(v) ~= "string" then
       return 0
     end
     v = vim.trim(v)
@@ -313,6 +313,13 @@ function M.expand_body(bufnr, b, args, purpose)
   return out
 end
 
+--- The block at the cursor: its buffer, the source block (a #+CALL's
+--- target), its header arguments and the block or call itself; nothing,
+--- after a warning, when there is none.
+---@return integer? bufnr
+---@return table? src
+---@return table? args
+---@return table? b
 local function block_at_cursor()
   local bufnr = vim.api.nvim_get_current_buf()
   local b = M.at_block(bufnr, vim.api.nvim_win_get_cursor(0)[1])
@@ -322,7 +329,7 @@ local function block_at_cursor()
   end
   if b.call then
     local args, target = M.block_args(b, b.file, bufnr)
-    if not target then
+    if not (args and target) then
       utils.warn("#+CALL: no block named " .. tostring(b.target))
       return nil
     end
@@ -351,7 +358,7 @@ end
 --- C-c C-v v: show the expanded body of the block (org-babel-expand-src-block).
 function M.expand_block()
   local bufnr, src, args = block_at_cursor()
-  if not bufnr then
+  if not (bufnr and src and args) then
     return
   end
   local ft = vim.filetype.match({ filename = "x." .. langs.ext(src.lang) }) or src.lang
@@ -361,7 +368,7 @@ end
 --- C-c C-v I: show the block's language, name and merged header arguments.
 function M.view_info()
   local bufnr, src, args, b = block_at_cursor()
-  if not src then
+  if not (bufnr and src and args and b) then
     return
   end
   -- like org-babel-view-src-block-info
@@ -415,9 +422,13 @@ end
 ---------------------------------------------------------------------------
 
 --- Session of the block at the cursor (started when needed), or nil.
+---@return table? sess
+---@return integer? bufnr
+---@return table? src
+---@return table? args
 local function cursor_session()
   local bufnr, src, args = block_at_cursor()
-  if not bufnr then
+  if not (bufnr and src and args) then
     return nil
   end
   local name = session_mod.name(args.session)
@@ -445,7 +456,7 @@ end
 function M.switch_to_session(opts)
   opts = opts or {}
   local sess, bufnr, src, args = cursor_session()
-  if not sess then
+  if not (sess and bufnr and src and args) then
     return
   end
   if not opts.no_register then
@@ -483,7 +494,7 @@ end
 --- and show the session (org-babel-load-in-session).
 function M.load_in_session()
   local sess, bufnr, src, args = cursor_session()
-  if not sess then
+  if not (sess and bufnr and src and args) then
     return
   end
   local body = src.body
@@ -505,7 +516,7 @@ function M.kill_session(name)
     return session_mod.kill(name)
   end
   local bufnr, src, args = block_at_cursor()
-  if not bufnr then
+  if not (bufnr and src and args) then
     return false
   end
   local sname = session_mod.name(args.session)
@@ -527,7 +538,7 @@ end
 --- `:cache yes` stores in `#+RESULTS[hash]:`.
 function M.sha1_hash()
   local bufnr, src, args = block_at_cursor()
-  if not bufnr then
+  if not (bufnr and src and args) then
     return
   end
   local meta = {}

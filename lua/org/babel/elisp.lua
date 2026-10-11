@@ -255,10 +255,17 @@ local function with_bindings(src, bindings)
   return "(let (" .. table.concat(parts, " ") .. ")\n" .. src .. ")"
 end
 
+---@class org.babel.ElispOpts
+---@field bindings? table[] `{ name, value }` pairs bound around `src`
+---@field cwd? string the directory Emacs runs in
+---@field requires? string[] features Emacs requires first
+---@field emacs? boolean false: never fall back to an external Emacs
+---@field condition? boolean an error is the printed condition
+
 --- Evaluate `src` in a separate Emacs, `(eval (read src) t)`, and return
 --- the printed value (`prin1`). An error is its message, or with
 --- `opts.condition` the printed condition (`(void-function f)`).
----@param opts? { bindings?: table[], cwd?: string, requires?: string[], condition?: boolean }
+---@param opts? org.babel.ElispOpts
 ---@return string|nil printed, string|nil err
 function M.eval_external(src, opts)
   opts = opts or {}
@@ -282,7 +289,7 @@ M.no_external = 0
 --- (`babel.emacs_lisp`; `opts.emacs = false` never starts one). Returns an
 --- `org.table.elisp` value; what Emacs returns that cannot be read back
 --- (`#<buffer x>`) is its printed text.
----@param opts? { bindings?: table[], cwd?: string, requires?: string[], emacs?: boolean, condition?: boolean }
+---@param opts? org.babel.ElispOpts
 ---@return any value, string|nil err
 function M.eval(src, opts)
   opts = opts or {}

@@ -131,7 +131,7 @@ local function pick_name(names, selector)
   local s = vim.trim(selector)
   if s:match("^'?%(") or s == "nil" then
     local ok, v = pcall(lisp.read, s)
-    if ok and lisp.is_list(v) then
+    if ok and type(v) == "table" and lisp.is_list(v) then
       local out = {}
       for i, x in ipairs(v) do
         out[i] = lisp.princ(x)
@@ -236,6 +236,8 @@ local dedent = blocks_mod.dedent
 --- text of a fixed-width area (a number when it is one), the contents of
 --- a block, or the text of a paragraph (a lone file link gives the file's
 --- contents).
+---@param lines string[]
+---@param k integer
 local function read_element(lines, k, bufnr)
   local last, kind = blocks_mod.element_end(lines, k)
   local el = vim.list_slice(lines, k, last)
@@ -327,6 +329,9 @@ local function headline_body(bufnr, id, local_only)
     if not hl or not lines then
       return nil
     end
+  end
+  if not (hl and lines) then
+    return nil
   end
   -- org-end-of-meta-data: past the planning line and the property drawer
   -- (as the parser reads them, a lower-case :properties: drawer too)

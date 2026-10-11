@@ -95,6 +95,7 @@ end
 --- The session of a block, started when needed.
 local function get_session(bufnr, lang, args, name)
   local fam = langs.family(lang)
+  ---@type string[]?
   local cmd = {}
   local explicit = fam == "ruby" and args.ruby ~= nil
   -- org-babel-python-command-session: the REPL command, used as it is
@@ -154,7 +155,7 @@ end
 --- Show `stderr` of a failed evaluation in the `*Org-Babel Error Output*`
 --- buffer (like Emacs, the result keeps only the standard output).
 function M.error_notify(code, stderr)
-  local b = error_buffer(true)
+  local b = assert(error_buffer(true))
   local lines = vim.api.nvim_buf_get_lines(b, 0, -1, false)
   if #lines == 1 and lines[1] == "" then
     lines = {}
@@ -172,7 +173,8 @@ function M.error_notify(code, stderr)
     pcall(function()
       vim.cmd("botright split")
       vim.api.nvim_win_set_buf(0, b)
-      vim.api.nvim_win_set_height(0, math.min(10, math.max(3, #lines)))
+      -- :resize, not nvim_win_set_height (deprecated on Neovim 0.13)
+      vim.cmd("resize " .. math.min(10, math.max(3, #lines)))
       vim.api.nvim_set_current_win(win)
     end)
   end

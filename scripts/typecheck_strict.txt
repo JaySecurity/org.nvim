@@ -27,3 +27,4 @@ lua/org/mobile.lua
 lua/org/mobile
 lua/org/capture.lua
 lua/org/capture
+lua/org/babel
