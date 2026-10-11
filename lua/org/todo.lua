@@ -353,13 +353,7 @@ function M.run_statistics_hooks(bufnr, hl)
 end
 
 local function update_parent_statistics(bufnr, hl)
-  -- a parent counting checkboxes is left alone (org-update-parent-todo-statistics)
-  if hl.parent and not (hl.parent.properties.COOKIE_DATA or ""):lower():find("checkbox") then
-    local ok, lists = pcall(require, "org.lists")
-    if ok and type(lists.update_statistics_for) == "function" then
-      pcall(lists.update_statistics_for, bufnr, hl.parent.line)
-    end
-  end
+  pcall(require("org.lists").update_parent_todo_statistics, bufnr, hl.line)
   local file = files.get_buffer(bufnr)
   M.run_statistics_hooks(bufnr, file:headline_on(hl.line) or hl)
 end

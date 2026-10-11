@@ -51,11 +51,17 @@ end
 
 --- Done and total counts of the child entries of `hl` that a TODO
 --- statistics cookie counts (org-provide-todo-statistics).
+---@param file org.File
+---@param hl org.Headline
+---@param recursive? boolean count every descendant (default: from the
+---  entry's COOKIE_DATA and `hierarchical_todo_statistics`)
 ---@return integer done, integer total
-function M.todo_counts(file, hl)
+function M.todo_counts(file, hl, recursive)
   local cookie_data = (hl.properties.COOKIE_DATA or ""):lower()
   local cfg = require("org.config").opts
-  local recursive = cookie_data:find("recursive") ~= nil or cfg.hierarchical_todo_statistics == false
+  if recursive == nil then
+    recursive = cookie_data:find("recursive") ~= nil or cfg.hierarchical_todo_statistics == false
+  end
   -- which headlines count (org-provide-todo-statistics): true = TODO
   -- keywords, "all-headlines", a list of keywords (plus done keywords) or
   -- { todo keywords, done keywords }
@@ -97,12 +103,15 @@ local function checkbox_recursive(cookie_data)
   return cookie_data:find("recursive") ~= nil or lopt("checkbox_hierarchical_statistics") == false
 end
 
---- Counts for a headline cookie.
-local function headline_counts(file, hl)
+--- Counts for a headline cookie: checkboxes or TODO children, as
+--- COOKIE_DATA says, else checkboxes when the entry has some; `mode`
+--- forces "checkbox".
+local function headline_counts(file, hl, mode)
   local cookie_data = (hl.properties.COOKIE_DATA or ""):lower()
   local recursive = checkbox_recursive(cookie_data)
-  local mode
-  if cookie_data:find("todo") then
+  if mode then
+    -- as given
+  elseif cookie_data:find("todo") then
     mode = "todo"
   elseif cookie_data:find("checkbox") then
     mode = "checkbox"
@@ -130,8 +139,20 @@ local function headline_counts(file, hl)
   return M.todo_counts(file, hl)
 end
 
---- Update cookies in list items of lines[from..to] and in headline `hl`.
-local function update_section(bufnr, file, hl, from, to)
+--- `line` with its tags realigned when `auto_align_tags` is on (after a
+--- cookie changed: org-fix-tags-on-the-fly).
+local function realign(file, line)
+  local edit = require("org.edit")
+  if edit.auto_align_tags() then
+    return edit.align_tags_line(line, file.settings.todo)
+  end
+  return line
+end
+
+--- Update cookies in list items of lines[from..to] and in headline `hl`
+--- (`mode` "checkbox": the headline's cookie counts checkboxes, and isn't
+--- touched when COOKIE_DATA says "todo").
+local function update_section(bufnr, file, hl, from, to, mode)
   local lines = file.lines
   local changes = {}
   local _, all = M.parse_region(lines, from, to)
@@ -146,9 +167,10 @@ local function update_section(bufnr, file, hl, from, to)
       end
     end
   end
-  if hl and has_cookie(lines[hl.line]) then
-    local d, t = headline_counts(file, hl)
-    changes[hl.line] = replace_cookies(lines[hl.line], d, t)
+  if hl and has_cookie(lines[hl.line]) and not (mode == "checkbox" and cookie_data:find("todo")) then
+    local d, t = headline_counts(file, hl, mode)
+    local new = replace_cookies(lines[hl.line], d, t)
+    changes[hl.line] = new ~= lines[hl.line] and realign(file, new) or new
   end
   for lnum, text in pairs(changes) do
     if text ~= lines[lnum] then
@@ -183,6 +205,65 @@ function M.update_statistics_for(bufnr, lnum)
         update_section(bufnr, file, cur, cur.line + 1, cur.line)
       end
     end
+  end
+end
+
+--- The cookies of the entry at `lnum` count its checkboxes
+--- (org-update-checkbox-count): those of its list items, and the
+--- headline's unless its COOKIE_DATA says "todo". Other entries are left
+--- alone.
+function M.update_checkbox_count(bufnr, lnum)
+  bufnr = curbuf(bufnr)
+  local file = files.get_buffer(bufnr)
+  local hl = file:headline_at(lnum)
+  if not hl then
+    update_section(bufnr, file, nil, 1, file.preamble_end, "checkbox")
+    return
+  end
+  update_section(bufnr, file, hl, hl.line + 1, hl.body_end, "checkbox")
+end
+
+--- After the TODO state of the headline at `lnum` changed, the cookies
+--- of its parent count the parent's TODO children
+--- (org-update-parent-todo-statistics); with `hierarchical_todo_statistics`
+--- off or a "recursive" COOKIE_DATA, those of the ancestors up to the
+--- one setting it count every descendant. A parent whose COOKIE_DATA says
+--- "checkbox" stops it.
+function M.update_parent_todo_statistics(bufnr, lnum)
+  bufnr = curbuf(bufnr)
+  local file = files.get_buffer(bufnr)
+  local hl = file:headline_on(lnum)
+  if not hl or not hl.parent then
+    return
+  end
+  -- COOKIE_DATA, inherited from the parent up, and where it is set
+  local prop, lim = nil, 0
+  local h = hl.parent
+  while h do
+    if h.properties.COOKIE_DATA then
+      prop, lim = h.properties.COOKIE_DATA:lower(), h.line
+      break
+    end
+    h = h.parent
+  end
+  local recursive = require("org.config").opts.hierarchical_todo_statistics == false
+    or (prop ~= nil and prop:find("recursive") ~= nil)
+  local cur, first = hl.parent, true
+  while cur and (recursive or first) and cur.line >= lim do
+    first = false
+    if (cur.properties.COOKIE_DATA or ""):lower():find("checkbox") then
+      return
+    end
+    local line = file.lines[cur.line]
+    if has_cookie(line) then
+      local d, t = M.todo_counts(file, cur, recursive)
+      local new = replace_cookies(line, d, t)
+      if new ~= line then
+        set_lines(bufnr, cur.line, cur.line, { realign(file, new) })
+        file = files.get_buffer(bufnr)
+      end
+    end
+    cur = cur.parent and file:headline_on(cur.parent.line)
   end
 end
 
