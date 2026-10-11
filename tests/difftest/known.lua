@@ -66,15 +66,6 @@ end
 ---@type difftest.Known[]
 return {
   {
-    oracle = "agenda",
-    reason = [[A timestamp after an inline task's END line (in the text of
-      the enclosing headline): Emacs' agenda titles it "END" (the line
-      org-agenda-get-timestamps finds with org-outline-regexp-bol), org.nvim
-      with the enclosing headline.]],
-    input = timestamp_after_inline_end,
-    emacs = "%sEND%f[%s:%z]",
-  },
-  {
     oracle = "commands",
     reason = [[org-todo on a COMMENT headline with tags: Emacs takes COMMENT
       out, changes the keyword, aligns the tags and puts COMMENT back

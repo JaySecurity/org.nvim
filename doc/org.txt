@@ -720,7 +720,9 @@ They are not entries of their own (the text around them belongs to the
 entry), fold up to END with <Tab>, promote / demote together with their END
 line (never below the minimum level) and show only their last two stars
 (also the first one, as a marker, with `inlinetask_show_first_star`,
-org-inlinetask-show-first-star).
+org-inlinetask-show-first-star). In the agenda, a timestamp in the text
+after an END line (up to the next headline) shows as an entry titled "END",
+with the inline task's tags, as in Emacs.
 <C-c><C-x>t     Insert an inline task (`inlinetask_default_state` as its
                 keyword unless a count is given), around the Visual
                 selection if any.
