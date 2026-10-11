@@ -713,6 +713,20 @@ describe("export: Emacs parity (difftest known differences)", function()
     hasnt(md, ">")
   end)
 
+  it("an ASCII box leaves an empty last line unprefixed only after an empty line", function()
+    -- replace-regexp-in-string "^" stops once an empty match reaches the
+    -- end of the string (difftest seeds 44, 62)
+    local function box(body)
+      local lines = { "#+begin_src" }
+      vim.list_extend(lines, body)
+      lines[#lines + 1] = "#+end_src"
+      return (ox.export_as("ascii", lines, { body_only = true }))
+    end
+    eq(",----\n| \n\n`----\n", box({ "", "" }))
+    eq(",----\n| x\n| \n`----\n", box({ "x", "" }))
+    eq(",----\n| x\n| \n\n`----\n", box({ "x", "", "" }))
+  end)
+
   it("a timestamp keeps a habit's repeater deadline (.+2d/4d)", function()
     local out = ox.export_as("ascii", { "Text <2026-10-01 Thu .+2d/4d> and [2026-10-01 Thu +1d/3d -2d]." }, {
       body_only = true,

@@ -945,11 +945,16 @@ local function box_string(s, info)
   local u = utf8p(info)
   s = s:gsub("\n[ \t]*$", "")
   local pre = u and "│ " or "| "
+  -- replace-regexp-in-string "^" stops searching once a match (an empty
+  -- one moves on by one character) reaches the end of the string: an
+  -- empty string stays empty (a block holding only a blank line has an
+  -- empty box), and so does an empty last line after an empty line
   local lines = {}
-  -- an empty string stays empty (replace-regexp-in-string finds no "^"
-  -- in it): a block holding only a blank line has an empty box
-  for line in (s == "" and "" or (s .. "\n")):gmatch("(.-)\n") do
+  for line in (s .. "\n"):gmatch("(.-)\n") do
     lines[#lines + 1] = pre .. line
+  end
+  if s == "" or (#lines > 1 and lines[#lines] == pre and lines[#lines - 1] == pre) then
+    lines[#lines] = ""
   end
   return fmt(u and "┌────\n%s\n└────" or ",----\n%s\n`----", table.concat(lines, "\n"))
 end
