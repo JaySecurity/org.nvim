@@ -1342,8 +1342,30 @@ local function inheritable(cfg, tag)
   return true
 end
 
+--- Deduplicate `list` keeping the last occurrence of each tag, as Emacs'
+--- (nreverse (delete-dups (nreverse ...))) in org-get-tags: "if a tag
+--- appears multiple times, only the most local tag is returned".
+---@param list string[]
+---@return string[]
+local function dedup_last(list)
+  local seen, rev = {}, {}
+  for i = #list, 1, -1 do
+    local t = list[i]
+    if not seen[t] then
+      seen[t] = true
+      rev[#rev + 1] = t
+    end
+  end
+  local out = {}
+  for i = #rev, 1, -1 do
+    out[#out + 1] = rev[i]
+  end
+  return out
+end
+
 --- The tags `parent` passes down to its children (filetags first, then
---- the ancestors' from the top, deduplicated). Memoized on the headline:
+--- the ancestors' from the top, deduplicated keeping the last, most local
+--- occurrence, as org-get-tags does). Memoized on the headline:
 --- the agenda asks for the tags of every headline several times, and the
 --- memo is reused while the options, the own tags and the parent's list
 --- are the same tables.
@@ -1361,17 +1383,13 @@ local function passed_down(file, parent, cfg)
   then
     return c.list
   end
-  local seen, list = {}, {}
-  for _, t in ipairs(up or {}) do
-    seen[t] = true
-    list[#list + 1] = t
-  end
+  local all = vim.list_slice(up or {})
   for _, t in ipairs(src) do
-    if not seen[t] and inheritable(cfg, t) then
-      seen[t] = true
-      list[#list + 1] = t
+    if inheritable(cfg, t) then
+      all[#all + 1] = t
     end
   end
+  local list = dedup_last(all)
   rawset(holder, "_tags_down", {
     src = src,
     up = up,
@@ -1382,27 +1400,19 @@ local function passed_down(file, parent, cfg)
   return list
 end
 
---- All tags: filetags + inherited + own (deduplicated, own last).
+--- All tags, as Emacs' org-get-tags: filetags, then the ancestors' from
+--- the top, then the own tags as written; a tag that appears more than
+--- once is kept only at its last (most local) place, so a tag both
+--- inherited and set on the headline counts as its own.
 ---@param opts? { inherited?: boolean } inherited=false -> own tags only
 function Headline:get_tags(opts)
-  if opts and opts.inherited == false then
+  local cfg = require("org.config").opts
+  if (opts and opts.inherited == false) or cfg.use_tag_inheritance == false then
     return vim.deepcopy(self.tags)
   end
-  local cfg = require("org.config").opts
-  local seen, out = {}, {}
-  if cfg.use_tag_inheritance ~= false then
-    for _, t in ipairs(passed_down(self.file, self.parent, cfg)) do
-      seen[t] = true
-      out[#out + 1] = t
-    end
-  end
-  for _, t in ipairs(self.tags) do
-    if not seen[t] then
-      seen[t] = true
-      out[#out + 1] = t
-    end
-  end
-  return out
+  local all = vim.list_slice(passed_down(self.file, self.parent, cfg))
+  vim.list_extend(all, self.tags)
+  return dedup_last(all)
 end
 
 --- Inherited tags only (not own).

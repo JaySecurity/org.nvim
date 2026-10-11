@@ -7766,7 +7766,9 @@ A headline handle has these fields, a snapshot taken when it was made:
     category      the category
     id            the ID property
     tags          own tags
-    all_tags      with inherited and file tags
+    all_tags      with inherited and file tags, in org-get-tags order:
+                  inherited first, then own (a tag both inherited
+                  and set on the headline counts as own)
     properties    own properties, names upper-cased
     scheduled, deadline, closed
                   dates (nil when not set)

@@ -298,21 +298,6 @@ return {
   },
   {
     oracle = "agenda",
-    reason = [[Tag order: Emacs lists inherited tags, then the local ones as
-      written; org.nvim reorders them (a local tag that is also inherited
-      moves first).]],
-    same = function(s)
-      return (
-        s:gsub(":([%w_@:]+):", function(tags)
-          local t = vim.split(tags, ":+")
-          table.sort(t)
-          return ":" .. table.concat(t, ":") .. ":"
-        end)
-      )
-    end,
-  },
-  {
-    oracle = "agenda",
     reason = [[The END line of an inline task shows in org.nvim's tags matches
       (as a headline with the tags of the task's outline), not in Emacs'.]],
     ours = "^%s*[%w_]+:%s+[Ee][Nn][Dd]%s",

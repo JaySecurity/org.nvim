@@ -486,14 +486,12 @@ function M.tags_string(item)
     own[t] = true
   end
   local hide = acfg.hide_tags_regexp and acfg.hide_tags_regexp ~= "" and vim.regex(acfg.hide_tags_regexp)
+  -- item.tags is in org-get-tags order (inherited, then own), and a tag
+  -- that is both counts as own
   local inh, loc = {}, {}
-  local inherited_set = {}
-  for _, t in ipairs(hl:get_inherited_tags()) do
-    inherited_set[t] = true
-  end
   for _, t in ipairs(tags) do
     if not (hide and hide:match_str(t)) then
-      if inherited_set[t] and not (own[t] and not inherited_set[t]) then
+      if not own[t] then
         if acfg.show_inherited_tags ~= false then
           inh[#inh + 1] = t
         end
