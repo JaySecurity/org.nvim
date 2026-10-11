@@ -33,6 +33,9 @@ local M = {}
 ---@field logbook { start: integer, ["end"]: integer }|nil
 ---@field clocks { start: table, ["end"]: table|nil, minutes: integer|nil, line: integer }[]
 ---@field timestamps { date: table, line: integer, start_col: integer, end_col: integer, in_title?: boolean, in_property?: boolean }[]
+---@field block_ranges { date: table, line: integer, start_col: integer, end_col: integer }[] active date
+--- ranges that are no timestamp objects (in a block other than a src block,
+--- a fixed-width line, a keyword) but that org-agenda-get-blocks finds
 ---@field parent org.Headline|nil
 ---@field children org.Headline[]
 ---@field index integer position in file.headlines
@@ -61,6 +64,7 @@ local SECTION_FIELDS = {
   logbook = true,
   clocks = true,
   timestamps = true,
+  block_ranges = true,
   first_inactive = true,
 }
 
@@ -748,6 +752,20 @@ local function latex_environment_end(lines, i, to)
   end
 end
 
+--- Adds the active date ranges of `line` (number `i`) to
+--- `hl.block_ranges`.
+local function add_block_ranges(hl, line, i)
+  if not line:find("--<", 1, true) then
+    return
+  end
+  for _, item in ipairs(date.parse_all(line)) do
+    if item.date.active and item.date.range_end then
+      hl.block_ranges[#hl.block_ranges + 1] =
+        { date = item.date, line = i, start_col = item.start_col, end_col = item.end_col }
+    end
+  end
+end
+
 -- The closing line of a drawer, any case (org-element-drawer-parser).
 local DRAWER_END = "^%s*:[Ee][Nn][Dd]:%s*$"
 
@@ -764,6 +782,7 @@ function parse_section(hl, lines, from, to, log_drawer, min_inline)
   hl.drawers = {}
   hl.clocks = {}
   hl.timestamps = {}
+  hl.block_ranges = {}
 
   -- An inline task's heading ends the section's text: like
   -- org-back-to-heading, what follows belongs to the inline task.
@@ -837,6 +856,7 @@ function parse_section(hl, lines, from, to, log_drawer, min_inline)
   -- rest of section: drawers, clocks, timestamps
   local in_drawer = nil
   local verbatim_end = 0
+  local verbatim_src = false
   -- the first :END: line after the current one (false: none up to `to`),
   -- found once for all the drawers before it
   ---@type integer|false
@@ -845,7 +865,11 @@ function parse_section(hl, lines, from, to, log_drawer, min_inline)
     local line = lines[i]
     if i <= verbatim_end then
       -- inside a src/example/export/comment block or a LaTeX
-      -- environment: no timestamps
+      -- environment: no timestamps, but org-agenda-get-blocks only skips
+      -- src blocks
+      if not verbatim_src then
+        add_block_ranges(hl, line, i)
+      end
     elseif in_drawer and line:match(DRAWER_END) then
       in_drawer["end"] = i
       hl.drawers[#hl.drawers + 1] = in_drawer
@@ -855,8 +879,11 @@ function parse_section(hl, lines, from, to, log_drawer, min_inline)
       in_drawer = nil
     else
       local dname = not in_drawer and line:match("^%s*:([%w_%-\128-\255]+):%s*$")
-      local block_end = (line:find("^%s*#%+") and M.verbatim_block_end(lines, i, to))
-        or (line:find("\\begin{", 1, true) and latex_environment_end(lines, i, to))
+      local block_end, block_name
+      if line:find("^%s*#%+") then
+        block_end, block_name = M.verbatim_block_end(lines, i, to)
+      end
+      block_end = block_end or (line:find("\\begin{", 1, true) and latex_environment_end(lines, i, to))
       if dname and dname:upper() ~= "END" and next_end and next_end <= i then
         next_end = false
         for k = i + 1, to do
@@ -868,6 +895,7 @@ function parse_section(hl, lines, from, to, log_drawer, min_inline)
       end
       if block_end then
         verbatim_end = block_end
+        verbatim_src = block_name == "src"
       elseif dname and dname:upper() ~= "END" and next_end then
         -- like org-element-drawer-parser, a drawer without an :END: line
         -- in its section is a paragraph, whose timestamps count
@@ -891,6 +919,10 @@ function parse_section(hl, lines, from, to, log_drawer, min_inline)
             end
           end
         end
+      elseif not line:match("^%s*#%s") and not line:match("^%s*#$") then
+        -- a fixed-width line or a keyword; a comment line (org-agenda-skip)
+        -- has none
+        add_block_ranges(hl, line, i)
       end
     end
     local clock = line:find("CLOCK:", 1, true) and M.parse_clock_line(line)

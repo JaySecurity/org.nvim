@@ -1789,7 +1789,10 @@ For each day, per file, in this order (org-agenda-get-day-entries):
   the first day and the end time on the last. A range on a SCHEDULED or
   DEADLINE line shows this way too, next to its planning entry. As in
   Emacs, a range starts at the first timestamp before it on its line:
-  `SCHEDULED: <a> DEADLINE: <b>--<c>` runs from a to c.
+  `SCHEDULED: <a> DEADLINE: <b>--<c>` runs from a to c. A range in a
+  comment, example or export block or a fixed-width line shows too (only
+  src blocks and comment lines hide one), but can't be changed from the
+  agenda.
 - Active timestamps. Repeaters show on every repeat up to today and, after
   today, per `agenda.show_future_repeats` (true, false, "next");
   `agenda.prefer_last_repeat` shows the last repeat instead of the base

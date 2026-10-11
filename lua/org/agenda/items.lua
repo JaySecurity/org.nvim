@@ -51,6 +51,7 @@ M.day_sources = {}
 ---@field ts_date integer|nil day number used by the ts-*/timestamp-* sorting
 ---@field ts_type string|nil Emacs 'type ("scheduled", "past-scheduled", "deadline", ...)
 ---@field ts_index integer|nil index in `headline.timestamps` of a plain timestamp item
+---@field block_range? boolean a date range that is no timestamp object (`headline.block_ranges`)
 ---@field planning_kind "scheduled"|"deadline"|nil a block item from the date range of that planning keyword
 ---@field order integer insertion order (category-keep)
 
@@ -578,11 +579,62 @@ local function entry_types(acfg, opts)
 end
 
 --- Integer value of an option that may be a number (else nil).
+--- The timestamp `text` (without its brackets) as Emacs reads the start or
+--- the end of an org-tr-regexp match: the date, and the first time of day
+--- (or time range) in it for the agenda line, even past a `>` the match
+--- ran over.
+---@return org.Date|nil
+local function tr_stamp(text)
+  local whole = date.parse_all("<" .. text .. ">")[1]
+  if whole and whole.start_col == 1 and whole.end_col == #text + 2 then
+    return whole.date
+  end
+  local y, m, d = text:match("^(%d+)%-(%d+)%-(%d+)")
+  if not y then
+    return nil
+  end
+  local hour, min, rest = text:match("(%d%d?):(%d%d)()", 11)
+  local end_hour, end_min
+  if rest then
+    end_hour, end_min = text:match("^%-(%d%d?):(%d%d)", rest)
+  end
+  return date.from_days(date.days_from_civil(tonumber(y), tonumber(m), tonumber(d)), {
+    active = true,
+    hour = tonumber(hour),
+    min = tonumber(min),
+    end_hour = tonumber(end_hour),
+    end_min = tonumber(end_min),
+  })
+end
+
+--- The active date ranges of `line` as Emacs' org-tr-regexp finds them:
+--- `<date .*?>--<date .*?>`, whose start runs over a `>` until one is
+--- followed by `--<date`. `mid` is the column of the end's `<`.
+---@return { date: org.Date, start_col: integer, end_col: integer, mid: integer }[]
+local function tr_ranges(line)
+  local out, pos = {}, 1
+  while true do
+    local s, e, a, mid, b = line:find("<(%d%d%d%d%-%d%d%-%d%d.-)>%-%-?%-?()<(%d%d%d%d%-%d%d%-%d%d.-)>", pos)
+    if not s then
+      break
+    end
+    local start, stop = tr_stamp(a), tr_stamp(b)
+    if start and stop and (#a == 10 or a:sub(11, 11) == " ") and (#b == 10 or b:sub(11, 11) == " ") then
+      out[#out + 1] = { date = start:clone({ range_end = stop }), start_col = s, end_col = e, mid = mid }
+      pos = e + 1
+    else
+      pos = s + 1
+    end
+  end
+  return out
+end
+
 --- The active timestamps of an entry for org-agenda-get-timestamps and
 --- org-agenda-get-blocks, in buffer order: its plain ones (`index` into
---- `hl.timestamps`), and the date ranges on its planning line (`planning`
---- the SCHEDULED or DEADLINE they belong to), which Emacs' org-tr-regexp
---- matches like any other range.
+--- `hl.timestamps`), the date ranges that are no timestamp objects
+--- (`hl.block_ranges`: in a comment or example block, ...), and the date
+--- ranges on its planning line (`planning` the SCHEDULED or DEADLINE they
+--- belong to), which Emacs' org-tr-regexp matches like any other range.
 ---
 --- The start of org-tr-regexp (`<date .*?>`) runs over a `>`, so a range
 --- starts at the first `<YYYY-MM-DD` before it on its line (after the
@@ -593,19 +645,22 @@ local function block_sources(hl)
   for i, t in ipairs(hl.timestamps) do
     out[#out + 1] = { date = t.date, line = t.line, start_col = t.start_col, end_col = t.end_col, index = i }
   end
+  for _, t in ipairs(hl.block_ranges or {}) do
+    out[#out + 1] = { date = t.date, line = t.line, start_col = t.start_col, end_col = t.end_col }
+  end
   local pline = hl.planning_line and hl.file.lines[hl.planning_line]
   if pline then
-    for _, item in ipairs(date.parse_all(pline)) do
-      local key = pline:sub(1, item.start_col - 1):match("(%u+):%s*$")
+    for _, r in ipairs(tr_ranges(pline)) do
+      -- the SCHEDULED or DEADLINE the range's end follows
+      local before = pline:sub(1, r.mid - 1)
+      local key
+      for k in before:gmatch("(%u+):%s*<") do
+        key = k
+      end
       local kind = key == "SCHEDULED" and "scheduled" or key == "DEADLINE" and "deadline" or nil
-      if kind and item.date.active and item.date.range_end then
-        out[#out + 1] = {
-          date = item.date,
-          line = hl.planning_line,
-          start_col = item.start_col,
-          end_col = item.end_col,
-          planning = kind,
-        }
+      if kind then
+        r.line, r.planning = hl.planning_line, kind
+        out[#out + 1] = r
       end
     end
   end
@@ -1064,6 +1119,7 @@ function M.agenda(files, from, to, opts)
               date = ts,
               ts_index = not t.planning and t.index or nil,
               planning_kind = t.planning,
+              block_range = (not t.planning and not t.index) or nil,
               extra = string.format(a == b and leaders_r[1] or leaders_r[2], d - a + 1, n),
               face = done and "OrgAgendaDone" or "OrgAgendaTimestamp",
               undone_face = "OrgAgendaTimestamp",
