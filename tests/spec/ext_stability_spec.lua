@@ -1,6 +1,6 @@
 -- Each extension's stability ("stable" or "experimental") is the
 -- `stability` field of its module (org.extensions.stability()). README.md,
--- doc/org.txt and :checkhealth org must agree with it; promoting an
+-- docs/guide.md, doc/org.txt and :checkhealth org must agree with it; promoting an
 -- extension (CONTRIBUTING.md, "Promoting an extension") changes the field
 -- and these together.
 local exts = require("org.extensions")
@@ -62,17 +62,17 @@ describe("extension stability", function()
     eq(want.experimental, ticked(cells[3]), "README.md experimental column")
   end)
 
-  it("README marks each extension's entry with its stability", function()
-    local readme = read("README.md")
-    local section = readme:match("\n## 🧩 Extensions\n(.-)\n## ")
-    ok(section, "README.md has an Extensions section")
+  it("the guide marks each extension's entry with its stability", function()
+    local guide = read("docs/guide.md")
+    local section = guide:match("\n## 🧩 Extensions\n(.-)\n## ")
+    ok(section, "docs/guide.md has an Extensions section")
     local marks = {}
     for mark, name in section:gmatch("\n%- ([^ ]+) %*%*`([%w_]+)`%*%*") do
       marks[name] = mark
     end
     for _, name in ipairs(exts.builtin()) do
       local want = exts.stability(name) == "stable" and "✅" or "🧪"
-      eq(want, marks[name], "README.md entry of " .. name)
+      eq(want, marks[name], "docs/guide.md entry of " .. name)
     end
   end)
 

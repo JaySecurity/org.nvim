@@ -11,10 +11,10 @@ you need to get started.
 - **Compare with Emacs.** If org.nvim does something differently from Emacs
   Org mode and the doc doesn't mention it
   ([`:h org-differences`](doc/org.txt)), please open an issue.
-- **Improve the docs.** The README, `doc/org.txt`,
+- **Improve the docs.** The README, the [guide](docs/guide.md), `doc/org.txt`,
   `examples/tutorial.org` and the per-feature files in `examples/` are all
   fair game.
-- **Build a feature.** The [Roadmap](README.md#-roadmap) lists what's
+- **Build a feature.** The [Roadmap](docs/guide.md#-roadmap) lists what's
   missing. Check the issues first, or open one, so work isn't duplicated.
 
 ## Development setup
@@ -149,7 +149,8 @@ Some things to know before you start:
    end)
    ```
 
-4. Document it in `doc/org.txt` (and in the README if it's user-visible).
+4. Document it in `doc/org.txt` (and in the README or `docs/guide.md` if
+   it's user-visible).
 5. Run `make format`, `make test` and `make lint` (and `make typecheck`
    if you have lua-language-server).
 
@@ -456,8 +457,9 @@ fails the spec instead of hanging it.
 The website at <https://org-nvim.com/> is generated, never
 edited by hand: [`scripts/site/build.lua`](scripts/site/build.lua) turns
 `doc/org.txt` into one page per chapter (help tags become anchors, `|links|`
-hyperlinks and `>lua` blocks highlighted code), renders `README.md` and
-`docs/parity-review.md`, scores `docs/parity/inventory.tsv`, lists the
+hyperlinks and `>lua` blocks highlighted code), renders `README.md`,
+`docs/guide.md` (the setup and reference guide: installation, keys,
+options, integrations, extensions, roadmap) and `docs/parity-review.md`, scores `docs/parity/inventory.tsv`, lists the
 known differences from Emacs (the items of `:h org-differences`), publishes
 the extension promotion report (`scripts/extension_report.lua`, required as
 a module) as the "Extensions status" page, and exports every
@@ -672,7 +674,8 @@ Every extension is ✅ stable or 🧪 experimental (`:h
 org-extensions-stability`). The source of truth is the `stability` field
 of its module (`M.stability = "stable"` in
 `lua/org/extensions/<name>/init.lua`; a module without one is
-experimental). The README table, the `✅`/`🧪` mark of its README entry,
+experimental). The README table, the `✅`/`🧪` mark of its entry in
+`docs/guide.md`,
 the lists and the `Stability:` line of its section in `doc/org.txt` and
 `:checkhealth org` follow it, and `tests/spec/ext_stability_spec.lua`
 fails when one of them disagrees.
@@ -719,7 +722,8 @@ top of the script; change it there and here together.
 To promote, in a pull request into `dev` titled for the changelog
 (`feat(extensions): promote heatmap to stable`): set `M.stability =
 "stable"`, move the name to the stable column of the README table and to
-`Stable:` in `:h org-extensions-stability`, change its README mark to ✅
+`Stable:` in `:h org-extensions-stability`, change its mark in
+`docs/guide.md` to ✅
 and its `Stability:` line, and run `make test
 SPEC=tests/spec/ext_stability_spec.lua`. From then on, a change to its
 options, actions or keys is called out in the release notes, and a

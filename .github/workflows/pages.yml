@@ -27,6 +27,7 @@ on:
       - docs/playground/**
       - tutor/**
       - README.md
+      - docs/guide.md
       - docs/parity-review.md
       - docs/parity/**
       - scripts/extension_report.lua
