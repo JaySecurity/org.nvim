@@ -1690,6 +1690,13 @@ end
 
 --- Total clocked minutes in this headline's own section (closed clocks),
 --- optionally restricted to clocks starting within [from_min, to_min).
+--- With `include_children`, the clocks of every headline in the subtree
+--- count too, inline tasks included: org-clock-sum adds an inline task's
+--- time to each enclosing headline like a deeper one's.
+---@param from_min? integer
+---@param to_min? integer
+---@param include_children? boolean
+---@return integer
 function Headline:clocked_minutes(from_min, to_min, include_children)
   local total = 0
   local function sum(h)
@@ -1701,13 +1708,20 @@ function Headline:clocked_minutes(from_min, to_min, include_children)
         end
       end
     end
-    if include_children then
-      for _, child in ipairs(h.children) do
-        sum(child)
-      end
-    end
   end
   sum(self)
+  if include_children then
+    -- file.headlines is in buffer order and holds the inline tasks, which
+    -- are no one's children
+    local hls = self.file.headlines
+    for i = self.index + 1, #hls do
+      local h = hls[i]
+      if h.line > self.end_line then
+        break
+      end
+      sum(h)
+    end
+  end
   return total
 end
 

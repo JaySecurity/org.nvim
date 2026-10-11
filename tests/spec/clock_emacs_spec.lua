@@ -845,3 +845,48 @@ describe("agenda clocking (Emacs)", function()
     eq("|                 | A                | 1:00   |", b.lines[6])
   end)
 end)
+
+describe("clock sums with inline tasks (Emacs)", function()
+  with_config({ inlinetask_min_level = 15 })
+
+  local function clock(h1, m1, h2, m2, dur)
+    return ("CLOCK: [2024-01-01 Mon %02d:%02d]--[2024-01-01 Mon %02d:%02d] =>  %s"):format(h1, m1, h2, m2, dur)
+  end
+
+  -- Org 9.8.10 org-clock-sum puts these :org-clock-minutes on the headlines
+  it("adds an inline task's clocks to every enclosing headline's total", function()
+    local file = require("org.parser").parse({
+      "* Parent",
+      clock(10, 0, 11, 0, "1:00"),
+      "*************** Inline",
+      clock(12, 0, 12, 30, "0:30"),
+      "*************** END",
+      clock(13, 0, 13, 10, "0:10"),
+      "** Child",
+      clock(14, 0, 14, 5, "0:05"),
+      "*************** Inline in child",
+      clock(15, 0, 15, 20, "0:20"),
+      "*************** END",
+      "* Other",
+    })
+    local parent, inline, child, other = file.headlines[1], file.headlines[2], file.headlines[3], file.headlines[5]
+    ok(inline.inlinetask)
+    eq(125, parent:clocked_minutes(nil, nil, true))
+    eq(30, inline:clocked_minutes(nil, nil, true))
+    eq(25, child:clocked_minutes(nil, nil, true))
+    eq(0, other:clocked_minutes(nil, nil, true))
+    -- the entry's own clocks stay its own: the inline task's are not
+    eq(70, parent:clocked_minutes(nil, nil, false))
+  end)
+
+  it("counts an inline task without END for the headline above it", function()
+    local file = require("org.parser").parse({
+      "* Parent",
+      "*************** Inline no end",
+      clock(12, 0, 12, 30, "0:30"),
+      "** Child",
+      clock(14, 0, 14, 5, "0:05"),
+    })
+    eq(35, file.headlines[1]:clocked_minutes(nil, nil, true))
+  end)
+end)
