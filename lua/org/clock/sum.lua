@@ -47,6 +47,21 @@ local function clipped_clock_minutes(start, stop, from_s, to_s)
   return math.max(0, math.floor((e - s) / 60))
 end
 
+--- The inline tasks in `hl`'s own section (before its first child), in
+--- buffer order. They are in no headline's children, but org-clock-sum
+--- adds their time to the enclosing headline like a deeper one's.
+---@param hl org.Headline
+---@return org.Headline[]
+local function inline_tasks(hl)
+  local out, hls = {}, hl.file.headlines
+  local i = hl.index and hl.index + 1
+  while i and hls[i] and hls[i].inlinetask do
+    out[#out + 1] = hls[i]
+    i = i + 1
+  end
+  return out
+end
+
 --- Clock sums of a file (org-clock-sum): for each headline in the scanned
 --- region, the minutes clocked in its subtree within [ts, te). With a
 --- matcher, only matching entries contribute their own clocks, and their
@@ -81,6 +96,15 @@ local function clock_sum(roots, ts, te, pred)
       local ct, cl = visit(child)
       sub = sub + ct
       forced = forced or cl
+    end
+    for _, it in ipairs(inline_tasks(hl)) do
+      local t = own(it)
+      if t > 0 and (not pred or pred(it)) then
+        times[it] = t
+        sub = sub + t
+        total = total + t
+        forced = true
+      end
     end
     local included = not pred or pred(hl)
     local t1 = own(hl)
@@ -122,3 +146,4 @@ end
 
 -- for the parts loaded after this one
 shared.clock_sum = clock_sum
+shared.inline_tasks = inline_tasks

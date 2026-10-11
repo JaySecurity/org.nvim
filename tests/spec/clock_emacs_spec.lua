@@ -889,4 +889,40 @@ describe("clock sums with inline tasks (Emacs)", function()
     })
     eq(35, file.headlines[1]:clocked_minutes(nil, nil, true))
   end)
+
+  -- Org 9.8.10 org-dblock-update on the same file writes these rows, and
+  -- one more, "| Inline | 0:10 |", for the clock after the END line: its
+  -- org-clock-get-table-data takes the title from the heading line before
+  -- it, END's inline task. That row is left out here; the 0:10 counts for
+  -- Parent in both.
+  it("counts and lists inline tasks in a clock report", function()
+    local buf = org_buffer({
+      "#+BEGIN: clocktable :scope file :maxlevel 3",
+      "#+END:",
+      "* Parent",
+      clock(10, 0, 11, 0, "1:00"),
+      "*************** Inline",
+      clock(12, 0, 12, 30, "0:30"),
+      "*************** END",
+      clock(13, 0, 13, 10, "0:10"),
+      "** Child",
+      clock(14, 0, 14, 5, "0:05"),
+      "*************** Inline in child",
+      clock(15, 0, 15, 20, "0:20"),
+      "*************** END",
+      "* Other",
+    }, { 1, 0 })
+    require("org.clock").clock_report()
+    eq({
+      "| Headline            |   Time |      |",
+      "|---------------------+--------+------|",
+      "| *Total time*        | *2:05* |      |",
+      "|---------------------+--------+------|",
+      "| Parent              |   2:05 |      |",
+      "| Inline              |   0:30 |      |",
+      "| \\_  Child           |        | 0:25 |",
+      "| \\_  Inline in child |        | 0:20 |",
+      "#+END:",
+    }, vim.list_slice(buf_lines(buf), 3, 11))
+  end)
 end)
