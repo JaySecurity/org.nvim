@@ -721,6 +721,25 @@ describe("export: Emacs parity (difftest known differences)", function()
     has(out, "[2026-10-01 Thu +1d/3d -2d]")
   end)
 
+  it("a footnote label defined twice exports its last definition", function()
+    -- org-export-get-footnote-definition fills its cache with puthash
+    local out = ox.export_as("ascii", {
+      "* A",
+      "Text[fn:1] and[fn:x].",
+      "",
+      "[fn:1] First def.",
+      "",
+      "[fn:x] X one.",
+      "* B",
+      "[fn:1] Second def.",
+      "",
+      "[fn:x] X two.",
+    }, { body_only = true })
+    has(out, "[1] Second def.")
+    has(out, "[2] X two.")
+    hasnt(out, "First def.")
+  end)
+
   it("a date range whose end has no time takes the start's time", function()
     -- org-element-timestamp-parser: hour-end defaults to hour-start (the
     -- two spaces after a timestamp are Emacs's too)

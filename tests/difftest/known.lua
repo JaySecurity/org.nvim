@@ -63,49 +63,6 @@ local function timestamp_after_inline_end(lines)
   return false
 end
 
---- Per line of `lines`, whether it's in a subtree that isn't exported
---- (a COMMENT headline or a :noexport: tag).
-local function excluded_lines(lines)
-  local out, level = {}, nil -- level: of the excluded subtree we're in
-  for i, l in ipairs(lines) do
-    local stars, rest = l:match("^(%*+) (.*)$")
-    if stars and not l:match(INLINETASK) then
-      if level and #stars <= level then
-        level = nil
-      end
-      if not level then
-        local r = rest
-          :gsub("^%u+ ", function(kw)
-            return kw == "COMMENT " and kw or ""
-          end)
-          :gsub("^%[#%a%] ", "")
-        local tags = rest:match("%s(:[%w_@:]+:)$")
-        if r:match("^COMMENT%f[%s%z]") or (tags and tags:find(":noexport:", 1, true)) then
-          level = #stars
-        end
-      end
-    end
-    out[i] = level ~= nil
-  end
-  return out
-end
-
---- Whether a footnote label is defined twice (in exported parts).
-local function duplicate_footnotes(lines)
-  local seen = {}
-  local excluded = excluded_lines(lines)
-  for i, l in ipairs(lines) do
-    local label = not excluded[i] and l:match("^%[fn:([^%]]+)%]")
-    if label then
-      if seen[label] then
-        return true
-      end
-      seen[label] = true
-    end
-  end
-  return false
-end
-
 ---@type difftest.Known[]
 return {
   {
@@ -159,12 +116,6 @@ return {
       end
       return false
     end,
-  },
-  {
-    oracle = "export%-.*",
-    reason = [[A footnote label defined twice: Emacs and org.nvim export
-      different definitions.]],
-    input = duplicate_footnotes,
   },
   {
     oracle = "export%-.*",
