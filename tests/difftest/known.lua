@@ -114,20 +114,6 @@ end
 ---@type difftest.Known[]
 return {
   {
-    oracle = "export%-org",
-    reason = [[Org export aligns headline tags by byte length instead of
-      display width: after a non-ASCII title (日本語) they land too far left.]],
-    either = "[\128-\255]",
-    same = function(s)
-      return each_line(s, function(l)
-        if l:match("^%*+ .*%s:[%w_@:]+:$") then
-          l = squash(l)
-        end
-        return l
-      end)
-    end,
-  },
-  {
     oracle = "visibility",
     reason = [[The END line of an inline task ("*************** END") is hidden
       by Emacs in OVERVIEW and CONTENTS (S-TAB), shown by org.nvim.]],

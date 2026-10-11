@@ -57,13 +57,16 @@ local function tags_string(tags)
   return ":" .. table.concat(tags, ":") .. ":"
 end
 
+--- Tags after `heading`, aligned as org-element-headline-interpreter does:
+--- by the number of characters, not the display width (unlike org-align-tags
+--- in a buffer, a wide character counts as one column).
 local function align_tags(heading, tags)
   local col = require("org.config").opts.tags_column or -77
-  local w = vim.fn.strdisplaywidth(heading)
+  local w = vim.fn.strchars(heading)
   if col == 0 then
     return " " .. tags
   elseif col < 0 then
-    return string.rep(" ", math.max(-(col + w + vim.fn.strdisplaywidth(tags)), 1)) .. tags
+    return string.rep(" ", math.max(-(col + w + vim.fn.strchars(tags)), 1)) .. tags
   end
   return string.rep(" ", math.max(col - w, 1)) .. tags
 end
