@@ -422,9 +422,12 @@ The website at <https://org-nvim.com/> is generated, never
 edited by hand: [`scripts/site/build.lua`](scripts/site/build.lua) turns
 `doc/org.txt` into one page per chapter (help tags become anchors, `|links|`
 hyperlinks and `>lua` blocks highlighted code), renders `README.md` and
-`docs/parity-review.md`, scores `docs/parity/inventory.tsv`, and exports
-every `examples/*.org` with org.nvim's own HTML exporter. Build it with
-nothing but Neovim:
+`docs/parity-review.md`, scores `docs/parity/inventory.tsv`, lists the
+known differences from Emacs (the items of `:h org-differences`), publishes
+the extension promotion report (`scripts/extension_report.lua`, required as
+a module) as the "Extensions status" page, and exports every
+`examples/*.org` with org.nvim's own HTML exporter. Build it with nothing
+but Neovim:
 
 ```sh
 make site                # into site/ (not committed); open site/index.html
@@ -434,6 +437,14 @@ The build checks every internal link, `#anchor` and search entry, and
 fails on a broken one or on a `|tag|` that is neither an org.nvim nor a
 Neovim help tag. `tests/spec/site_spec.lua` runs it too. The look and the
 search live in `scripts/site/assets/`.
+
+The Extensions status page measures what the build can see: the history
+needs every commit and the release tags (a shallow clone leaves those
+criteria at "not measured"), coverage comes from `coverage/coverage.json`
+(`make coverage`, or `ORG_SITE_COVERAGE=FILE`), open bugs from `gh`
+(`ORG_SITE_ISSUES=0` skips them) and the live demo only from
+`ORG_DEMO_CONFIG`. The Pages workflow fetches the full history and the
+latest Coverage run's report for it.
 
 ### Playground
 
@@ -549,7 +560,9 @@ extension and lists the candidates (experimental extensions that pass all
 of them), the near misses and stable extensions that have fallen below
 the bar. The release pull request into `main` shows the same report in
 its job summary (with coverage from the latest Coverage run), and so does
-the weekly Coverage workflow. An experimental extension becomes stable
+the weekly Coverage workflow; the website publishes it as the
+[Extensions status](https://org-nvim.com/extensions.html) page at every
+release. An experimental extension becomes stable
 when it meets **every** criterion:
 
 | Criterion | Measured as | Bar |
