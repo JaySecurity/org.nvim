@@ -397,6 +397,41 @@ fails the job. To handle a failure:
 the shrinking against a fake Emacs, so pull request CI covers that code
 without Emacs.
 
+### Watching for Org releases
+
+org.nvim is measured against one Org release, pinned by `ORG_VERSION` in
+`.github/workflows/difftest.yml` (9.8.10; `scripts/emacs-parity/common.el`
+and `docs/parity/inventory.el` name it too). Every Monday the Org releases
+workflow (`.github/workflows/org-release.yml`, also runnable from the
+Actions tab) looks up the latest release, the highest of GNU ELPA's `org`
+package and the `release_*` tags of the org-mode git repository. When it
+is newer than the pinned one, it lists the commands and options of both
+releases with `docs/parity/inventory.el` and opens an issue labelled
+`org-release` with the version and the diff: commands and options added,
+removed or moved to another library, and the ones
+`docs/parity/inventory.tsv` doesn't list yet. While that issue is open,
+later runs update it (for a still newer release too) instead of opening
+another; once it's closed, the same release isn't reported again. The
+workflow can only read the repository and write issues.
+
+[`scripts/emacs-parity/release-watch.sh`](scripts/emacs-parity/release-watch.sh)
+does the work, and runs locally too (it needs `curl`, `git`, Emacs and
+`make`; the issue step needs `gh`, and `DRY_RUN=1` only prints it):
+
+```sh
+w=scripts/emacs-parity/release-watch.sh
+$w pinned; $w latest                                    # 9.8.10, the newest
+$w inventory 9.8.10 out/old && $w inventory 9.8.11 out/new
+$w report out/old out/new 9.8.10 9.8.11 > report.md     # the issue body
+```
+
+A release only tagged in git (GNU ELPA publishes its tarball a little
+later) is fetched with `git clone` and `make autoloads`. To move to a new
+release: bump `ORG_VERSION` and the version checks under
+`scripts/emacs-parity/`, regenerate the fixtures (`make parity-fixtures`),
+give each new command and option a status in `docs/parity/inventory.tsv`,
+run `make difftest` against it, and close the issue.
+
 ## Screen snapshots
 
 Some bugs only show on screen: headline stars drawn as bold markup, a
