@@ -715,6 +715,33 @@ describe("agenda times of date ranges, as Emacs reads them (difftest seeds 765, 
   end)
 end)
 
+describe("agenda repeats of a plain timestamp", function()
+  -- org-agenda-get-timestamps finds repeats with a regexp whose repeater
+  -- ends the stamp ("+1w>"): with a warning delay or a habit's "/2w"
+  -- after it, the stamp shows on its own date only (as Emacs shows it)
+  local A = date.days_from_civil(2026, 9, 28)
+  local function days(stamp)
+    local file = parser.parse({ "* x", stamp }, "/tmp/agenda_repeats.org")
+    local by_day = items.agenda({ file }, A, A + 6, { today = A + 3 })
+    local out = {}
+    for d = A, A + 6 do
+      if by_day[d] and #by_day[d] > 0 then
+        out[#out + 1] = d - A
+      end
+    end
+    return out
+  end
+
+  it("repeats only when the repeater ends the stamp", function()
+    eq({}, days("<2026-09-24 Thu +1w -4d>"))
+    eq({ 3 }, days("<2026-09-24 Thu -4d +1w>"))
+    eq({}, days("<2026-09-24 Thu .+1w/2w>"))
+    eq({ 0 }, days("<2026-09-28 Mon +1d -1d>"))
+    eq({ 0, 1, 2, 3, 4, 5, 6 }, days("<2026-09-28 Mon ++1d>"))
+    eq({ 1, 3, 5 }, days("<2026-09-29 Tue 10:00 +2d>"))
+  end)
+end)
+
 describe("agenda lines of a headline with no title", function()
   -- Emacs trims the headline text: "** TODO" is "TODO", with no space after
   -- the keyword or priority (lines from Emacs' TODO list and tags match)

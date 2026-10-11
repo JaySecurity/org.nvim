@@ -337,14 +337,6 @@ return {
   },
   {
     oracle = "agenda",
-    reason = [[A plain timestamp with a repeater and a warning delay, as
-      <2026-09-24 Thu +1w -4d>: Emacs doesn't show its repeats, org.nvim
-      does.]],
-    input = "<%d%d%d%d%-%d%d%-%d%d[^>]* [%.%+]+%d+[hdwmy][^>]* %-%-?%d+[hdwmy]>",
-    emacs = "^$",
-  },
-  {
-    oracle = "agenda",
     reason = [[A timestamp after an inline task's END line (in the text of
       the enclosing headline): Emacs' agenda titles it "END" (the line
       org-agenda-get-timestamps finds with org-outline-regexp-bol), org.nvim

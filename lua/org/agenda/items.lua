@@ -1318,7 +1318,11 @@ function M.agenda(files, from, to, opts)
         then
           -- org-agenda-get-timestamps
           local show_days = {}
-          if repeating(ts) then
+          -- its regexp repeats a stamp only when the repeater ends it
+          -- ("<a +1w>", not "<a +1w -4d>" nor "<a .+1w/2w>"); another one
+          -- shows on its date only
+          local raw = t.start_col and (hl.file.lines[t.line] or ""):sub(t.start_col, t.end_col)
+          if repeating(ts) and (not raw or raw:find("^<%d+%-%d+%-%d+[^>\n]+%+%d+[hdwmy]>$")) then
             local last = prefers_last(acfg, hl.todo)
             local seen = {}
             for d = from, math.min(to, today) do
