@@ -102,10 +102,7 @@ function M.interpret_timestamp(ts)
     local sym = ({ cumulate = "+", ["catch-up"] = "++", restart = ".+" })[ts.repeater_type]
     rep = " " .. sym .. ts.repeater_value .. (UNIT[ts.repeater_unit] or ts.repeater_unit)
     if ts.repeater_deadline_value and ts.repeater_deadline_unit then
-      rep = rep
-        .. "/"
-        .. ts.repeater_deadline_value
-        .. (UNIT[ts.repeater_deadline_unit] or ts.repeater_deadline_unit)
+      rep = rep .. "/" .. ts.repeater_deadline_value .. (UNIT[ts.repeater_deadline_unit] or ts.repeater_deadline_unit)
     end
   end
   local warn = ""
