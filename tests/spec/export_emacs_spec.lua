@@ -625,3 +625,19 @@ describe("export: Emacs parity (difftest #243)", function()
     has(out, '<ul class="org-ul">\n<li>42</li>\n</ul>')
   end)
 end)
+
+describe("export: Emacs parity (difftest known differences)", function()
+  local function latex(lines)
+    return ox.export_as("latex", lines, { body_only = true })
+  end
+
+  it("LaTeX escapes each of two backslashes (an intentional difference)", function()
+    -- Emacs writes "$\backslash$\ x" (:h org-export-unsupported); the
+    -- export NORMALISE rule of tests/emacs_parity.lua maps one to the other
+    local out = latex({ "A \\\\ x." })
+    has(out, "A $\\backslash$$\\backslash$ x.")
+    local parity = require("tests.emacs_parity")
+    local e, o = parity.normalise("export", { "A $\\backslash$\\ x." }, { "A $\\backslash$$\\backslash$ x." })
+    eq(e, o)
+  end)
+end)

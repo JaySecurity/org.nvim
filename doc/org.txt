@@ -5908,6 +5908,10 @@ These need Emacs Lisp or Emacs itself:
   character (RFC 5545); Emacs folds at 75 characters, so the two differ
   only on lines with non-ASCII text.
 - The default creator string names Neovim and org.nvim instead of Emacs.
+- LaTeX: a backslash in the text followed by another is escaped twice,
+  `$\backslash$$\backslash$`. Emacs escapes the first and copies the
+  second as it is (`\\ x` becomes `$\backslash$\ x`, and `\\$` a line
+  break followed by a stray `$`), which can leave broken LaTeX.
 
 ==============================================================================
 22. TIMERS AND NOTIFICATIONS                    *org-timers* *org-notifications*

@@ -99,6 +99,14 @@ M.NORMALISE = {
     -- ids Org makes up for headlines, footnotes, tables, ... are random
     -- (org-export-new-reference); org.nvim makes up others
     ids = "org%x%x%x%x%x%x%x",
+    both = {
+      -- LaTeX: a backslash followed by another. Emacs's
+      -- org-latex-plain-text escapes the first and copies the second as
+      -- is ("\\ x" is "$\backslash$\ x", "\\$" a broken "\\$"); org.nvim
+      -- escapes both (:h org-export-unsupported). Each pair of escaped
+      -- backslashes is written the Emacs way on both sides.
+      { "%$\\backslash%$%$\\backslash%$", "$\\backslash$\\" },
+    },
   },
   agenda = {
     emacs = {

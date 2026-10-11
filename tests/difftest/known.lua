@@ -118,16 +118,6 @@ end
 ---@type difftest.Known[]
 return {
   {
-    oracle = "export%-latex",
-    reason = [[A backslash next to another: "\\ x" is "$\backslash$\ x" in Emacs
-      (org-latex-plain-text only escapes a backslash not preceded by one,
-      which leaves broken LaTeX), "$\backslash$$\backslash$ x" in org.nvim.
-      Emacs bug? Decide whether to follow it.]],
-    same = function(s)
-      return (s:gsub("%$\\backslash%$%$\\backslash%$", "\0"):gsub("%$\\backslash%$\\", "\0"))
-    end,
-  },
-  {
     oracle = "export%-org",
     reason = [[Org export of plain lists: Emacs writes ordered bullets with
       "." whatever the source used (org-plain-list-ordered-item-terminator
