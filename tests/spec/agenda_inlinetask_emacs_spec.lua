@@ -51,4 +51,45 @@ describe("inline tasks in the agenda", function()
       end)
     )
   end)
+
+  -- org-agenda-get-timestamps skips what org-before-first-heading-p says
+  -- is before the first heading, and that doesn't count inline tasks;
+  -- date ranges (org-agenda-get-blocks) and planning still show
+  it("an inline task before the first heading gets no timestamp entries", function()
+    write({
+      STARS .. " TODO Task :work:",
+      "SCHEDULED: <2026-10-01 Thu>",
+      "<2026-09-30 Wed>--<2026-10-02 Fri>",
+      "<%%(diary-float t 4 1)>",
+      "<2026-10-01 Thu>",
+      STARS .. " END",
+      "* H",
+    })
+    eq(
+      {
+        "(1/3): TODO Task :work:",
+        "Scheduled: TODO Task :work:",
+        "(2/3): TODO Task :work:",
+        "(3/3): TODO Task :work:",
+      },
+      entries(function(a)
+        a.open_agenda({ span = "week", anchor = require("org.date").read_date("2026-09-28"):days() })
+      end)
+    )
+  end)
+
+  it("an inline task under a heading keeps its timestamp entries", function()
+    write({
+      "* H",
+      STARS .. " TODO Task :work:",
+      "<2026-10-01 Thu>",
+      STARS .. " END",
+    })
+    eq(
+      { "TODO Task :work:" },
+      entries(function(a)
+        a.open_agenda({ span = "week", anchor = require("org.date").read_date("2026-09-28"):days() })
+      end)
+    )
+  end)
 end)

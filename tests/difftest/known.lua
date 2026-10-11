@@ -56,18 +56,6 @@ local function is_item(l)
   return l:match("^%s*[%-%+] ") or l:match("^%s*[%-%+]$") or l:match("^%s*%d+[%.%)] ") or l:match("^%s*%d+[%.%)]$")
 end
 
---- Whether an inline task comes before the first headline.
-local function inlinetask_before_headline(lines)
-  for _, l in ipairs(lines) do
-    if l:match(INLINETASK) then
-      return true
-    elseif l:match("^%*+ ") then
-      return false
-    end
-  end
-  return false
-end
-
 --- Is there an active timestamp after an inline task's END line, before
 --- the next heading?
 local function timestamp_after_inline_end(lines)
@@ -386,14 +374,6 @@ return {
       with the enclosing headline.]],
     input = timestamp_after_inline_end,
     emacs = "%sEND%f[%s:%z]",
-  },
-  {
-    oracle = "agenda",
-    reason = [[A timestamp under an inline task before the first headline
-      gives org.nvim an agenda entry (titled by the inline task), not
-      Emacs.]],
-    input = inlinetask_before_headline,
-    emacs = "^$",
   },
   {
     oracle = "export%-.*",

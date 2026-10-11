@@ -1100,6 +1100,11 @@ function M.agenda(files, from, to, opts)
       end
     end
 
+    -- org-agenda-get-timestamps skips what is before the first heading
+    -- (org-before-first-heading-p, which doesn't count inline tasks): an
+    -- inline task there gets its date ranges, not its timestamps
+    local before_first = hl.inlinetask and not hl.parent
+
     -- plain timestamps and date ranges --------------------------------
     if types.timestamp then
       local seen_day = {}
@@ -1147,7 +1152,7 @@ function M.agenda(files, from, to, opts)
             end
             add(d, item)
           end
-        elseif not ts.range_end and types.timestamp then
+        elseif not ts.range_end and types.timestamp and not before_first then
           -- org-agenda-get-timestamps
           local show_days = {}
           if repeating(ts) then
@@ -1204,7 +1209,7 @@ function M.agenda(files, from, to, opts)
         end
       end
       -- <%%(sexp)> timestamps
-      if types.timestamp and sexps then
+      if types.timestamp and sexps and not before_first then
         local lines = hl.file.lines
         for i = hl.line, hl.body_end do
           local line = lines[i] or ""
@@ -1268,7 +1273,7 @@ function M.agenda(files, from, to, opts)
     end
 
     -- inactive timestamps (org-agenda-include-inactive-timestamps) --
-    if opts.inactive and types.timestamp then
+    if opts.inactive and types.timestamp and not before_first then
       local lines = hl.file.lines
       local pr = hl.properties_range
       for i = hl.line, hl.body_end do
