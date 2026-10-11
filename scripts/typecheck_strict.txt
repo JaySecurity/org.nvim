@@ -10,3 +10,5 @@ lua/org/element.lua
 lua/org/files.lua
 lua/org/date.lua
 lua/org/timestamps.lua
+lua/org/structure.lua
+lua/org/structure

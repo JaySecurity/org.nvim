@@ -320,7 +320,8 @@ function M.sort(sorting_type)
       utils.warn("Nothing to sort")
       return
     end
-    local last_hl = file:headline_at(ve)
+    -- ve is at or after first.line, so under first or a later headline
+    local last_hl = file:headline_at(ve) or first
     start, stop, what = first.line, last_hl.end_line, "region"
     -- the end of the subtree without its trailing blank lines
     while stop > start and is_blank(get_lines(bufnr, stop, stop)[1]) do
