@@ -16,6 +16,8 @@ local is_comment_line = shared.is_comment_line
 local is_planning_line = shared.is_planning_line
 local drawer_name = shared.drawer_name
 local is_end_line = shared.is_end_line
+local property_line = shared.property_line
+local property_drawer_end = shared.property_drawer_end
 local is_fixed_width = shared.is_fixed_width
 local is_footnote_def = shared.is_footnote_def
 local latex_env_begin = shared.latex_env_begin
@@ -134,13 +136,10 @@ function P:headline_meta(node, L, i, last)
     node.scheduled, node.deadline, node.closed = p.scheduled, p.deadline, p.closed
     k = k + 1
   end
-  if k <= last and L[k]:match("^[ \t]*:[Pp][Rr][Oo][Pp][Ee][Rr][Tt][Ii][Ee][Ss]:[ \t]*$") then
-    local j = k + 1
-    while j <= last and not is_end_line(L[j]) do
-      local key, value = L[j]:match("^[ \t]*:(%S+):[ \t]*(.-)[ \t]*$")
-      if not key then
-        break
-      end
+  local drawer_end = k <= last and property_drawer_end(L, k, last)
+  if drawer_end then
+    for j = k + 1, drawer_end - 1 do
+      local key, value = property_line(L[j])
       local up = key:upper()
       local base = up:match("^(.-)%+$")
       if base and node.props[base] then
@@ -148,7 +147,6 @@ function P:headline_meta(node, L, i, last)
       else
         node.props[base or up] = value
       end
-      j = j + 1
     end
   end
 end
@@ -175,7 +173,7 @@ function P:property_drawer(L, i, j, e)
   local node = M.node("property-drawer", { post_blank = pb })
   local kids = {}
   for k = i + 1, j - 1 do
-    local key, value = L[k]:match("^[ \t]*:(%S+):[ \t]*(.-)[ \t]*$")
+    local key, value = property_line(L[k])
     if key then
       kids[#kids + 1] = M.node("node-property", { key = key, value = value ~= "" and value or nil })
     end
