@@ -21,3 +21,5 @@ lua/org/pickers
 lua/org/health
 lua/org/links.lua
 lua/org/links
+lua/org/columns.lua
+lua/org/columns
