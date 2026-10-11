@@ -153,7 +153,13 @@ function M.build_headline(p)
   if #parts == 1 then
     line = line .. " "
   end
-  return M.with_tags(line, p.tags)
+  line = M.with_tags(line, p.tags)
+  -- a headline with only a TODO keyword keeps a space after it (org-todo
+  -- inserts " KEYWORD " in an empty headline)
+  if #parts == 2 and parts[2] == p.todo and not (p.tags and #p.tags > 0) then
+    line = line .. " "
+  end
+  return line
 end
 
 --- Realign the tags of a headline line.
@@ -206,6 +212,11 @@ function M.update_headline(bufnr, lnum, changes)
       gap = " "
     end
     new = M.build_headline(vim.tbl_extend("force", p, { tags = {} })) .. gap .. ":" .. table.concat(p.tags, ":") .. ":"
+  end
+  -- a headline without title keeps its trailing space, as Emacs edits
+  -- the keyword and the priority in place ("* " -> "* [#B] ")
+  if (p.title or "") == "" and #(p.tags or {}) == 0 and line:match("%s$") and not new:match("%s$") then
+    new = new .. " "
   end
   if new ~= line then
     vim.api.nvim_buf_set_lines(bufnr, lnum - 1, lnum, false, { new })
