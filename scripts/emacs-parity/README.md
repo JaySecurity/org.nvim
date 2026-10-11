@@ -34,7 +34,9 @@ section is one test.
 
 - **Time.** "Now" is frozen at 2026-10-01 Thu 12:00 by advising
   `current-time`, `org-today`, `time-since` and the time functions that
-  take a nil time. The specs do the same with `os.time`/`os.date`
+  take a nil time, arithmetic included (`time-add`, `time-subtract`,
+  ...: org-habit draws its graphs around `(time-subtract nil ...)`,
+  which reads the clock in C, not through `current-time`). The specs do the same with `os.time`/`os.date`
   (`P.freeze_time()` in `tests/emacs_parity.lua`).
 - **Zone and locale.** `generate.sh` runs Emacs with `TZ=UTC0` and
   `LC_ALL=C`, and the specs use `TZ=UTC0` too.

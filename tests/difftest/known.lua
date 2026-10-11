@@ -281,13 +281,6 @@ return {
   },
   {
     oracle = "agenda",
-    reason = [[Habit consistency graphs differ (which days get a "*").]],
-    same = function(s)
-      return (s:gsub("[ %*!]*![ %*!]*", "!"))
-    end,
-  },
-  {
-    oracle = "agenda",
     reason = [[A headline with a TODO keyword and no title: org.nvim's agenda
       line ends with a space after the keyword.]],
     same = function(s)
