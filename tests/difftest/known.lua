@@ -281,14 +281,6 @@ return {
   },
   {
     oracle = "agenda",
-    reason = [[A headline with a TODO keyword and no title: org.nvim's agenda
-      line ends with a space after the keyword.]],
-    same = function(s)
-      return (s:gsub("[ \t]+\n", "\n"):gsub("[ \t]+$", ""))
-    end,
-  },
-  {
-    oracle = "agenda",
     reason = [[A headline that is only tags ("* :work:"): Emacs shows the tags
       as the title too, org.nvim an empty title.]],
     emacs = "%s(:[%w_@:]+:)%s+%1",

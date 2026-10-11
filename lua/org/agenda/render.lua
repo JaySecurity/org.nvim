@@ -675,20 +675,27 @@ function M.item_parts(item, ctx)
   else
     push(prefix)
   end
+  -- a headline with no title ("** TODO") is only its keyword (and
+  -- priority), with no space after it (Emacs trims the headline text)
+  local untitled = (item.title or "") == ""
   if item.todo then
     -- org-agenda-todo-keyword-format ("" drops the keyword and its space)
     local fmt = acfg.todo_keyword_format or "%-1s"
     if fmt ~= "" then
       local ok, kw = pcall(string.format, fmt, item.todo)
       push(ok and kw or item.todo, M.todo_group(item))
-      push(" ")
+      if item.priority or not untitled then
+        push(" ")
+      end
     end
   end
   if item.priority then
     local group = M.priority_group(item)
     parts.priority_index = #parts + 1
     push("[#" .. item.priority .. "]", group or item.face)
-    push(" ")
+    if not untitled then
+      push(" ")
+    end
   end
   push(display_title(item.display_title or item.title or ""), item.face)
 

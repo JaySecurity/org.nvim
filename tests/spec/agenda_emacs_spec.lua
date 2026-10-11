@@ -714,3 +714,54 @@ describe("agenda times of date ranges, as Emacs reads them (difftest seeds 765, 
     )
   end)
 end)
+
+describe("agenda lines of a headline with no title", function()
+  -- Emacs trims the headline text: "** TODO" is "TODO", with no space after
+  -- the keyword or priority (lines from Emacs' TODO list and tags match)
+  local files = require("org.files")
+  local path
+
+  local function lines(open)
+    vim.fn.writefile({
+      "* TODO",
+      "* TODO [#A]",
+      "* TODO :work:",
+      "* TODO [#B] :work:",
+      "* DONE",
+      "SCHEDULED: <2026-10-01 Thu>",
+    }, path)
+    files.invalidate(path)
+    open(require("org.agenda"))
+    local name = vim.fn.fnamemodify(path, ":t:r")
+    local got = {}
+    for _, l in ipairs(require("org.agenda.view").build(80).lines) do
+      if l:find(name .. ":", 1, true) then
+        got[#got + 1] = (l:gsub("^%s*[^:]+:%s*", ""))
+      end
+    end
+    vim.cmd("silent! %bwipeout!")
+    return got
+  end
+
+  before_each(function()
+    path = vim.fn.tempname() .. ".org"
+    config.setup({ agenda_files = { path } })
+  end)
+
+  after_each(function()
+    files.invalidate()
+    os.remove(path)
+  end)
+
+  it("ends the line at the keyword or priority", function()
+    local todo = lines(function(a)
+      a.open_todo()
+    end)
+    eq({ "TODO [#A]", "TODO", "TODO [#B]" }, { todo[1], todo[2], todo[4]:match("^(.-)%s+:work:$") })
+    eq("TODO", todo[3]:match("^(%S+)%s+:work:$"))
+    local day = lines(function(a)
+      a.open_day(date.days_from_civil(2026, 10, 1))
+    end)
+    eq({ "Scheduled:  DONE" }, day)
+  end)
+end)
