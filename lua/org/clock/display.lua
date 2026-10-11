@@ -149,19 +149,8 @@ function M.toggle_display(bufnr, range)
   return true
 end
 
---- Buffer-local setup: clear clock display on edits.
+--- Buffer-local setup: clear clock display on edits (org.clock.attach,
+--- which org.buffer calls without loading org.clock).
 function M.attach(bufnr)
-  vim.api.nvim_create_autocmd({ "TextChanged", "InsertEnter" }, {
-    buffer = bufnr,
-    group = vim.api.nvim_create_augroup("org.clock.buf." .. bufnr, { clear = true }),
-    callback = function()
-      -- org-remove-highlights-with-change
-      if require("org.config").opts.remove_highlights_with_change ~= false then
-        vim.api.nvim_buf_clear_namespace(bufnr, display_ns, 0, -1)
-      end
-    end,
-  })
-  vim.api.nvim_set_hl(0, "OrgClockSum", { link = "Comment", default = true })
-  vim.api.nvim_set_hl(0, "OrgClockOverlay", { link = "OrgClockSum", default = true })
-  vim.api.nvim_set_hl(0, "OrgClockOverlayDots", { link = "NonText", default = true })
+  require("org.clock.attach").attach(bufnr)
 end

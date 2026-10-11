@@ -230,11 +230,77 @@ installed (org-version); with a count it inserts that at the cursor. The
 release is the latest `vX.Y.Z` git tag of the checkout, or "unreleased"
 when there is none (or org.nvim isn't a git checkout).
 
-Run |:checkhealth| `org` to check paths and external tools, and to list
-options given to setup() that org.nvim doesn't know (typos, or action names
-in `mappings` that don't exist). Inside tmux,
-Ghostty, kitty, WezTerm or Alacritty it also checks that the terminal can
-send the keys org maps:
+Health check ~
+                                                                  *org-health*
+Run |:checkhealth| `org` to check the installation, the options and the
+external tools. It never prompts and starts no slow programs (no Emacs, no
+network), so it is quick to run. Its sections:
+
+org.nvim ~
+- the Neovim version (0.11 or later), the org.nvim release and where it
+  is installed
+- that `*.org` files get the `org` filetype (a |vim.filetype.add()| in
+  your config could change that)
+- other plugins that also act on org buffers: nvim-orgmode (a warning:
+  remove one of the two) and headlines.nvim; and ftplugin, syntax or indent
+  files for the org filetype from other plugins (a warning) or your own
+  config (shown, not a warning). Neovim's own `org.vim` files are ignored.
+
+org.nvim configuration ~
+- options given to setup() that org.nvim doesn't know (typos, removed
+  options, action names in `mappings` that don't exist), the options of
+  the built-in extensions included (`extensions.roam.directry`); a
+  third-party extension's options aren't checked
+- column view options in a block of a composite custom command
+  (|org-agenda-command-columns|)
+- the TODO keywords, or why `todo_keywords` is invalid
+
+org.nvim files ~
+- `org_directory` exists
+- how many agenda files `agenda_files` gives, and for each entry that gives
+  none why: no such file, not an .org file, a directory without .org files
+  (directories aren't searched recursively), a glob that matches nothing;
+  when `agenda_files` names a list file, that file and its entry count.
+  Agenda files that can't be read are an error.
+- the agenda index (|org-agenda-index|)
+- `default_notes_file` exists and is writable (else it is created on the
+  first capture)
+- `mobile.directory`, when set, exists (|org-mobile|)
+- the session server, with `remote.enabled` (|org-remote|)
+
+org.nvim state files ~
+- the ID database (`id.locations_file`, |org-id|): its format, size and the
+  IDs and files it lists, and a warning when files it lists no longer exist
+  (`:Org id_update_locations` rebuilds it). At most 2000 files are looked
+  at.
+- the persisted clock (`clock.persist`, `clock.persist_file`): off, not
+  written yet, the clock it saved, or a file that isn't valid JSON
+
+org.nvim picker ~
+- the picker the pick_* actions use (|org-pickers|), and the installed ones
+  (snacks.nvim, fzf-lua, telescope.nvim, mini.pick). A `picker` that isn't
+  installed or isn't a picker name is a warning: vim.ui.select is used.
+
+org.nvim external tools ~
+- pandoc, makeinfo and the LaTeX compiler for export
+- the interpreter of each Babel language (|org-babel-languages|)
+- the desktop notifier of reminders
+- gpg (`crypt.gpg_program`) for |org-crypt|: a warning only with
+  `crypt.encrypt_on_save`, as entries would then be saved unencrypted;
+  openssl with `mobile.use_encryption`
+
+org.nvim image and LaTeX previews ~
+- the image backend, the terminal and what sits between them (tmux, zellij,
+  SSH), the LaTeX preview programs and ImageMagick
+  (|org-images-troubleshooting|)
+
+org.nvim completion ~
+- whether blink.cmp or nvim-cmp is set up with the org source
+  (|org-completion|)
+
+org.nvim terminal keys ~
+Inside tmux, Ghostty, kitty, WezTerm or Alacritty it checks that the
+terminal can send the keys org maps:
 - <C-CR>, <S-CR>, <C-,> and the like need extended keys (CSI u), which tmux
   passes on only with `set -s extended-keys on` and a `terminal-features`
   entry with `extkeys` for the outer terminal (read when a client attaches)
@@ -244,6 +310,19 @@ send the keys org maps:
   is installed, else from its config file and the known defaults)
 - on macOS, Option must send Alt for the <M-...> keys
 Inside tmux the terminal is the one of the attached client.
+
+org.nvim extensions ~
+- each enabled extension, its stability (|org-extensions-stability|) and
+  the checks of its own `health` function (|org-extensions|): the external
+  programs it needs and its paths
+- an extension enabled in setup() that isn't loaded (a misspelt name, or
+  an error in its module) is an error
+
+org.nvim development (Emacs parity) ~
+Shown only when Emacs is installed or `ORG_EMACS` / `ORG_LISP_DIR` is set:
+which Emacs, and which Org release `ORG_LISP_DIR` (or `ORG_DIR`) holds, read
+from its `org-version.el`. Only maintainers need them, for `make difftest`
+and `make parity-fixtures`, which compare org.nvim with Org 9.8.10.
 
 Windows ~
                                                                 *org-windows*
@@ -1772,6 +1851,16 @@ dropped.
 `:checkhealth org` shows the index file, its size and what the background
 is doing. It is written when the background is done, a little after a
 view added files to it, and when Neovim exits.
+
+How long it takes, over 200 files of 250 headlines (50,000, 8.8 MB;
+`make bench` in the repository generates them and times the views, see
+"Performance budgets" in CONTRIBUTING.md), on an Apple M1 Ultra:
+
+  week agenda, no index (every file read and parsed)   about 2.3 s
+  week agenda from the index (a new session)           about 0.5 s
+  week agenda again (the files in memory)              about 0.12 s
+  the week after editing and saving one file           about 0.14 s
+  tags match, TODO list (17,900 entries)               0.12 s, 0.34 s
 
 Agenda contents                                          *org-agenda-contents*
 
@@ -7766,7 +7855,9 @@ A headline handle has these fields, a snapshot taken when it was made:
     category      the category
     id            the ID property
     tags          own tags
-    all_tags      with inherited and file tags
+    all_tags      with inherited and file tags, in org-get-tags order:
+                  inherited first, then own (a tag both inherited
+                  and set on the headline counts as own)
     properties    own properties, names upper-cased
     scheduled, deadline, closed
                   dates (nil when not set)
@@ -8760,6 +8851,10 @@ An extension is a module `lua/org/extensions/<name>.lua` (or
                `{ { "m", "roam" } }`
   `setup`      `function(opts)`, called after the above are registered
   `health`     `function(h, opts)`, adds checks to `:checkhealth org`
+               (|org-health|) under the extension's name: `h` is
+               |vim.health|. Keep it fast and quiet: look for programs
+               with |executable()|, stat paths, bound any file scan; no
+               network, no prompts, no slow commands
   `teardown`   `function()`, undoes `setup` when a later `setup()` turns
                the extension off or sets it up again
   `stability`  `"stable"` or `"experimental"`, as above. A built-in

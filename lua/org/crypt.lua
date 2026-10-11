@@ -275,14 +275,10 @@ local function end_of_meta_data(lines, hl)
   if i <= n and planning(lines[i]) then
     i = i + 1
   end
-  if i <= n and lines[i]:match("^[ \t]*:PROPERTIES:[ \t]*$") then
-    local j = i + 1
-    while j <= n and not lines[j]:match("^[ \t]*:END:[ \t]*$") and lines[j]:match("^[ \t]*:%S+:") do
-      j = j + 1
-    end
-    if j <= n and lines[j]:match("^[ \t]*:END:[ \t]*$") then
-      i = j + 1
-    end
+  -- org-property-drawer-re, matched ignoring case like Emacs does
+  local drawer = i <= n and require("org.parser").parse_property_drawer(lines, i, n)
+  if drawer then
+    i = drawer.properties_range[2] + 1
   end
   if i <= n and is_heading(lines[i]) then
     return i
@@ -293,10 +289,10 @@ local function end_of_meta_data(lines, hl)
       i = i + 1
     elseif l:upper():match("^[ \t]*:LOGBOOK:[ \t]*$") then
       local j = i + 1
-      while j <= n and not is_heading(lines[j]) and not lines[j]:match("^[ \t]*:END:[ \t]*$") do
+      while j <= n and not is_heading(lines[j]) and not lines[j]:upper():match("^[ \t]*:END:[ \t]*$") do
         j = j + 1
       end
-      if j <= n and lines[j]:match("^[ \t]*:END:[ \t]*$") then
+      if j <= n and lines[j]:upper():match("^[ \t]*:END:[ \t]*$") then
         i = j + 1
       else
         break

@@ -657,7 +657,7 @@ function M.custom_commands()
       end
       if valid and not repl then
         out[key] = cmd
-      elseif valid then
+      elseif valid and repl then
         if cmds[repl] == nil then
           error(string.format("Undefined key `%s' as contextual replacement for `%s'", repl, key), 0)
         end

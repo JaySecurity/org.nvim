@@ -19,7 +19,7 @@ local M = {}
 ---@field hunks difftest.Hunk[] every hunk
 ---@field unknown difftest.Hunk[] the hunks no known entry matches
 ---@field emacs_error? string Emacs raised an error: nothing compared
----@field skipped string[] Emacs' errors in sections (agenda views, S-TAB steps, tables) left out of the comparison
+---@field skipped string[] Emacs' errors in sections (agenda views, S-TAB steps, tables, command steps) left out of the comparison
 
 --- Normalised lines of both outputs. `dir` (the input's directory) is
 --- written as @DIR@ on both sides.
@@ -113,7 +113,7 @@ local function skip_errors(oracle, e, o, skipped)
   if not err then
     return e, o
   end
-  if oracle == "agenda" or oracle == "visibility" then
+  if oracle == "agenda" or oracle == "visibility" or oracle == "commands" then
     local se, so = sections(e), sections(o)
     if not se or not so or #se ~= #so then
       return nil

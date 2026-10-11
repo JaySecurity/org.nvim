@@ -1464,7 +1464,7 @@ function M.eval(node, day, entry_text)
     return res
   elseif type(res) == "table" and res.cons then
     text = type(res.cdr) == "string" and res.cdr or ctx.entry
-  elseif is_list(res) and type(res.items[1]) == "string" then
+  elseif type(res) == "table" and type(res.items) == "table" and type(res.items[1]) == "string" then
     -- a list of strings: one entry each (joined for the "; " split)
     local texts = {}
     for i, v in ipairs(res.items) do

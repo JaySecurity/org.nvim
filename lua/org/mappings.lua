@@ -125,8 +125,15 @@ local global_maps = {}
 --- Set a keymap and remember it in `record` (a list of { mode, lhs, desc })
 --- so that a later `setup()` can remove it.
 local function set(mode, lhs, rhs, opts, record)
-  vim.keymap.set(mode, lhs, rhs, opts)
+  -- (the API directly: vim.keymap.set's argument checks cost more than the
+  -- mapping itself, and an org buffer gets several hundred of them)
+  local api_opts = { callback = rhs, desc = opts.desc, noremap = true }
   for _, m in ipairs(type(mode) == "table" and mode or { mode }) do
+    if opts.buffer then
+      vim.api.nvim_buf_set_keymap(opts.buffer, m, lhs, "", api_opts)
+    else
+      vim.api.nvim_set_keymap(m, lhs, "", api_opts)
+    end
     record[#record + 1] = { m, lhs, opts.desc }
   end
 end

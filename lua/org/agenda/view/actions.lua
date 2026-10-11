@@ -733,7 +733,7 @@ M.actions = {
     end)
   end,
   delete_other_windows = function()
-    pcall(vim.cmd, "silent! only")
+    pcall(vim.api.nvim_command, "silent! only")
   end,
   save_all = function()
     local n = 0

@@ -10,7 +10,8 @@ local shared = require("org.export.element.shared")
 local M = require("org.export.element")
 
 local is_comment_line = shared.is_comment_line
-local is_end_line = shared.is_end_line
+local property_line = shared.property_line
+local property_drawer_end = shared.property_drawer_end
 local P = shared.P
 local skip_blank = shared.skip_blank
 
@@ -50,14 +51,11 @@ function P:parse(lines)
     while k <= #L and is_comment_line(L[k]) do
       k = k + 1
     end
-    if L[k] and L[k]:match("^[ \t]*:[Pp][Rr][Oo][Pp][Ee][Rr][Tt][Ii][Ee][Ss]:[ \t]*$") then
-      local j = k + 1
-      while j <= #L and not is_end_line(L[j]) do
-        local key, value = L[j]:match("^[ \t]*:(%S+):[ \t]*(.-)[ \t]*$")
-        if key then
-          data.props[key:upper()] = value
-        end
-        j = j + 1
+    local drawer_end = property_drawer_end(L, k, #L)
+    if drawer_end then
+      for j = k + 1, drawer_end - 1 do
+        local key, value = property_line(L[j])
+        data.props[key:upper()] = value
       end
     end
   end

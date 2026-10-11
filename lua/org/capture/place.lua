@@ -143,9 +143,9 @@ local function meta_end(bufnr, hl, full)
     local l = get_line(bufnr, i)
     if is_blank(l) or l:match("^%s*CLOCK:") then
       i = i + 1
-    elseif l:match("^%s*:[%w_-]+:%s*$") and not l:match("^%s*:END:%s*$") then
+    elseif l:match("^%s*:[%w_-]+:%s*$") and not l:upper():match("^%s*:END:%s*$") then
       local j = i + 1
-      while j <= n and not get_line(bufnr, j):match("^%s*:END:%s*$") do
+      while j <= n and not get_line(bufnr, j):upper():match("^%s*:END:%s*$") do
         j = j + 1
       end
       if j > n then

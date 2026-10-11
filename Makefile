@@ -1,10 +1,20 @@
-.PHONY: test snapshots lint format site media publish-media parity-fixtures changelog typecheck coverage fuzz playground difftest
+.PHONY: test bench snapshots lint format site media publish-media parity-fixtures changelog typecheck coverage fuzz playground difftest
 
 # A throwaway data and cache dir: tests never touch the real ID database, clock
 # state, agenda index or other stdpath("data") and stdpath("cache") files,
 # and parallel runs don't collide.
 test:
 	@d=$$(mktemp -d) && XDG_DATA_HOME=$$d XDG_CACHE_HOME=$$d/cache nvim --headless -u tests/minimal_init.lua -l tests/run.lua $(SPEC); \
+	s=$$?; rm -rf $$d; exit $$s
+
+# Benchmarks (scripts/bench.lua): the first open of an org file and the
+# agenda over a generated corpus of 200 files and 50,000 headlines, as a
+# table of medians; ARGS="--runs 9", "--files 50", "--json". Throwaway
+# data and cache dirs, like the tests. See "Performance budgets" in
+# CONTRIBUTING.md.
+bench:
+	@d=$$(mktemp -d) && XDG_DATA_HOME=$$d XDG_CACHE_HOME=$$d/cache XDG_STATE_HOME=$$d/state \
+	nvim --headless --clean -l scripts/bench.lua $(ARGS); \
 	s=$$?; rm -rf $$d; exit $$s
 
 # Rewrite the screen snapshot golden files (tests/fixtures/screen) from

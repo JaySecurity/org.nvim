@@ -38,6 +38,35 @@ local function is_end_line(l)
   return l:match("^[ \t]*:[Ee][Nn][Dd]:[ \t]*$") ~= nil
 end
 
+--- A node property line (org-property-re): the key's closing colon is
+--- followed by a blank or the end of the line. Returns key and value.
+---@return string|nil key, string|nil value
+local function property_line(l)
+  local key, value = l:match("^[ \t]*:(%S+):[ \t]+(.-)[ \t]*$")
+  if not key then
+    key = l:match("^[ \t]*:(%S+):$")
+    value = key and ""
+  end
+  return key, value
+end
+
+--- When L[i] opens a property drawer (org-property-drawer-re: only
+--- property lines up to an :END: line, at most line `e`), that line.
+---@return integer|nil
+local function property_drawer_end(L, i, e)
+  if not (L[i] and L[i]:match("^[ \t]*:[Pp][Rr][Oo][Pp][Ee][Rr][Tt][Ii][Ee][Ss]:[ \t]*$")) then
+    return nil
+  end
+  for j = i + 1, e do
+    if is_end_line(L[j]) then
+      return j
+    elseif not property_line(L[j]) then
+      return nil
+    end
+  end
+  return nil
+end
+
 local function is_fixed_width(l)
   return l:match("^[ \t]*:$") ~= nil or l:match("^[ \t]*: ") ~= nil
 end
@@ -155,6 +184,8 @@ shared.is_clock_line = is_clock_line
 shared.is_planning_line = is_planning_line
 shared.drawer_name = drawer_name
 shared.is_end_line = is_end_line
+shared.property_line = property_line
+shared.property_drawer_end = property_drawer_end
 shared.is_fixed_width = is_fixed_width
 shared.is_footnote_def = is_footnote_def
 shared.is_hr = is_hr

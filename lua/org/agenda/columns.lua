@@ -18,8 +18,21 @@ local M = {}
 
 local ns = vim.api.nvim_create_namespace("org.agenda.columns")
 
---- Active column view: { buf, cols, widths, cells = { [lnum] = { values } },
---- display = { [lnum] = { displayed values } }, maps }
+--- The active column view.
+---@class org.agenda.ColumnView
+---@field buf integer
+---@field cols table[] the columns (org.columns.parse_format)
+---@field widths integer[]
+---@field cells table<integer, string[]> line -> values
+---@field display table<integer, string[]> line -> displayed values
+---@field fmt string
+---@field maps table|false|nil the agenda maps the column keys replaced
+---@field pads? table<integer, integer> line -> its length before the padding
+---@field pad_tick integer
+---@field win? integer the agenda window whose winbar shows the titles
+---@field saved_winbar? string its winbar before
+
+---@type org.agenda.ColumnView|nil
 local A = nil
 
 --- Default links of the column view groups (Emacs org-column,
@@ -447,29 +460,36 @@ function M.apply()
   return true
 end
 
---- Column index under the cursor (by display column).
-local function current_column(win)
+--- Column index under the cursor (by display column) in column view `a`.
+---@param a org.agenda.ColumnView
+---@return integer
+local function current_column(a)
   local vcol = vim.fn.virtcol(".") - 1
   local x = 0
-  for i, w in ipairs(A.widths) do
+  for i, w in ipairs(a.widths) do
     x = x + w + 3
     if vcol < x then
       return i
     end
   end
-  return #A.widths
+  return #a.widths
 end
 
---- The item and column under the cursor.
+--- The item and column under the cursor, its line and the column view.
+---@return org.AgendaItem|nil item
+---@return integer|nil column
+---@return integer lnum
+---@return org.agenda.ColumnView|nil view
 local function current(win)
   local S = view_mod().state
   local lnum = vim.api.nvim_win_get_cursor(win or 0)[1]
   local it = S.line_items[lnum]
-  if not it or not A.cells[lnum] then
-    return nil
+  local a = A
+  if not it or not a or not a.cells[lnum] then
+    return nil, nil, lnum, nil
   end
-  local ci = current_column(win)
-  return it, ci, lnum
+  local ci = current_column(a)
+  return it, ci, lnum, a
 end
 
 --- Set a column value on the item's source entry.
@@ -532,11 +552,11 @@ end
 
 --- Edit the value under the cursor (e, org-columns-edit-value).
 function M.edit()
-  local it, ci = current()
-  if not it then
+  local it, ci, _, a = current()
+  if not (it and ci and a) then
     return
   end
-  local col = A.cols[ci]
+  local col = a.cols[ci]
   local key = col.prop:upper()
   if key == "SCHEDULED" or key == "DEADLINE" then
     -- the date prompt of org-schedule / org-deadline at the source entry,
@@ -560,7 +580,7 @@ function M.edit()
     return
   end
   -- the real value, not its displayed form (org-columns-value)
-  local cur = A.cells[vim.api.nvim_win_get_cursor(0)[1]][ci] or ""
+  local cur = a.cells[vim.api.nvim_win_get_cursor(0)[1]][ci] or ""
   local vals = allowed(it, col.prop)
   local v
   if vals and #vals > 0 then
@@ -578,17 +598,17 @@ end
 
 --- Next/previous allowed value (n / p, org-columns-next-allowed-value).
 function M.next_allowed(dir)
-  local it, ci, lnum = current()
-  if not it then
+  local it, ci, lnum, a = current()
+  if not (it and ci and a) then
     return
   end
-  local col = A.cols[ci]
+  local col = a.cols[ci]
   local vals = allowed(it, col.prop)
   if not vals or #vals == 0 then
     utils.warn("Allowed values for this property have not been defined")
     return
   end
-  local cur = vim.trim(A.cells[lnum][ci] or "")
+  local cur = vim.trim(a.cells[lnum][ci] or "")
   local idx
   for i, v in ipairs(vals) do
     if v == cur then
@@ -604,9 +624,9 @@ end
 
 --- Show the full real value under the cursor (v, org-columns-show-value).
 function M.show()
-  local it, ci, lnum = current()
-  if it then
-    utils.notify(A.cols[ci].title .. ": " .. (A.cells[lnum][ci] or ""))
+  local it, ci, lnum, a = current()
+  if it and ci and a then
+    utils.notify(a.cols[ci].title .. ": " .. (a.cells[lnum][ci] or ""))
   end
 end
 
@@ -639,7 +659,9 @@ function M.map_keys(buf)
   map("<S-Left>", function()
     M.next_allowed(-1)
   end, "previous allowed value")
-  A.maps = saved
+  if A then
+    A.maps = saved
+  end
 end
 
 --- Remove the column view and restore the agenda keys.

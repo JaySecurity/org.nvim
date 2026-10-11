@@ -690,3 +690,27 @@ describe("tblfm: Calc names with a number subscript", function()
     eq("x_a + 1", calc({ "| x_a |", "#+TBLFM: $2=$1+1" })[1][2])
   end)
 end)
+
+describe("tblfm: field formulas on rows written short", function()
+  -- org-table-recalculate works on the table as written: a field formula
+  -- aimed past the last field of its row (org-table-goto-column without
+  -- FORCE, then org-table-get-field) writes nothing; column formulas add
+  -- the fields they need (difftest seed 152)
+  it("writes nothing past the row's last field", function()
+    local g = calc({ "|", "| 94.9 |", "| | | |", "#+TBLFM: @2$3=@2$1*10" })
+    eq({ "", "", "" }, { g[1][3], g[2][3], g[3][3] })
+    eq("", calc({ "|", "| 94.9 | | |", "| | | |", "#+TBLFM: @1$3=@2$1*10" })[1][3])
+    eq("", calc({ "| a |", "| | | |", "#+TBLFM: @1$2=7" })[1][2])
+  end)
+
+  it("writes into a field the row has", function()
+    eq("949.", calc({ "|", "| 94.9 | | |", "| | | |", "#+TBLFM: @2$3=@2$1*10" })[2][3])
+    eq({ "a", "7", "8" }, calc({ "| a | | |", "| | |", "#+TBLFM: @1$2=7::@1$3=8" })[1])
+  end)
+
+  it("a column formula adds the fields to its rows", function()
+    local g = calc({ "| a |", "|---|", "| 1 |", "| 2 | | |", "#+TBLFM: $3=5::@3$2=9" })
+    eq({ "1", "", "5" }, g[2])
+    eq({ "2", "9", "5" }, g[3])
+  end)
+end)

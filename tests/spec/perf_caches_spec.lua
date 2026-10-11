@@ -83,6 +83,31 @@ describe("find_buffer path cache", function()
     vim.api.nvim_exec_autocmds("ShellCmdPost", {})
     eq(other, utils.find_buffer(other_link))
   end)
+
+  it("resolves a file without a buffer once, until a shell command", function()
+    local path = vim.fn.tempname() .. ".org"
+    vim.fn.writefile({ "* Task" }, path)
+    local calls = 0
+    local realpath = vim.uv.fs_realpath
+    vim.uv.fs_realpath = function(p)
+      if p == path then
+        calls = calls + 1
+      end
+      return realpath(p)
+    end
+    local ok_, err = pcall(function()
+      org_buffer({ "* Named" })
+      vim.api.nvim_buf_set_name(0, vim.fn.tempname() .. ".org")
+      eq(nil, utils.find_buffer(path))
+      eq(nil, utils.find_buffer(path))
+      eq(1, calls)
+      vim.api.nvim_exec_autocmds("ShellCmdPost", {})
+      eq(nil, utils.find_buffer(path))
+      eq(2, calls)
+    end)
+    vim.uv.fs_realpath = realpath
+    assert(ok_, err)
+  end)
 end)
 
 describe("agenda sorting caches", function()

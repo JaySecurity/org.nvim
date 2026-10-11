@@ -22,6 +22,10 @@
 --
 -- Names limit the report to those extensions (default: every built-in one).
 -- Informational: it always exits 0 unless its own arguments are wrong.
+--
+-- Required as a module (the website's "Extensions status" page,
+-- scripts/site/build.lua) it measures without printing:
+--   require("extension_report").measure({ gh = false }) -> report
 local root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 vim.opt.rtp:prepend(root)
 
@@ -41,29 +45,11 @@ local BAR = {
   releases_since_breaking = 3,
 }
 
-local opts = { format = "text", gh = true, only = {} }
-do
-  local i = 1
-  while i <= #arg do
-    local a = arg[i]
-    if a == "--markdown" then
-      opts.format = "markdown"
-    elseif a == "--json" then
-      opts.format = "json"
-    elseif a == "--no-gh" then
-      opts.gh = false
-    elseif a == "--coverage" or a == "--demo" or a == "--issues" or a == "--repo" then
-      i = i + 1
-      opts[a:sub(3)] = arg[i]
-    elseif a:match("^[%w_]+$") then
-      opts.only[#opts.only + 1] = a
-    else
-      io.stderr:write("extension_report.lua: unknown argument " .. a .. "\n")
-      os.exit(2)
-    end
-    i = i + 1
-  end
-end
+local M = {}
+M.BAR = BAR
+
+-- the options of the measurement in progress (M.measure)
+local opts = {}
 
 local function read(path)
   local f = io.open(path, "rb")
@@ -104,16 +90,6 @@ local function has_word(s, word)
 end
 
 local exts = require("org.extensions")
-local names = exts.builtin()
-if #opts.only > 0 then
-  for _, n in ipairs(opts.only) do
-    if not vim.tbl_contains(names, n) then
-      io.stderr:write("extension_report.lua: no built-in extension " .. n .. "\n")
-      os.exit(2)
-    end
-  end
-  names = opts.only
-end
 
 -- ---------------------------------------------------------------------------
 -- Specs
@@ -182,16 +158,16 @@ end
 -- ---------------------------------------------------------------------------
 -- Coverage
 
-local coverage_path = opts.coverage or (exists(root .. "/coverage/coverage.json") and root .. "/coverage/coverage.json")
+-- the modules of the coverage.json in use (nil: not measured)
 local coverage
-if coverage_path then
-  local text = read(coverage_path)
-  local ok, data = pcall(vim.json.decode, text or "")
+
+--- The modules of a coverage.json of `make coverage`, nil when unreadable.
+local function load_coverage(path)
+  local ok, data = pcall(vim.json.decode, read(path) or "")
   if ok and type(data) == "table" and type(data.modules) == "table" then
-    coverage = data.modules
-  else
-    io.stderr:write("extension_report.lua: can't read coverage from " .. coverage_path .. "\n")
+    return data.modules
   end
+  io.stderr:write("extension_report.lua: can't read coverage from " .. path .. "\n")
 end
 
 ---@return number|nil percent
@@ -350,7 +326,12 @@ end
 -- History: releases since it was added and since its last breaking change
 
 -- the history is only measured with every commit and the release tags
-local history_ok = vim.trim(git("rev-parse", "--is-shallow-repository") or "") == "false"
+local history_ok
+-- release tag -> true
+local release_tags
+-- commits marked breaking (`type(scope)!:` or a BREAKING CHANGE: footer):
+-- { hash, time, subject, scopes = { name = true }, footer = text }
+local breaking_commits
 
 --- vX.Y.Z -> { X, Y, Z }
 local function version(tag)
@@ -366,16 +347,6 @@ local function older(a, b)
     end
   end
   return false
-end
-
-local release_tags = {}
-for _, t in ipairs(lines(git("tag", "--list", "v*"))) do
-  if version(t) then
-    release_tags[t] = true
-  end
-end
-if next(release_tags) == nil then
-  history_ok = false
 end
 
 --- The release tags that contain `commit`, oldest first.
@@ -404,10 +375,19 @@ end
 
 local SCOPE_ALL = { extensions = true, ext = true }
 
--- commits marked breaking (`type(scope)!:` or a BREAKING CHANGE: footer):
--- { hash, time, subject, scopes = { name = true }, footer = text }
-local breaking_commits = {}
-do
+--- Read the release tags and the breaking commits of the repository.
+local function load_history()
+  history_ok = vim.trim(git("rev-parse", "--is-shallow-repository") or "") == "false"
+  release_tags = {}
+  for _, t in ipairs(lines(git("tag", "--list", "v*"))) do
+    if version(t) then
+      release_tags[t] = true
+    end
+  end
+  if next(release_tags) == nil then
+    history_ok = false
+  end
+  breaking_commits = {}
   local out =
     git("log", "-E", "--format=%H%x1f%ct%x1f%s%x1f%b%x1e", "--grep=^[a-z]+(\\([^)]*\\))?!:", "--grep=BREAKING CHANGE:")
   for rec in (out or ""):gmatch("([^\30]+)") do
@@ -534,15 +514,21 @@ end
 -- ---------------------------------------------------------------------------
 -- Open bug issues (GitHub, optional)
 
+-- the open bug issues (nil: not checked)
 local issues
-if opts.issues then
-  local ok, data = pcall(vim.json.decode, read(opts.issues) or "")
-  if not ok or type(data) ~= "table" then
-    io.stderr:write("extension_report.lua: can't read issues from " .. opts.issues .. "\n")
-    os.exit(2)
+
+--- The open bug issues: from opts.issues, else from GitHub with opts.gh.
+--- Errors when opts.issues can't be read.
+local function load_issues()
+  if opts.issues then
+    local ok, data = pcall(vim.json.decode, read(opts.issues) or "")
+    if not ok or type(data) ~= "table" then
+      error("can't read issues from " .. opts.issues, 0)
+    end
+    return data
+  elseif not opts.gh or vim.fn.executable("gh") == 0 then
+    return nil
   end
-  issues = data
-elseif opts.gh and vim.fn.executable("gh") == 1 then
   local out = run({
     "gh",
     "issue",
@@ -558,7 +544,7 @@ elseif opts.gh and vim.fn.executable("gh") == 1 then
   })
   local ok, data = pcall(vim.json.decode, out or "")
   if out and ok and type(data) == "table" then
-    issues = data
+    return data
   end
 end
 
@@ -642,15 +628,15 @@ end
 -- ---------------------------------------------------------------------------
 -- The live demo (optional)
 
-local demo_path = opts.demo or vim.env.ORG_DEMO_CONFIG or vim.fn.expand("~/demo/config.lua")
-local demo = exists(demo_path) and read(demo_path) or nil
-local demo_extensions = demo and demo:match("\n%s*extensions%s*=%s*(%b{})")
+-- the `extensions = { ... }` table of the demo config (false: none in
+-- it; nil: no demo config)
+local demo_extensions
 
 local function measure_demo(name)
-  if not demo then
+  if demo_extensions == nil then
     return nil
   end
-  return demo_extensions ~= nil and demo_extensions:find("\n%s*" .. name .. "%s*=") ~= nil
+  return demo_extensions ~= false and demo_extensions:find("\n%s*" .. name .. "%s*=") ~= nil
 end
 
 -- ---------------------------------------------------------------------------
@@ -669,9 +655,14 @@ local CRITERIA = {
   { "bugs", "open bugs", false },
   { "demo", "demo", false },
 }
+M.CRITERIA = CRITERIA
 
-local rows = {}
-for _, name in ipairs(names) do
+local REQUIRED = {}
+for _, crit in ipairs(CRITERIA) do
+  REQUIRED[crit[1]] = crit[3]
+end
+
+local function measure_row(name)
   local ok, ext = pcall(require, "org.extensions." .. name)
   ext = ok and type(ext) == "table" and ext or {}
   local specs = measure_specs(name)
@@ -743,7 +734,7 @@ for _, name in ipairs(names) do
       unknown[#unknown + 1] = crit[1]
     end
   end
-  rows[#rows + 1] = {
+  return {
     name = name,
     stability = exts.stability(name),
     criteria = c,
@@ -752,14 +743,9 @@ for _, name in ipairs(names) do
   }
 end
 
-local REQUIRED = {}
-for _, crit in ipairs(CRITERIA) do
-  REQUIRED[crit[1]] = crit[3]
-end
-
---- The criteria that keep it from promotion: the failed ones and the
+--- The criteria that keep row `r` from promotion: the failed ones and the
 --- required ones that weren't measured.
-local function blockers(r)
+function M.blockers(r)
   local out = vim.deepcopy(r.failed)
   for _, k in ipairs(r.unknown) do
     if REQUIRED[k] then
@@ -768,6 +754,7 @@ local function blockers(r)
   end
   return out
 end
+local blockers = M.blockers
 
 -- what a failed criterion lacks, in words
 local SHORT = {
@@ -787,12 +774,15 @@ local SHORT = {
     return "a health check"
   end,
   added = function(c)
-    return ("releases %d of %d, days since its first commit %d of %d"):format(
-      c.releases,
-      BAR.releases_since_added,
-      c.days,
-      BAR.days_since_added
-    )
+    -- only the part that falls short
+    local out = {}
+    if c.releases < BAR.releases_since_added then
+      out[#out + 1] = ("releases %d of %d"):format(c.releases, BAR.releases_since_added)
+    end
+    if c.days < BAR.days_since_added then
+      out[#out + 1] = ("days since its first commit %d of %d"):format(c.days, BAR.days_since_added)
+    end
+    return table.concat(out, ", ")
   end,
   breaking = function(c)
     return ("releases since a breaking change %s of %d (%s)"):format(c.value, BAR.releases_since_breaking, c.detail)
@@ -805,7 +795,8 @@ local SHORT = {
   end,
 }
 
-local function why(r, keys)
+--- What criteria `keys` of row `r` lack, in words.
+function M.why(r, keys)
   local out = {}
   for _, k in ipairs(keys) do
     local cr = r.criteria[k]
@@ -813,59 +804,10 @@ local function why(r, keys)
   end
   return table.concat(out, "; ")
 end
+local why = M.why
 
-local candidates, near, far, below = {}, {}, {}, {}
-for _, r in ipairs(rows) do
-  local b = blockers(r)
-  if r.stability == "experimental" and #b == 0 then
-    candidates[#candidates + 1] = r
-  elseif r.stability == "experimental" and #b <= 2 then
-    near[#near + 1] = r
-  elseif r.stability == "experimental" then
-    far[#far + 1] = r
-  elseif r.stability == "stable" and #r.failed > 0 then
-    below[#below + 1] = r
-  end
-end
-for _, r in ipairs(rows) do
-  r.candidate = r.stability == "experimental" and #blockers(r) == 0
-end
-
-if opts.format == "json" then
-  io.stdout:write(vim.json.encode({ bar = BAR, extensions = rows }) .. "\n")
-  return
-end
-
--- ---------------------------------------------------------------------------
--- Print
-
-local md = opts.format == "markdown"
-local out = {}
-local function say(s)
-  out[#out + 1] = s or ""
-end
-
-local function mark(r)
-  if r.pass == nil then
-    return r.value
-  end
-  return r.value .. (r.pass and " ✓" or " ✗")
-end
-
-local header = { "extension", "stability" }
-for _, crit in ipairs(CRITERIA) do
-  header[#header + 1] = crit[2]
-end
-local tbl = {}
-for _, r in ipairs(rows) do
-  local cells = { r.name, r.stability }
-  for _, crit in ipairs(CRITERIA) do
-    cells[#cells + 1] = mark(r.criteria[crit[1]])
-  end
-  tbl[#tbl + 1] = cells
-end
-
-local bar = ("Bar: ≥ %d specs, an edge-case spec, ≥ %d%% line coverage, every option documented, a health check, "):format(
+--- The bar in one sentence.
+M.BAR_TEXT = ("≥ %d specs, an edge-case spec, ≥ %d%% line coverage, every option documented, a health check, "):format(
   BAR.specs,
   BAR.coverage
 ) .. ("in ≥ %d minor releases and ≥ %d days old, ≥ %d minor releases after the one with its last breaking option change, "):format(
@@ -874,72 +816,242 @@ local bar = ("Bar: ≥ %d specs, an edge-case spec, ≥ %d%% line coverage, ever
   BAR.releases_since_breaking
 ) .. "no open bug issues, in the live demo."
 
-if md then
-  say("## Extension promotion report")
-  say()
-  say(bar .. ' See CONTRIBUTING.md, "Promoting an extension".')
-  say()
-  say("| " .. table.concat(header, " | ") .. " |")
-  local sep = {}
-  for i = 1, #header do
-    sep[i] = i <= 2 and "---" or "---:"
+--- Each criterion's bar in words, in column order: { key, header,
+--- required, text }.
+function M.bar_rows()
+  local text = {
+    specs = ("≥ %d tests in its own spec files"):format(BAR.specs),
+    edge = "a fuzz or edge-case spec",
+    coverage = ("≥ %d%% line coverage of its files"):format(BAR.coverage),
+    docs = "every option in its section of the manual and typed in lua/org/_meta",
+    health = "a health check (:checkhealth org)",
+    added = ("in ≥ %d minor releases, and ≥ %d days since its first commit"):format(
+      BAR.releases_since_added,
+      BAR.days_since_added
+    ),
+    breaking = ("≥ %d minor releases since the one with its last breaking change (or none)"):format(
+      BAR.releases_since_breaking
+    ),
+    bugs = "no open bug issues about it",
+    demo = "enabled in the live demo",
+  }
+  local out = {}
+  for _, crit in ipairs(CRITERIA) do
+    out[#out + 1] = { key = crit[1], header = crit[2], required = crit[3], text = text[crit[1]] }
   end
-  say("| " .. table.concat(sep, " | ") .. " |")
-  for _, cells in ipairs(tbl) do
-    cells[1] = "`" .. cells[1] .. "`"
-    say("| " .. table.concat(cells, " | ") .. " |")
-  end
-else
-  say('Extension promotion report (CONTRIBUTING.md, "Promoting an extension")')
-  say(bar)
-  say()
-  local widths = {}
-  for i, h in ipairs(header) do
-    widths[i] = vim.fn.strdisplaywidth(h)
-    for _, cells in ipairs(tbl) do
-      widths[i] = math.max(widths[i], vim.fn.strdisplaywidth(cells[i]))
-    end
-  end
-  local function fmt(cells)
-    local parts = {}
-    for i, s in ipairs(cells) do
-      local pad = string.rep(" ", widths[i] - vim.fn.strdisplaywidth(s))
-      parts[i] = i <= 2 and (s .. pad) or (pad .. s)
-    end
-    return (table.concat(parts, "  "):gsub("%s+$", ""))
-  end
-  say(fmt(header))
-  for _, cells in ipairs(tbl) do
-    say(fmt(cells))
-  end
+  return out
 end
 
-local function list(title, items, describe)
-  say()
-  say(md and ("### " .. title) or (title .. ":"))
+---@class ExtensionReportOpts
+---@field only? string[] the extensions to measure (default: every built-in one)
+---@field coverage? string a coverage.json of `make coverage` (nil: not measured)
+---@field gh? boolean ask GitHub (`gh`) for the open bug issues
+---@field issues? string open bug issues as the JSON of `gh issue list` instead
+---@field repo? string the git repository to read the history from
+---@field demo? string the live demo config (nil: not checked)
+
+--- Measure every criterion of the extensions. Errors (a message without a
+--- position) on an unknown extension or an unreadable issues file.
+---@param o? ExtensionReportOpts
+---@return table report { bar, criteria, extensions = rows, candidates, near, far, below, history }
+function M.measure(o)
+  opts = o or {}
+  local names = exts.builtin()
+  if opts.only and #opts.only > 0 then
+    for _, n in ipairs(opts.only) do
+      if not vim.tbl_contains(names, n) then
+        error("no built-in extension " .. n, 0)
+      end
+    end
+    names = opts.only
+  end
+  coverage = opts.coverage and load_coverage(opts.coverage) or nil
+  issues = load_issues()
+  local demo = opts.demo and exists(opts.demo) and read(opts.demo) or nil
+  demo_extensions = demo and (demo:match("\n%s*extensions%s*=%s*(%b{})") or false) or nil
+  shown = {}
+  load_history()
+
+  local rows = {}
+  for _, name in ipairs(names) do
+    rows[#rows + 1] = measure_row(name)
+  end
+  local candidates, near, far, below = {}, {}, {}, {}
+  for _, r in ipairs(rows) do
+    local b = blockers(r)
+    if r.stability == "experimental" and #b == 0 then
+      candidates[#candidates + 1] = r
+    elseif r.stability == "experimental" and #b <= 2 then
+      near[#near + 1] = r
+    elseif r.stability == "experimental" then
+      far[#far + 1] = r
+    elseif r.stability == "stable" and #r.failed > 0 then
+      below[#below + 1] = r
+    end
+  end
+  for _, r in ipairs(rows) do
+    r.candidate = r.stability == "experimental" and #blockers(r) == 0
+  end
+  return {
+    bar = BAR,
+    criteria = CRITERIA,
+    extensions = rows,
+    candidates = candidates,
+    near = near,
+    far = far,
+    below = below,
+    history = history_ok,
+  }
+end
+
+-- ---------------------------------------------------------------------------
+-- Print
+
+--- The report as text, or GitHub Markdown with `md`.
+function M.format(report, md)
+  local out = {}
+  local function say(s)
+    out[#out + 1] = s or ""
+  end
+
+  local function mark(r)
+    if r.pass == nil then
+      return r.value
+    end
+    return r.value .. (r.pass and " ✓" or " ✗")
+  end
+
+  local header = { "extension", "stability" }
+  for _, crit in ipairs(CRITERIA) do
+    header[#header + 1] = crit[2]
+  end
+  local tbl = {}
+  for _, r in ipairs(report.extensions) do
+    local cells = { r.name, r.stability }
+    for _, crit in ipairs(CRITERIA) do
+      cells[#cells + 1] = mark(r.criteria[crit[1]])
+    end
+    tbl[#tbl + 1] = cells
+  end
+
+  local bar = "Bar: " .. M.BAR_TEXT
+
   if md then
+    say("## Extension promotion report")
     say()
+    say(bar .. ' See CONTRIBUTING.md, "Promoting an extension".')
+    say()
+    say("| " .. table.concat(header, " | ") .. " |")
+    local sep = {}
+    for i = 1, #header do
+      sep[i] = i <= 2 and "---" or "---:"
+    end
+    say("| " .. table.concat(sep, " | ") .. " |")
+    for _, cells in ipairs(tbl) do
+      cells[1] = "`" .. cells[1] .. "`"
+      say("| " .. table.concat(cells, " | ") .. " |")
+    end
+  else
+    say('Extension promotion report (CONTRIBUTING.md, "Promoting an extension")')
+    say(bar)
+    say()
+    local widths = {}
+    for i, h in ipairs(header) do
+      widths[i] = vim.fn.strdisplaywidth(h)
+      for _, cells in ipairs(tbl) do
+        widths[i] = math.max(widths[i], vim.fn.strdisplaywidth(cells[i]))
+      end
+    end
+    local function fmt(cells)
+      local parts = {}
+      for i, s in ipairs(cells) do
+        local pad = string.rep(" ", widths[i] - vim.fn.strdisplaywidth(s))
+        parts[i] = i <= 2 and (s .. pad) or (pad .. s)
+      end
+      return (table.concat(parts, "  "):gsub("%s+$", ""))
+    end
+    say(fmt(header))
+    for _, cells in ipairs(tbl) do
+      say(fmt(cells))
+    end
   end
-  if #items == 0 then
-    say(md and "None." or "  none")
+
+  local function list(title, items, describe)
+    say()
+    say(md and ("### " .. title) or (title .. ":"))
+    if md then
+      say()
+    end
+    if #items == 0 then
+      say(md and "None." or "  none")
+    end
+    for _, r in ipairs(items) do
+      say((md and "- `%s`: %s" or "  %s: %s"):format(r.name, describe(r)))
+    end
   end
-  for _, r in ipairs(items) do
-    say((md and "- `%s`: %s" or "  %s: %s"):format(r.name, describe(r)))
+
+  list("Candidates for promotion", report.candidates, function(r)
+    return "passes every criterion"
+      .. (#r.unknown > 0 and ("; not measured here, check by hand: " .. table.concat(r.unknown, ", ")) or "")
+  end)
+  list("Near misses (one or two criteria short)", report.near, function(r)
+    return "needs " .. why(r, blockers(r))
+  end)
+  list("Further off", report.far, function(r)
+    return "needs " .. why(r, blockers(r))
+  end)
+  list("Stable but below the bar (not demoted; look into it)", report.below, function(r)
+    return "lacks " .. why(r, r.failed)
+  end)
+  return table.concat(out, "\n") .. "\n"
+end
+
+-- ---------------------------------------------------------------------------
+-- Command line
+
+local function fail(msg)
+  io.stderr:write("extension_report.lua: " .. msg .. "\n")
+  os.exit(2)
+end
+
+function M.main(argv)
+  local o = { format = "text", gh = true, only = {} }
+  local i = 1
+  while i <= #argv do
+    local a = argv[i]
+    if a == "--markdown" then
+      o.format = "markdown"
+    elseif a == "--json" then
+      o.format = "json"
+    elseif a == "--no-gh" then
+      o.gh = false
+    elseif a == "--coverage" or a == "--demo" or a == "--issues" or a == "--repo" then
+      i = i + 1
+      o[a:sub(3)] = argv[i]
+    elseif a:match("^[%w_]+$") then
+      o.only[#o.only + 1] = a
+    else
+      fail("unknown argument " .. a)
+    end
+    i = i + 1
+  end
+  local default_cov = root .. "/coverage/coverage.json"
+  o.coverage = o.coverage or (exists(default_cov) and default_cov or nil)
+  o.demo = o.demo or vim.env.ORG_DEMO_CONFIG or vim.fn.expand("~/demo/config.lua")
+  local ok, report = pcall(M.measure, o)
+  if not ok then
+    fail(tostring(report))
+  end
+  if o.format == "json" then
+    io.stdout:write(vim.json.encode({ bar = BAR, extensions = report.extensions }) .. "\n")
+  else
+    io.stdout:write(M.format(report, o.format == "markdown"))
   end
 end
 
-list("Candidates for promotion", candidates, function(r)
-  return "passes every criterion"
-    .. (#r.unknown > 0 and ("; not measured here, check by hand: " .. table.concat(r.unknown, ", ")) or "")
-end)
-list("Near misses (one or two criteria short)", near, function(r)
-  return "needs " .. why(r, blockers(r))
-end)
-list("Further off", far, function(r)
-  return "needs " .. why(r, blockers(r))
-end)
-list("Stable but below the bar (not demoted; look into it)", below, function(r)
-  return "lacks " .. why(r, r.failed)
-end)
+-- run as a script (nvim -l), not required as a module
+if _G.arg and type(_G.arg[0]) == "string" and vim.fs.basename(_G.arg[0]) == "extension_report.lua" then
+  M.main(_G.arg)
+end
 
-io.stdout:write(table.concat(out, "\n") .. "\n")
+return M

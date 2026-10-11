@@ -67,7 +67,7 @@ end
 
 --- Drop line `l` of the agenda buffer and of the line maps.
 local function delete_line(l)
-  local buf = M.state.buf
+  local buf = assert(M.state.buf, "no agenda buffer")
   vim.api.nvim_buf_clear_namespace(buf, ns_line, l - 1, l)
   vim.bo[buf].modifiable = true
   vim.api.nvim_buf_set_lines(buf, l - 1, l, false, {})
@@ -114,7 +114,7 @@ end
 
 --- Replace line `l` with `text` and its highlights.
 local function set_line(l, text, hls, line_hl)
-  local buf = M.state.buf
+  local buf = assert(M.state.buf, "no agenda buffer")
   if vim.api.nvim_buf_get_lines(buf, l - 1, l, false)[1] ~= text then
     vim.bo[buf].modifiable = true
     vim.api.nvim_buf_set_lines(buf, l - 1, l, false, { text })

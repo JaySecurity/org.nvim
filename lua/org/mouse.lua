@@ -113,7 +113,10 @@ end
 --- Buffer-local <LeftMouse> handling for `links.mouse_1_follows_link` and
 --- citation keys, and the keys of org-mouse (`mouse.org_mouse`).
 function M.attach(bufnr)
-  require("org.org_mouse").attach(bufnr)
+  -- (org.org_mouse.enabled: the module loads only when it is on)
+  if (config.opts.mouse or {}).org_mouse == true then
+    require("org.org_mouse").attach(bufnr)
+  end
   require("org.cite_mouse").attach(bufnr)
   local setting = (config.opts.links or {}).mouse_1_follows_link
   local o = { buffer = bufnr, expr = true, replace_keycodes = true }

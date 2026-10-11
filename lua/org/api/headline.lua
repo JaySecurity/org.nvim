@@ -38,7 +38,7 @@ local M = {}
 ---@field done boolean
 ---@field priority string|nil priority cookie value (`A`, `10`), nil without one
 ---@field tags string[] own tags
----@field all_tags string[] own and inherited tags (file tags included), per `use_tag_inheritance`
+---@field all_tags string[] own and inherited tags (file tags included), per `use_tag_inheritance`, in org-get-tags order
 ---@field properties table<string, string> own properties (property drawer), names upper-cased
 ---@field scheduled org.api.Date|nil
 ---@field deadline org.api.Date|nil

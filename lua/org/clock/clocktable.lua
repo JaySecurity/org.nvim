@@ -15,6 +15,7 @@ local M = require("org.clock")
 
 local clock_cfg = shared.clock_cfg
 local clock_sum = shared.clock_sum
+local inline_tasks = shared.inline_tasks
 local mkdate = shared.mkdate
 
 ---------------------------------------------------------------------------
@@ -201,7 +202,6 @@ local function scope_files(scope, cur, lnum)
       local path = utils.expand(p, dir)
       local f = files.get(path)
       if f then
-        f.display_name = p
         list[#list + 1] = f
       end
     end
@@ -251,36 +251,47 @@ local function table_data(file, roots, params, ts, te)
   local props = params._props
   local times, total = clock_sum(roots or file.children, ts, te, matcher(params.match))
   local entries = {}
+  -- the row of `hl` at `level` (an inline task's is its headline's)
+  local function add(hl, level, time)
+    local title = vim.trim(hl.title)
+    local headline = title
+    if link then
+      local search = "*" .. vim.trim((title:gsub(COOKIE, " "):gsub(COOKIE2, " "):gsub("[ \t]+", " ")))
+      local desc = vim.trim(link_display((title:gsub(COOKIE, ""):gsub(COOKIE2, ""))))
+      local target = file.filename and ("file:" .. file.filename .. "::" .. search) or search
+      headline = "[[" .. link_escape(target) .. "][" .. desc .. "]]"
+    end
+    local tsp
+    if param_on(params.timestamp) then
+      tsp = hl:get_property("SCHEDULED")
+        or hl:get_property("DEADLINE")
+        or entry_timestamp(hl, true)
+        or entry_timestamp(hl, false)
+    end
+    local values = {}
+    for i, p in ipairs(props) do
+      values[i] = hl:get_property(p, param_on(params["inherit-props"])) or ""
+    end
+    entries[#entries + 1] = {
+      level = level,
+      headline = headline,
+      tags = param_on(params.tags) and hl:get_tags() or {},
+      ts = tsp,
+      time = time,
+      props = values,
+    }
+  end
   local function walk(hl)
     local time = times[hl]
     if time and time > 0 and hl.level <= maxlevel then
-      local title = vim.trim(hl.title)
-      local headline = title
-      if link then
-        local search = "*" .. vim.trim((title:gsub(COOKIE, " "):gsub(COOKIE2, " "):gsub("[ \t]+", " ")))
-        local desc = vim.trim(link_display((title:gsub(COOKIE, ""):gsub(COOKIE2, ""))))
-        local target = file.filename and ("file:" .. file.filename .. "::" .. search) or search
-        headline = "[[" .. link_escape(target) .. "][" .. desc .. "]]"
+      add(hl, hl.level, time)
+      -- org-clock-get-table-data lists an inline task after its headline,
+      -- at the headline's level
+      for _, it in ipairs(inline_tasks(hl)) do
+        if times[it] then
+          add(it, hl.level, times[it])
+        end
       end
-      local tsp
-      if param_on(params.timestamp) then
-        tsp = hl:get_property("SCHEDULED")
-          or hl:get_property("DEADLINE")
-          or entry_timestamp(hl, true)
-          or entry_timestamp(hl, false)
-      end
-      local values = {}
-      for i, p in ipairs(props) do
-        values[i] = hl:get_property(p, param_on(params["inherit-props"])) or ""
-      end
-      entries[#entries + 1] = {
-        level = hl.level,
-        headline = headline,
-        tags = param_on(params.tags) and hl:get_tags() or {},
-        ts = tsp,
-        time = time,
-        props = values,
-      }
     end
     for _, child in ipairs(hl.children) do
       walk(child)
@@ -503,7 +514,8 @@ local function clocktable_single(params, ctx, ts, te)
       if t.total > 0 or not param_on(params.fileskip0) then
         text[#text + 1] = "|-"
         if multifile then
-          local name = t.file.display_name or vim.fn.fnamemodify(t.file.filename or "", ":t")
+          -- org-clocktable-write-default: file-name-nondirectory
+          local name = vim.fn.fnamemodify(t.file.filename or "", ":t")
           if param_on(params.filetitle) and t.file.settings.title then
             name = t.file.settings.title
           end

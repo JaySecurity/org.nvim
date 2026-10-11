@@ -158,7 +158,7 @@ function M._is_open_clock_of(line, start)
   end
   local c = parser.parse_clock_line(line)
   local s = c and not c["end"] and date.parse(start)
-  return s and c.start:minutes() == s:minutes() or false
+  return s and c and c.start:minutes() == s:minutes() or false
 end
 
 --- Whether the running clock is in buffer `bufnr`.
@@ -296,6 +296,7 @@ end
 ---@param hl? org.Headline
 ---@return string|nil name, integer|nil threshold
 local function clock_drawer(hl)
+  ---@type boolean|string|integer|nil
   local into = clock_cfg().into_drawer
   local prop = hl and hl:get_property("CLOCK_INTO_DRAWER", true)
   if prop and prop ~= "" then
@@ -336,10 +337,13 @@ end
 --- Write a new CLOCK line for the entry at `lnum` (org-clock-find-position):
 --- into the clock drawer (created, or collecting the loose CLOCK lines once
 --- a numeric threshold is reached), or next to the existing CLOCK lines.
+---@param bufnr integer
+---@param lnum integer a line of the entry
+---@param text string
 ---@return integer lnum of the new line
 local function insert_clock_line(bufnr, lnum, text)
   local file = files.get_buffer(bufnr)
-  local hl = file:headline_at(lnum)
+  local hl = assert(file:headline_at(lnum), "insert_clock_line: not under a headline")
   local name, threshold = clock_drawer(hl)
   local reversed = log_reversed(file)
   if name then
@@ -397,7 +401,7 @@ end
 --- (org-remove-empty-drawer-at).
 local function remove_empty_drawer_around(bufnr, lnum)
   local prev = vim.api.nvim_buf_get_lines(bufnr, lnum - 2, lnum, false)
-  if prev[1] and prev[2] and prev[1]:match("^%s*:[%w_%-]+:%s*$") and prev[2]:match("^%s*:END:%s*$") then
+  if prev[1] and prev[2] and prev[1]:match("^%s*:[%w_%-]+:%s*$") and prev[2]:upper():match("^%s*:END:%s*$") then
     vim.api.nvim_buf_set_lines(bufnr, lnum - 2, lnum, false, {})
   end
 end

@@ -137,7 +137,7 @@ local function restore_layout(saved)
   if not saved then
     return false
   end
-  pcall(vim.cmd, "silent! only")
+  pcall(vim.api.nvim_command, "silent! only")
   local focus
   local function build(node, win)
     vim.api.nvim_set_current_win(win)
@@ -170,7 +170,7 @@ end
 
 --- Display the agenda buffer (org-agenda-window-setup).
 local function show_buffer()
-  local buf = M.state.buf
+  local buf = assert(M.state.buf, "no agenda buffer")
   for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
     if vim.api.nvim_win_get_buf(w) == buf then
       vim.api.nvim_set_current_win(w)
@@ -201,13 +201,13 @@ local function show_buffer()
       require("org.ui").open_buffer_window(buf, "float", { title = "Org Agenda", width = 0.9, height = 0.85 })
   elseif mode == "split" then
     -- reorganize-frame: two windows, the current one and the agenda
-    pcall(vim.cmd, "silent! only")
+    pcall(vim.api.nvim_command, "silent! only")
     M.state.prev_win = vim.api.nvim_get_current_win()
     M.state.win = require("org.ui").open_buffer_window(buf, "split")
   elseif mode == "vsplit" or mode == "tab" then
-    M.state.win = require("org.ui").open_buffer_window(buf, mode)
+    M.state.win = require("org.ui").open_buffer_window(buf, mode == "tab" and "tab" or "vsplit")
   elseif mode == "only" then
-    pcall(vim.cmd, "silent! only")
+    pcall(vim.api.nvim_command, "silent! only")
     vim.api.nvim_set_current_buf(buf)
     M.state.win = vim.api.nvim_get_current_win()
   elseif mode == "other" then
@@ -286,7 +286,7 @@ local function buffer_name(view, opts)
 end
 
 --- Open a view.
----@param view { blocks: table[], title?: string, multi?: boolean, key?: string }
+---@param view org.agenda.View
 ---@param opts? { anchor?: integer, span?: string|integer, restrict?: table, keep_state?: boolean, key?: string }
 function M.open(view, opts)
   opts = opts or {}

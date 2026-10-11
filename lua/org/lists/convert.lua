@@ -183,7 +183,8 @@ function M.toggle_item()
           ref_level = level
         end
         local delta = math.max(0, level - ref_level)
-        local p = parser.parse_headline_line(l, todo_cfg)
+        -- headline_level and parse_headline_line take the same "^%*+ " lines
+        local p = assert(parser.parse_headline_line(l, todo_cfg))
         local text = p.title
         if p.priority then
           text = "[#" .. p.priority .. "] " .. text

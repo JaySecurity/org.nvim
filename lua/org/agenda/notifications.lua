@@ -337,7 +337,7 @@ end
 function M.start()
   M.stop()
   local interval = interval_seconds() * 1000
-  timer = vim.uv.new_timer()
+  timer = assert(vim.uv.new_timer())
   timer:start(
     1000,
     interval,

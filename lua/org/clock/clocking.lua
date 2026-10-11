@@ -39,22 +39,22 @@ local unnamed = shared.unnamed
 --- Clock out of the running clock. Interactively (no `opts`) with a
 --- count, ask for the TODO state to switch the task to (org-clock-out with
 --- C-u); otherwise `clock.out_switch_to_state` applies.
----@param opts? { at?: table, switch_to_state?: string|false, note?: string|false }
+---@param opts? { at?: table, switch_to_state?: string|false, note?: string|false, quiet?: boolean }
 function M.clock_out(opts)
   local interactive = type(opts) ~= "table"
   opts = type(opts) == "table" and opts or {}
-  if not M.state then
+  local st = M.state
+  if not st then
     if not opts.quiet then
       utils.notify("No active clock")
     end
     return nil
   end
   local bufnr, lnum = M.find_open_clock()
-  local st = M.state
   M.state = nil
   stop_timers()
   persist()
-  if not bufnr then
+  if not bufnr or not lnum then
     utils.warn("Clock start time is gone: " .. st.title)
     vim.cmd("redrawstatus")
     return nil
@@ -141,16 +141,16 @@ end
 
 --- Cancel the running clock (remove the open CLOCK line).
 function M.clock_cancel()
-  if not M.state then
+  local st = M.state
+  if not st then
     utils.notify("No active clock")
     return nil
   end
   local bufnr, lnum = M.find_open_clock()
-  local st = M.state
   M.state = nil
   stop_timers()
   persist()
-  if bufnr then
+  if bufnr and lnum then
     delete_clock_line(bufnr, lnum)
     utils.notify("Clock canceled")
   else
@@ -184,7 +184,7 @@ end
 --- The running clock as a task entry.
 local function current_task()
   local bufnr, lnum = M.find_open_clock()
-  if not bufnr then
+  if not bufnr or not lnum then
     return nil
   end
   local hl = files.get_buffer(bufnr):headline_at(lnum)
@@ -227,10 +227,11 @@ function M.select_task(prompt)
   local items = {}
   local function add(key, task)
     local bufnr, lnum = find_entry(task)
-    if not bufnr then
+    if not bufnr or not lnum then
       return false
     end
-    local hl = files.get_buffer(bufnr):headline_at(lnum)
+    -- find_entry returns a headline's line
+    local hl = assert(files.get_buffer(bufnr):headline_at(lnum))
     items[#items + 1] = {
       key = key,
       label = string.format("%-12s  %s", hl:get_category(), hl:plain_title()),
@@ -290,7 +291,7 @@ end
 --- Mark the entry at the cursor as the default task (org-clock-mark-default-task).
 function M.mark_default_task(target)
   local bufnr, _, hl = edit.resolve_headline(target)
-  if not bufnr then
+  if not bufnr or not hl then
     return nil
   end
   M.default_task = task_of(bufnr, hl)
@@ -307,7 +308,7 @@ end
 --- the entry at the cursor as the default task (C-u C-u), and 64 starts
 --- the clock where the last one stopped (C-u C-u C-u).
 ---@param target? org.Target
----@param opts? { at?: table, resume?: boolean, switch_to_state?: string, no_count?: boolean }
+---@param opts? { at?: table, resume?: boolean, switch_to_state?: string, no_count?: boolean, continuous?: boolean, out_switch_to_state?: string|false, note?: string|false, clocking_in?: boolean, resolving_idle?: boolean }
 function M.clock_in(target, opts)
   opts = opts or {}
   local count = (target == nil and not opts.at and not opts.no_count) and vim.v.count or 0
@@ -318,7 +319,7 @@ function M.clock_in(target, opts)
     return M.clock_in_select()
   end
   local bufnr, _, hl = edit.resolve_headline(target)
-  if not bufnr then
+  if not bufnr or not hl then
     return nil
   end
   if count >= 16 then
@@ -357,7 +358,7 @@ function M.clock_in(target, opts)
   fire("OrgClockInPrepare", { bufnr = bufnr, lnum = lnum })
   lnum = target_line()
   local file = files.get_buffer(bufnr)
-  hl = file:headline_at(lnum)
+  hl = assert(file:headline_at(lnum), "clock_in: the heading is gone")
   push_history(task_of(bufnr, hl))
   -- org-clock-in-switch-to-state
   local switch = opts.switch_to_state or clock_cfg().in_switch_to_state
@@ -369,7 +370,7 @@ function M.clock_in(target, opts)
     lnum = target_line()
   end
   vim.api.nvim_buf_del_extmark(bufnr, mark_ns, mark)
-  hl = files.get_buffer(bufnr):headline_at(lnum)
+  hl = assert(files.get_buffer(bufnr):headline_at(lnum), "clock_in: the heading is gone")
   local start_str
   local resume = opts.resume or clock_cfg().in_resume
   if resume then
@@ -398,7 +399,7 @@ function M.clock_in(target, opts)
     start = (start or opts.at or current_time(true)):clone({ active = false })
     start_str = start:to_string({ range = false })
     insert_clock_line(bufnr, lnum, "CLOCK: " .. start_str)
-    hl = files.get_buffer(bufnr):headline_at(lnum)
+    hl = assert(files.get_buffer(bufnr):headline_at(lnum), "clock_in: the heading is gone")
   end
   M.state = {
     path = buf_path(bufnr) or "",

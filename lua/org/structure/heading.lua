@@ -600,7 +600,7 @@ function M.convert_to_oddeven_levels()
   for _, hl in ipairs(file.headlines) do
     if hl.level % 2 == 0 then
       vim.api.nvim_win_set_cursor(0, { hl.line, 0 })
-      pcall(vim.cmd, "normal! zv")
+      pcall(vim.api.nvim_command, "normal! zv")
       utils.error("Not all levels are odd in this file.  Conversion not possible")
       return
     end

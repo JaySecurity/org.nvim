@@ -189,12 +189,13 @@ end
 --- for `@I`, `@II`, ... (Emacs org-table-hlines), a rule above the first
 --- row too: it is `@I`, at position 0.
 local function model(t)
-  local m = { data = {}, hlines = {}, ncols = t.ncols, special = {} }
+  local m = { data = {}, hlines = {}, ncols = t.ncols, special = {}, nfields = {} }
   for _, row in ipairs(t.rows) do
     if row.hline then
       m.hlines[#m.hlines + 1] = #m.data -- data rows before this hline
     else
       m.data[#m.data + 1] = row.cells
+      m.nfields[#m.data] = row.nfields
     end
   end
   return m
@@ -1181,6 +1182,10 @@ function M.apply(t, formulas, ctx)
         if e.col > m.ncols then
           add_columns(t, m, e.col)
         end
+        -- Emacs goes to the column with FORCE, adding the row's missing fields
+        if m.nfields[r] and m.nfields[r] < e.col then
+          m.nfields[r] = e.col
+        end
         if not overridden[r .. ":" .. e.col] then
           eval(e, r, e.col)
         end
@@ -1195,8 +1200,14 @@ function M.apply(t, formulas, ctx)
           error("Missing columns in the table.  Aborting", 0)
         end
         add_columns(t, m, tg[2])
+        m.nfields[tg[1]] = nil -- Emacs adds the columns to this row
       end
-      eval(e, tg[1], tg[2])
+      -- a row written with fewer fields (an unaligned table): Emacs'
+      -- org-table-get-field finds no field there and writes nothing
+      local nf = m.nfields[tg[1]]
+      if not (nf and tg[2] > nf) then
+        eval(e, tg[1], tg[2])
+      end
     end
   end
   t.ncols = m.ncols

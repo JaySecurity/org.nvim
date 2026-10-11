@@ -56,13 +56,17 @@ local function is_item(l)
   return l:match("^%s*[%-%+] ") or l:match("^%s*[%-%+]$") or l:match("^%s*%d+[%.%)] ") or l:match("^%s*%d+[%.%)]$")
 end
 
---- Whether an inline task comes before the first headline.
-local function inlinetask_before_headline(lines)
+--- Is there an active timestamp after an inline task's END line, before
+--- the next heading?
+local function timestamp_after_inline_end(lines)
+  local after_end = false
   for _, l in ipairs(lines) do
-    if l:match(INLINETASK) then
-      return true
+    if l:match(INLINETASK .. "[Ee][Nn][Dd]%s*$") then
+      after_end = true
     elseif l:match("^%*+ ") then
-      return false
+      after_end = false
+    elseif after_end and l:match("<%d%d%d%d%-%d%d%-%d%d") then
+      return true
     end
   end
   return false
@@ -277,48 +281,9 @@ return {
   },
   {
     oracle = "agenda",
-    reason = [[Habit consistency graphs differ (which days get a "*").]],
-    same = function(s)
-      return (s:gsub("[ %*!]*![ %*!]*", "!"))
-    end,
-  },
-  {
-    oracle = "agenda",
-    reason = [[A headline with a TODO keyword and no title: org.nvim's agenda
-      line ends with a space after the keyword.]],
-    same = function(s)
-      return (s:gsub("[ \t]+\n", "\n"):gsub("[ \t]+$", ""))
-    end,
-  },
-  {
-    oracle = "agenda",
     reason = [[A headline that is only tags ("* :work:"): Emacs shows the tags
       as the title too, org.nvim an empty title.]],
     emacs = "%s(:[%w_@:]+:)%s+%1",
-  },
-  {
-    oracle = "agenda",
-    reason = [[Tag order: Emacs lists inherited tags, then the local ones as
-      written; org.nvim reorders them (a local tag that is also inherited
-      moves first).]],
-    same = function(s)
-      return (
-        s:gsub(":([%w_@:]+):", function(tags)
-          local t = vim.split(tags, ":+")
-          table.sort(t)
-          return ":" .. table.concat(t, ":") .. ":"
-        end)
-      )
-    end,
-  },
-  {
-    oracle = "agenda",
-    reason = [[The END line of an inline task shows in org.nvim's tags matches
-      (as a headline with the tags of the task's outline), not in Emacs'.]],
-    ours = "^%s*[%w_]+:%s+[Ee][Nn][Dd]%s",
-    same = function(s)
-      return (("\n" .. s):gsub("\n%s*[%w_]+:%s+[Ee][Nn][Dd]%s[^\n]*", "")):sub(2)
-    end,
   },
   {
     oracle = "table",
@@ -372,27 +337,12 @@ return {
   },
   {
     oracle = "agenda",
-    reason = [[A plain timestamp with a repeater and a warning delay, as
-      <2026-09-24 Thu +1w -4d>: Emacs doesn't show its repeats, org.nvim
-      does.]],
-    input = "<%d%d%d%d%-%d%d%-%d%d[^>]* [%.%+]+%d+[hdwmy][^>]* %-%-?%d+[hdwmy]>",
-    emacs = "^$",
-  },
-  {
-    oracle = "agenda",
-    reason = [[A date range in a planning line whose end has a time
-      (SCHEDULED: <a>--<b 11:15>): Emacs shows the entry at that time,
-      org.nvim without one.]],
-    input = "%u+: <[^>]+>%-%-<[^>]* %d%d?:%d%d>",
-    either = "[DS]%l+[:%.]",
-  },
-  {
-    oracle = "agenda",
-    reason = [[A timestamp under an inline task before the first headline
-      gives org.nvim an agenda entry (titled by the inline task), not
-      Emacs.]],
-    input = inlinetask_before_headline,
-    emacs = "^$",
+    reason = [[A timestamp after an inline task's END line (in the text of
+      the enclosing headline): Emacs' agenda titles it "END" (the line
+      org-agenda-get-timestamps finds with org-outline-regexp-bol), org.nvim
+      with the enclosing headline.]],
+    input = timestamp_after_inline_end,
+    emacs = "%sEND%f[%s:%z]",
   },
   {
     oracle = "export%-.*",
@@ -419,5 +369,61 @@ return {
         return (vim.trim(l:gsub("  +", " ")):gsub("([>%[#{]) ", "%1"):gsub(" ([}<\\%]&])", "%1"))
       end)
     end,
+  },
+  {
+    oracle = "commands",
+    reason = [[org-todo on a COMMENT headline with tags: Emacs takes COMMENT
+      out, changes the keyword, aligns the tags and puts COMMENT back
+      without aligning again, so its tags end 8 columns past
+      org-tags-column; org.nvim aligns them at tags_column. An Emacs bug,
+      not copied.]],
+    either = "%*+ %u+ [^\n]-COMMENT [^\n]-%s:[^%s]+:",
+    same = function(s)
+      return each_line(s, function(l)
+        return (l:gsub("^(%*+ .-COMMENT .-)%s+(:[^%s]+:)$", "%1 %2"))
+      end)
+    end,
+  },
+  {
+    oracle = "commands",
+    reason = [[A timestamp with the wrong weekday (<2026-10-12 Fri>) on a
+      planning line or next to a timestamp org.nvim changes: org.nvim
+      writes it again with the right weekday, Emacs leaves its text
+      alone.]],
+    either = "%d%d%d%d%-%d%d%-%d%d %a%a%a",
+    same = function(s)
+      return (s:gsub("(%d%d%d%d%-%d%d%-%d%d) %a%a%a", "%1"))
+    end,
+  },
+  {
+    oracle = "commands",
+    reason = [[Archiving the Archive sibling itself (C-c C-x A on "** Archive
+      :ARCHIVE:"): Emacs finds that headline as its own Archive sibling,
+      cuts it and pastes it one level deeper, under the previous sibling;
+      org.nvim leaves it alone.]],
+    emacs = "Archive%s+:ARCHIVE:\n:PROPERTIES:\n:ARCHIVE_TIME:",
+  },
+  {
+    oracle = "commands",
+    reason = [[Sorting the children of a headline whose text holds an inline
+      task: Emacs (org-sort-entries) takes the inline task for the first
+      child and sorts the entries of its level, so nothing moves; org.nvim
+      sorts the children.]],
+    input = function(lines)
+      for _, l in ipairs(lines) do
+        if l:match(INLINETASK) then
+          return true
+        end
+      end
+      return false
+    end,
+    either = "^%*+ ",
+    same = function(s)
+      local t = vim.split(s, "\n", { plain = true })
+      table.sort(t)
+      return table.concat(t, "\n")
+    end,
+    broad = true,
+    moves = true,
   },
 }

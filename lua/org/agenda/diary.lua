@@ -450,7 +450,7 @@ local NONGREGORIAN = {
 --- included files (diary-list-entries).
 ---@param path string
 ---@param day integer org.date day number
----@param ctx { files: table<string, org.DiaryText|false>, included: table<string, boolean>, style: string }
+---@param ctx { files: table<string, org.DiaryText|false>, included: table<string, boolean>, style: string, main: string }
 ---@param out org.DiaryEntry[]
 ---@param main boolean the diary file itself (not an included file)
 local function list_entries(path, day, ctx, out, main)

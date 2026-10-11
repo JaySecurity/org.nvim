@@ -9,6 +9,10 @@
 --   examples/*.org       → examples/<name>.html, exported by org.nvim's own
 --                          HTML exporter (body only, no Babel evaluation)
 --   docs/parity-review.md, docs/parity/inventory.tsv → parity/
+--   :h org-differences   → parity/differences.html, one section per item
+--   scripts/extension_report.lua → extensions.html, the promotion report
+--                          (ORG_SITE_COVERAGE, ORG_SITE_ISSUES=0 and
+--                          ORG_DEMO_CONFIG feed it; see CONTRIBUTING.md)
 --   tutor/org/*.org, docs/playground/*.cast → playground.html, the tutor
 --                          lessons' recordings (scripts/site/playground.lua)
 -- plus a search index (search-index.js) and scripts/site/assets/. Every
@@ -435,8 +439,8 @@ do
       b[#b + 1] = "</tbody></table></div>"
     end
   end
-  b[#b + 1] = '<p>See also the <a href="review.html">parity reviews</a>, and '
-    .. '<a href="../manual/org-differences.html">Differences from Emacs</a> in the manual.</p>'
+  b[#b + 1] = '<p>See also the <a href="review.html">parity reviews</a>, and the '
+    .. '<a href="differences.html">known differences from Emacs</a>.</p>'
   add_page({
     path = "parity/index.html",
     title = "Parity scorecard",
@@ -444,6 +448,131 @@ do
     group = "parity",
     source = blob("docs/parity/inventory.tsv"),
   })
+end
+
+-- Known differences from Emacs (:h org-differences) ---------------------------------
+
+--- The site path of help tag `tag` for a link from the site page `from`:
+--- org.nvim's own tags go to the manual, Vim's to Neovim's help.
+local function help_href(tag, from)
+  local page = tag_page[tag]
+  if page then
+    return rel(from, "manual/" .. page .. ".html") .. (tag == page and "" or ("#" .. html.urlencode(tag)))
+  elseif vim_tags[tag] then
+    return NVIM_HELP .. html.urlencode(tag)
+  end
+  err("doc/org.txt: |%s| (in %s) is neither an org.nvim nor a Neovim help tag", tag, from)
+end
+
+--- A short title for a top-level item of :h org-differences, in plain text
+--- (no parentheses, tags, links or code marks): its lead-in ("Table
+--- formulas: ...", "Links (|org-links|):"), else the start of its first
+--- sentence.
+local function difference_title(text)
+  text = text
+    :gsub("%s+%*[^*%s]+%*", "") -- *tags*
+    :gsub("%s*%b()", "")
+    :gsub("|([^|%s]+)|", "%1")
+    :gsub("`([^`]*)`", "%1")
+    :gsub("%s+", " ")
+  text = vim.trim(text)
+  local lead = text:match("^([^:]-):%s") or text:match("^([^:]-):$")
+  if lead and #lead <= 45 and not lead:find("[.;]%s") then
+    return lead
+  end
+  local first = text:match("^(.-)[.;:]%s") or text:match("^(.-)%.$") or text
+  local words = vim.split(first, " ", { trimempty = true })
+  if #words > 10 then
+    return table.concat(words, " ", 1, 9) .. " …"
+  end
+  return table.concat(words, " ")
+end
+
+do
+  local path = "parity/differences.html"
+  local chapter
+  for _, ch in ipairs(chapters) do
+    if ch.name == "org-differences" then
+      chapter = ch
+    end
+  end
+  if not chapter then
+    err("doc/org.txt: no *org-differences* chapter for %s", path)
+  else
+    -- the top-level items ("- ...") of the chapter, after its header line
+    local items = {}
+    for k = 2, #chapter.lines do
+      local l = chapter.lines[k]
+      if l:match("^%- ") then
+        items[#items + 1] = { l:sub(3) }
+      elseif items[#items] and (l:match("^%s") or l == "") then
+        local item = items[#items]
+        item[#item + 1] = l:gsub("^  ", "")
+      elseif l:match("%S") and not l:match("^[=-]+$") then
+        err("doc/org.txt: *org-differences*: line %q is not part of a list item", l)
+      end
+    end
+    local slugs = {}
+    local toc, sections = {}, {}
+    for _, item in ipairs(items) do
+      while item[#item] == "" do
+        item[#item] = nil
+      end
+      local lead_lines = {}
+      for _, l in ipairs(item) do
+        if l == "" then
+          break
+        end
+        lead_lines[#lead_lines + 1] = l
+      end
+      local title = difference_title(table.concat(lead_lines, " "))
+      local id = "d-" .. html.slug(title, slugs)
+      add_search(title, path .. "#" .. id, "Known differences from Emacs", "heading")
+      toc[#toc + 1] = '<li><a href="#' .. id .. '">' .. html.escape(title) .. "</a></li>"
+      local body = vimdoc.render(item, {
+        title = title,
+        tags = all_tags,
+        slugs = slugs,
+        link = function(tag)
+          return help_href(tag, path)
+        end,
+      })
+      sections[#sections + 1] = '<section class="difference" id="'
+        .. id
+        .. '"><h2><a class="anchor" href="#'
+        .. id
+        .. '">'
+        .. html.escape(title)
+        .. "</a></h2>\n"
+        .. body
+        .. "</section>"
+    end
+    local b = {
+      "<h1>Known differences from Emacs</h1>",
+      "<p class=\"lead\">org.nvim aims to behave like Emacs Org 9.8. Where it can't, or deliberately doesn't, "
+        .. "the difference is listed here: "
+        .. #items
+        .. ' areas, generated from <a href="'
+        .. help_href("org-differences", path)
+        .. '"><code>:h org-differences</code></a> in the manual.</p>',
+      '<p>Export features that are not supported are listed in <a href="'
+        .. help_href("org-export-unsupported", path)
+        .. '"><code>:h org-export-unsupported</code></a>. How much of Org is covered is on the '
+        .. '<a href="index.html">parity scorecard</a>.</p>',
+      '<nav class="toc" aria-label="Differences"><h2 id="contents">Contents</h2><ol class="contents columns">'
+        .. table.concat(toc)
+        .. "</ol></nav>",
+      table.concat(sections, "\n"),
+    }
+    add_search("Known differences from Emacs", path, "Parity", "page")
+    add_page({
+      path = path,
+      title = "Known differences",
+      body = table.concat(b, "\n"),
+      group = "parity",
+      source = blob("doc/org.txt", "#L" .. (chapter.lnum or 1)),
+    })
+  end
 end
 
 -- Examples (exported with org.nvim) -------------------------------------------------
@@ -578,6 +707,187 @@ do
   add_search("Try the syntax", "playground.html#try-the-syntax", "Playground", "heading")
 end
 
+-- Extensions status (scripts/extension_report.lua) -----------------------------------
+
+do
+  local path = "extensions.html"
+  local report_lib = require("extension_report")
+  -- coverage from `make coverage` (CI: the latest Coverage run's
+  -- artifact), open bugs from GitHub unless ORG_SITE_ISSUES=0, the demo
+  -- only when ORG_DEMO_CONFIG names it (it's not in the repository)
+  local cov = vim.env.ORG_SITE_COVERAGE
+  if not cov and exists("coverage/coverage.json") then
+    cov = root .. "/coverage/coverage.json"
+  end
+  local ok, report = pcall(report_lib.measure, {
+    coverage = cov,
+    gh = vim.env.ORG_SITE_ISSUES ~= "0",
+    demo = vim.env.ORG_DEMO_CONFIG,
+  })
+  if not ok then
+    err("extensions status: %s", tostring(report))
+  else
+    local function cell(c)
+      local cls, mark, label = "unknown", "–", "not measured"
+      if c.pass == true then
+        cls, mark, label = "pass", "✓", "meets the bar"
+      elseif c.pass == false then
+        cls, mark, label = "fail", "✗", "below the bar"
+      end
+      local title = label .. (c.detail and (": " .. c.detail) or "")
+      return '<td class="'
+        .. cls
+        .. '" title="'
+        .. html.escape(title)
+        .. '"><span class="v">'
+        .. html.escape(c.value)
+        .. '</span> <span class="mark" aria-label="'
+        .. label
+        .. '">'
+        .. mark
+        .. "</span></td>"
+    end
+    local function ext_link(name)
+      return '<a href="'
+        .. help_href("org-extensions-" .. name:gsub("_", "-"), path)
+        .. '"><code>'
+        .. html.escape(name)
+        .. "</code></a>"
+    end
+    local function badge(stability)
+      -- (on a phone, the mark alone: its word is only for screen readers)
+      return '<span class="badge '
+        .. stability
+        .. '" title="'
+        .. stability
+        .. '"><span aria-hidden="true">'
+        .. (stability == "stable" and "✅" or "🧪")
+        .. '</span> <span class="word">'
+        .. stability
+        .. "</span></span>"
+    end
+    local counts = { stable = 0, experimental = 0 }
+    for _, r in ipairs(report.extensions) do
+      counts[r.stability] = (counts[r.stability] or 0) + 1
+    end
+    local bar_rows = report_lib.bar_rows()
+    local contributing = blob("CONTRIBUTING.md", "#promoting-an-extension")
+    local b = {
+      "<h1>Extensions status</h1>",
+      '<p class="lead">Every optional extension is stable or experimental ('
+        .. '<a href="'
+        .. help_href("org-extensions-stability", path)
+        .. '"><code>:h org-extensions-stability</code></a>). An experimental extension becomes stable '
+        .. 'when it meets every criterion of <a href="'
+        .. contributing
+        .. '">Promoting an extension</a>. This page is the promotion report of '
+        .. '<a href="'
+        .. blob("scripts/extension_report.lua")
+        .. '"><code>scripts/extension_report.lua</code></a>, measured when the site was built ('
+        .. os.date("!%Y-%m-%d")
+        .. ").</p>",
+      '<div class="stat-row">',
+      '<div class="stat"><div class="big">' .. #report.extensions .. "</div>extensions</div>",
+      '<div class="stat"><div class="big">' .. counts.stable .. "</div>stable</div>",
+      '<div class="stat"><div class="big">' .. counts.experimental .. "</div>experimental</div>",
+      '<div class="stat"><div class="big">' .. #report.candidates .. "</div>ready to promote</div>",
+      "</div>",
+      '<h2 id="report">Report</h2>',
+      '<p class="legend"><span class="pass">✓ meets the bar</span> <span class="fail">✗ below it</span> '
+        .. '<span class="unknown">– not measured in this build</span> '
+        .. '<span class="muted">Hover or tap a cell for details.</span></p>',
+      '<div class="table-wrap"><table class="ext-status"><thead><tr><th scope="col">Extension</th><th scope="col">Stability</th>',
+    }
+    for _, crit in ipairs(bar_rows) do
+      b[#b + 1] = '<th scope="col"><a href="#bar-' .. crit.key .. '">' .. html.escape(crit.header) .. "</a></th>"
+    end
+    b[#b + 1] = "</tr></thead><tbody>"
+    for _, r in ipairs(report.extensions) do
+      local cells = {
+        '<tr id="ext-' .. r.name .. '"' .. (r.candidate and ' class="candidate"' or "") .. ">",
+        '<th scope="row">' .. ext_link(r.name) .. "</th>",
+        "<td>" .. badge(r.stability) .. "</td>",
+      }
+      for _, crit in ipairs(bar_rows) do
+        cells[#cells + 1] = cell(r.criteria[crit.key])
+      end
+      cells[#cells + 1] = "</tr>"
+      b[#b + 1] = table.concat(cells)
+    end
+    b[#b + 1] = "</tbody></table></div>"
+    local notes = {}
+    if not report.history then
+      notes[#notes + 1] = "the release history (this build had no full git history with tags)"
+    end
+    if report.extensions[1] and report.extensions[1].criteria.coverage.pass == nil then
+      notes[#notes + 1] = "line coverage (no <code>make coverage</code> report)"
+    end
+    if report.extensions[1] and report.extensions[1].criteria.bugs.pass == nil then
+      notes[#notes + 1] = "open bugs (GitHub wasn't asked)"
+    end
+    if not vim.env.ORG_DEMO_CONFIG then
+      notes[#notes + 1] = "the live demo, which lives outside the repository"
+    end
+    if #notes > 0 then
+      b[#b + 1] = '<p class="muted">Not measured in this build: '
+        .. table.concat(notes, "; ")
+        .. ". A missing required criterion blocks a promotion; the open bugs and the demo are then checked by hand.</p>"
+    end
+    local function group(id, title, items, describe)
+      add_search(title, path .. "#" .. id, "Extensions status", "heading")
+      b[#b + 1] = '<h2 id="' .. id .. '">' .. html.escape(title) .. " (" .. #items .. ")</h2>"
+      if #items == 0 then
+        b[#b + 1] = '<p class="muted">None.</p>'
+        return
+      end
+      b[#b + 1] = '<ul class="ext-list">'
+      for _, r in ipairs(items) do
+        b[#b + 1] = "<li>" .. ext_link(r.name) .. ": " .. html.escape(describe(r)) .. "</li>"
+      end
+      b[#b + 1] = "</ul>"
+    end
+    group("candidates", "Ready to promote", report.candidates, function(r)
+      return "meets every criterion"
+        .. (#r.unknown > 0 and ("; check by hand: " .. table.concat(r.unknown, ", ")) or "")
+    end)
+    group("near", "Near misses", report.near, function(r)
+      return "needs " .. report_lib.why(r, report_lib.blockers(r))
+    end)
+    group("far", "Further off", report.far, function(r)
+      return "needs " .. report_lib.why(r, report_lib.blockers(r))
+    end)
+    group("below", "Stable but below the bar", report.below, function(r)
+      return "lacks " .. report_lib.why(r, r.failed)
+    end)
+    b[#b + 1] = '<p class="muted">A stable extension is never demoted automatically: '
+      .. "falling below the bar is a prompt to add the missing specs or docs.</p>"
+    b[#b + 1] = '<h2 id="bar">The bar</h2>'
+    b[#b + 1] = '<div class="table-wrap"><table class="defs-bar"><thead><tr><th scope="col">Criterion</th>'
+      .. '<th scope="col">An experimental extension needs</th></tr></thead><tbody>'
+    for _, crit in ipairs(bar_rows) do
+      b[#b + 1] = '<tr id="bar-'
+        .. crit.key
+        .. '"><th scope="row">'
+        .. html.escape(crit.header)
+        .. "</th><td>"
+        .. html.escape(crit.text)
+        .. (crit.required and "" or ' <span class="muted">(checked by hand when not measured)</span>')
+        .. "</td></tr>"
+    end
+    b[#b + 1] = "</tbody></table></div>"
+    b[#b + 1] = '<p>How each criterion is measured: <a href="' .. contributing .. '">CONTRIBUTING.md</a>.</p>'
+    add_search("Extensions status", path, "Stable and experimental extensions", "page")
+    add_search("The bar", path .. "#bar", "Extensions status", "heading")
+    add_page({
+      path = path,
+      title = "Extensions status",
+      body = table.concat(b, "\n"),
+      group = "extensions",
+      source = blob("scripts/extension_report.lua"),
+    })
+  end
+end
+
 -- Navigation ------------------------------------------------------------------------
 
 local function nav_html(page)
@@ -607,6 +917,9 @@ local function nav_html(page)
   group("Manual", "manual")
   group("Examples", "examples")
   group("Parity", "parity")
+  if by_path["extensions.html"] then
+    out[#out + 1] = item(by_path["extensions.html"])
+  end
   out[#out + 1] = '<li><a href="' .. GITHUB .. '">GitHub</a></li>'
   out[#out + 1] = '<li><a href="' .. GITHUB .. '/releases">Releases</a></li>'
   out[#out + 1] = "</ul>"

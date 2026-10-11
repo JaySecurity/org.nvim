@@ -342,3 +342,36 @@ describe("lists: checkbox radio mode", function()
     vim.api.nvim_del_autocmd(id)
   end)
 end)
+
+describe("lists: org-toggle-checkbox (make difftest, commands oracle)", function()
+  it("toggles the box without renumbering the list", function()
+    -- org-toggle-checkbox fixes the boxes only (C-c C-c on an item goes
+    -- through org-list-write-struct, which renumbers)
+    local buf = org_buffer({ "* H", "1. [@8] [ ] a", "2. b", "3. [ ] c" }, { 4, 0 })
+    lists.toggle_checkbox()
+    eq({ "* H", "1. [@8] [ ] a", "2. b", "3. [X] c" }, buf_lines(buf))
+  end)
+end)
+
+describe("lists: statistics cookies (make difftest, commands oracle)", function()
+  it("a checkbox counts in the cookies of its entry only", function()
+    -- org-update-checkbox-count: the ancestors' cookies stay
+    local buf = org_buffer({ "* G [/]", "** H [/]", "- [ ] a" }, { 3, 0 })
+    lists.toggle_checkbox()
+    eq({ "* G [/]", "** H [1/1]", "- [X] a" }, buf_lines(buf))
+  end)
+
+  it("a TODO change updates the parent's cookie with TODO counts, not further up", function()
+    -- org-update-parent-todo-statistics: the TODO children, even when the
+    -- parent has checkboxes; the grandparent is left alone
+    local buf = org_buffer({ "* G [/]", "** P [%]", "- [ ] box", "*** TODO a" }, { 4, 0 })
+    require("org.todo").select_or_cycle()
+    eq({ "* G [/]", "** P [100%]", "- [ ] box", "*** DONE a" }, buf_lines(buf))
+  end)
+
+  it("realigns the tags after a cookie changed", function()
+    local buf = org_buffer({ "* P [/] :x:", "** TODO a" }, { 2, 0 })
+    require("org.todo").select_or_cycle()
+    eq({ "* P [1/1]" .. string.rep(" ", 65) .. ":x:", "** DONE a" }, buf_lines(buf))
+  end)
+end)

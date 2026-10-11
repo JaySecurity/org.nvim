@@ -471,7 +471,7 @@ local function parse_and(s)
   local i = 1
   while i <= #s do
     local t, e = parse_term(s, i)
-    if not t then
+    if not t or not e then
       break
     end
     terms[#terms + 1] = t
@@ -734,12 +734,17 @@ function M.compile(match, opts)
   -- comes after it (then the slash belongs to a property value)
   local tag_part, todo_part = match, nil
   local last
-  for s in match:gmatch("()/+") do
-    last = s
+  local init = 1
+  while true do
+    local s, e = match:find("/+", init)
+    if not s then
+      break
+    end
+    last, init = s, e + 1
   end
   if last and not match:find('"', last, true) then
-    local e = match:match("^/+()", last)
-    tag_part, todo_part = match:sub(1, last - 1), match:sub(e)
+    local _, e = match:find("^/+", last)
+    tag_part, todo_part = match:sub(1, last - 1), match:sub(e + 1)
   end
   local todo_only = false
   if todo_part then

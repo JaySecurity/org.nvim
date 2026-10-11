@@ -125,7 +125,7 @@ function M.reset_checkbox_state_subtree()
     end
   end
   if vim.api.nvim_get_current_buf() == bufnr then
-    pcall(vim.cmd, s .. "," .. e .. "foldopen!")
+    pcall(vim.api.nvim_command, s .. "," .. e .. "foldopen!")
   end
   if M.automatic_rule("checkbox") then
     file = files.get_buffer(bufnr)
@@ -234,9 +234,8 @@ local function toggle_checkbox_range(bufnr, s, e, arg, singlep)
         it.box = ref
       end
     end
-    fix_ind(struct)
-    fix_bul(struct)
-    fix_ind(struct)
+    -- only the checkboxes: org-toggle-checkbox applies the structure
+    -- without fixing bullets or indentation (C-c C-c on an item does)
     local block = fix_box(struct, ordered)
     if singlep and block and s > block.lnum then
       utils.warn(string.format("Checkbox blocked because of unchecked box at line %d", block.lnum))

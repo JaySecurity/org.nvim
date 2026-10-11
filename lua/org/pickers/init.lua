@@ -196,14 +196,16 @@ local function lazyvim_picker()
   return LAZYVIM[name or ""]
 end
 
---- The backend used for the `picker` option (or `name`): "auto" takes
---- LazyVim's picker when it is installed, else the first installed of
---- snacks.nvim, fzf-lua, telescope.nvim and mini.pick, else
---- vim.ui.select. A backend that isn't installed falls back to
---- vim.ui.select, with a warning.
+--- The backend used for the `picker` option (or `name`), without telling
+--- anyone: "auto" takes LazyVim's picker when it is installed, else the
+--- first installed of snacks.nvim, fzf-lua, telescope.nvim and mini.pick,
+--- else vim.ui.select. An unknown or uninstalled backend falls back to
+--- vim.ui.select, and the second result says why (for `:checkhealth`,
+--- which reports through its own reporter).
 ---@param name? string
----@return string
-function M.backend(name)
+---@return string backend
+---@return string|nil problem why `name` isn't the backend used
+function M.resolve(name)
   name = name or require("org.config").opts.picker or "auto"
   if name == "auto" then
     local lazy = lazyvim_picker()
@@ -218,17 +220,29 @@ function M.backend(name)
     return "select"
   end
   if not modules[name] then
-    utils.warn("Unknown picker " .. tostring(name) .. ", using vim.ui.select")
-    return "select"
+    return "select", "Unknown picker " .. tostring(name) .. ", using vim.ui.select"
   end
   if not M.available(name) then
-    if not warned[name] then
-      warned[name] = true
-      utils.warn("Picker " .. name .. " is not installed, using vim.ui.select")
-    end
-    return "select"
+    return "select", "Picker " .. name .. " is not installed, using vim.ui.select"
   end
   return name
+end
+
+--- The backend used for the `picker` option (or `name`), like
+--- `resolve`, with a warning when it falls back to vim.ui.select (once
+--- per uninstalled backend).
+---@param name? string
+---@return string
+function M.backend(name)
+  local used, problem = M.resolve(name)
+  if problem then
+    local key = name or require("org.config").opts.picker or "auto"
+    if not modules[key] or not warned[key] then
+      warned[key] = true
+      utils.warn(problem)
+    end
+  end
+  return used
 end
 
 --- Whether any item has something to preview.

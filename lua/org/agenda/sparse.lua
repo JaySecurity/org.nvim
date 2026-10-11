@@ -307,6 +307,7 @@ end
 
 --- The date types of the before/after/range sparse trees, in the order `c`
 --- cycles them (org-sparse-tree); nil = SCHEDULED or DEADLINE.
+---@type (string|false)[]
 M.DATE_TYPES = { false, "all", "scheduled", "deadline", "active", "inactive", "closed" }
 
 local DATE_TYPE_LABELS = {
@@ -559,7 +560,7 @@ function M.prompt(date_type)
       M.dates("between", d1, d2, date_type)
     end
   elseif choice == "c" then
-    local nxt = M.DATE_TYPES[1]
+    local nxt = M.DATE_TYPES[1] ---@type string|false
     for i, t in ipairs(M.DATE_TYPES) do
       if t == date_type then
         nxt = M.DATE_TYPES[i % #M.DATE_TYPES + 1]

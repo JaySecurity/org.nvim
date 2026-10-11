@@ -23,6 +23,7 @@ local root = require("tests.emacs_parity").root
 ---@field [1] string oracle
 ---@field [2] string input
 ---@field [3] string output
+---@field [4]? string the commands oracle's plan (tests/difftest/oracles.lua, M.extra)
 
 ---@class difftest.Worker
 ---@field job integer
@@ -126,6 +127,7 @@ function Pool:request(oracle, input, output)
     best.since = vim.uv.now()
   end
   local r = { oracle, input, output }
+  vim.list_extend(r, require("tests.difftest.oracles").extra(oracle, input))
   best.queue[#best.queue + 1] = r
   send(best, r)
 end

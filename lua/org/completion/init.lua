@@ -369,12 +369,12 @@ local function property_keys_at(file, lnum)
       first = first + 1
     end
   end
-  if lnum <= first or not (file.lines[first] or ""):match("^%s*:PROPERTIES:%s*$") then
+  if lnum <= first or not (file.lines[first] or ""):upper():match("^%s*:PROPERTIES:%s*$") then
     return nil
   end
   local keys = {}
   for i = first + 1, last do
-    if file.lines[i]:match("^%s*:END:%s*$") then
+    if file.lines[i]:upper():match("^%s*:END:%s*$") then
       return lnum < i and keys or nil
     elseif i ~= lnum then
       local name = require("org.parser").parse_property_line(file.lines[i])

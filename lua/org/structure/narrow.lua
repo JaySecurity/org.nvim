@@ -63,6 +63,7 @@ local function indirect_headline(hl, arg)
 end
 
 --- The edit buffer of the last tree_to_indirect_buffer (org-last-indirect-buffer).
+---@type integer|nil
 M._last_indirect = nil
 
 --- Edit the current subtree in a split window (org-tree-to-indirect-buffer).
@@ -95,14 +96,14 @@ function M.tree_to_indirect_buffer(window, arg)
   hl = indirect_headline(hl, arg)
   local display = type(window) == "string" and "window" or config.opts.indirect_buffer_display or "other-window"
   local last = M._last_indirect
-  if not (last and vim.api.nvim_buf_is_valid(last)) then
+  if last and not vim.api.nvim_buf_is_valid(last) then
     last = nil
   end
   local last_win = last and vim.fn.bufwinid(last) or -1
   -- org-tree-to-indirect-buffer kills its last indirect buffer
   local replace = last and not arg and display ~= "new-frame" and not vim.bo[last].modified
   local function forget_last()
-    if replace and vim.api.nvim_buf_is_valid(last) then
+    if replace and last and vim.api.nvim_buf_is_valid(last) then
       local ed = require("org.special").edits[last]
       if ed and ed.discard then
         ed.discard()

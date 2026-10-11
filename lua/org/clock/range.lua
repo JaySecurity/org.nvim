@@ -52,6 +52,14 @@ local function iso_week_shift(y, w, n)
   return iso_week(iso_week_start(y, w):add(7 * n, "d"))
 end
 
+--- A pattern capture of digits (maybe signed) as an integer.
+---@param s string
+---@return integer
+local function int(s)
+  -- the patterns of special_range capture digits only: tonumber can't fail
+  return tonumber(s) --[[@as integer]]
+end
+
 --- Resolve a `:block` (org-clock-special-range): `today`, `yesterday`,
 --- `thisweek`, `lastweek`, `thismonth`, `lastmonth`, `thisq`, `lastq`,
 --- `thisyear`, `lastyear` (the `this*` and `today` forms take a `-N`/`+N`
@@ -71,24 +79,24 @@ function M.special_range(key, wstart, mstart)
   local shift = 0
   local kind
   if skey:match("^%d+$") then
-    y, month, d, kind = tonumber(skey), 1, 1, "year"
+    y, month, d, kind = int(skey), 1, 1, "year"
   elseif skey:match("^%d+%-%d%d?$") then
     local a, b = skey:match("^(%d+)%-(%d+)$")
-    y, month, d, kind = tonumber(a), tonumber(b), 1, "month"
+    y, month, d, kind = int(a), int(b), 1, "month"
   elseif skey:match("^%d+%-[wW]%d%d?$") then
     local a, b = skey:match("^(%d+)%-[wW](%d+)$")
-    local s = iso_week_start(tonumber(a), tonumber(b))
+    local s = iso_week_start(int(a), int(b))
     y, month, d, dow, kind = s.year, s.month, s.day, 1, "week"
   elseif skey:match("^%d+%-[qQ][1-4]$") then
     local a, b = skey:match("^(%d+)%-[qQ](%d)$")
-    y, q, kind = tonumber(a), tonumber(b), "quarter"
+    y, q, kind = int(a), int(b), "quarter"
   elseif skey:match("^%d+%-%d%d?%-%d%d?$") then
     local a, b, c = skey:match("^(%d+)%-(%d+)%-(%d+)$")
-    y, month, d, kind = tonumber(a), tonumber(b), tonumber(c), "day"
+    y, month, d, kind = int(a), int(b), int(c), "day"
   else
     local base, n = skey:match("^(.-)([-+]%d+)$")
     if base then
-      kind, shift = base, tonumber(n)
+      kind, shift = base, int(n)
     else
       kind = skey
     end

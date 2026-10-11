@@ -229,11 +229,31 @@ local function list_file()
   end
 end
 
+M.agenda_list_file = list_file
+
 --- Entries of the agenda list file (org-read-agenda-file-list).
 local function read_list_file(path)
   return vim.tbl_filter(function(l)
     return l:match("%S") ~= nil and not l:match("^%s*#")
   end, vim.fn.readfile(path))
+end
+
+--- The entries of `agenda_files`: its list, the lines of the file it names
+--- or the one file, directory or glob it is (a copy).
+---@return string[]
+function M.agenda_patterns()
+  local cfg = require("org.config").opts
+  local patterns = vim.deepcopy(cfg.agenda_files or {})
+  if type(patterns) == "string" then
+    local path = list_file()
+    if path then
+      -- like Emacs, a file that lists the agenda files, one per line
+      patterns = read_list_file(path)
+    else
+      patterns = { patterns }
+    end
+  end
+  return patterns
 end
 
 --- Files an extension adds to the agenda files, by name: each function
@@ -246,17 +266,7 @@ M.agenda_sources = {}
 ---@param extra? string[] additional patterns
 ---@return string[]
 function M.agenda_file_paths(extra)
-  local cfg = require("org.config").opts
-  local patterns = vim.deepcopy(cfg.agenda_files or {})
-  if type(patterns) == "string" then
-    local path = list_file()
-    if path then
-      -- like Emacs, a file that lists the agenda files, one per line
-      patterns = read_list_file(path)
-    else
-      patterns = { patterns }
-    end
-  end
+  local patterns = M.agenda_patterns()
   for _, p in ipairs(extra or {}) do
     patterns[#patterns + 1] = p
   end

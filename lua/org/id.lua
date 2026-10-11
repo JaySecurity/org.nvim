@@ -651,6 +651,48 @@ function M.fqdn()
 end
 
 --- Known IDs (from the locations file), sorted.
+--- The ID database for `:checkhealth org`: its file, format and size, the
+--- IDs and files it lists, and how many of those files are gone. At most
+--- `limit` files (default 2000) are looked at for that, so a huge database
+--- stays fast; `checked` says how many were.
+---@param limit? integer
+---@return { path: string, format: string, size?: integer, ids: integer, files: integer, missing: integer, checked: integer }
+function M.status(limit)
+  limit = limit or 2000
+  local path = db_path()
+  local st = vim.uv.fs_stat(path)
+  local head
+  local fd = st and io.open(path, "r")
+  if fd then
+    head = fd:read(256)
+    fd:close()
+  end
+  local out = {
+    path = path,
+    format = db_format(path, head),
+    size = st and st.size or nil,
+    ids = 0,
+    files = 0,
+    missing = 0,
+    checked = 0,
+  }
+  local seen = {}
+  for _, f in pairs(load_db()) do
+    out.ids = out.ids + 1
+    if not seen[f] then
+      seen[f] = true
+      out.files = out.files + 1
+      if out.checked < limit then
+        out.checked = out.checked + 1
+        if not utils.exists(f) then
+          out.missing = out.missing + 1
+        end
+      end
+    end
+  end
+  return out
+end
+
 function M.known_ids()
   local known = vim.tbl_keys(load_db())
   table.sort(known)

@@ -328,17 +328,10 @@ local function headline_body(bufnr, id, local_only)
       return nil
     end
   end
-  local k = hl.line + 1
+  -- org-end-of-meta-data: past the planning line and the property drawer
+  -- (as the parser reads them, a lower-case :properties: drawer too)
+  local k = (hl.properties_range and hl.properties_range[2] or hl.planning_line or hl.line) + 1
   local last = hl.end_line or #lines
-  if lines[k] and lines[k]:match("^%s*[A-Z]+:%s*[<%[]") then
-    k = k + 1
-  end
-  if lines[k] and lines[k]:match("^%s*:PROPERTIES:%s*$") then
-    while k <= last and not lines[k]:match("^%s*:END:%s*$") do
-      k = k + 1
-    end
-    k = k + 1
-  end
   return table.concat(vim.list_slice(lines, k, last), "\n")
 end
 

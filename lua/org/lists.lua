@@ -158,7 +158,9 @@ function M.parse_item_line(line)
   end
   local cb, after2 = rest:match("^%[([ xX%-])%](.*)$")
   if cb and (after2 == "" or after2:match("^%s")) then
-    item.checkbox = cb == "x" and "X" or cb
+    -- "[x]" is a box but not a checked one: org-list reads it like "[ ]"
+    -- (counts it as unchecked, toggles it to "[X]")
+    item.checkbox = cb == "x" and " " or cb
     local stripped = after2:gsub("^%s+", "")
     col = col + (#rest - #stripped)
     rest = stripped
@@ -484,11 +486,15 @@ shared.set_lines = set_lines
 shared.user_error = user_error
 shared.verbatim_lines = verbatim_lines
 
-require("org.lists.struct")
-require("org.lists.stats")
-require("org.lists.checkbox")
-require("org.lists.edit")
-require("org.lists.motion")
-require("org.lists.convert")
+-- The parts load on first use of one of their functions: the folds of
+-- every org buffer use the item parser above, and nothing else.
+require("org.lazy").parts(M, shared, {
+  "org.lists.struct",
+  "org.lists.stats",
+  "org.lists.checkbox",
+  "org.lists.edit",
+  "org.lists.motion",
+  "org.lists.convert",
+})
 
 return M

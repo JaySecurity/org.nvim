@@ -10,3 +10,10 @@ lua/org/element.lua
 lua/org/files.lua
 lua/org/date.lua
 lua/org/timestamps.lua
+lua/org/structure.lua
+lua/org/structure
+lua/org/lists.lua
+lua/org/lists
+lua/org/clock.lua
+lua/org/clock
+lua/org/agenda

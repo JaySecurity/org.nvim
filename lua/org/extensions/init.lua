@@ -196,10 +196,29 @@ end
 ---@param h table vim.health
 function M.check(h)
   h.start("org.nvim extensions")
+  -- enabled in setup() but not loaded: a misspelt name or a module error
+  local broken = {}
+  for name, value in pairs(require("org.config").opts.extensions or {}) do
+    if type(name) == "string" and is_enabled(value) and not M.loaded[name] then
+      broken[#broken + 1] = name
+    end
+  end
+  table.sort(broken)
+  for _, name in ipairs(broken) do
+    local ok, err = pcall(require, "org.extensions." .. name)
+    h.error(
+      string.format(
+        "extension %s is enabled but not loaded: %s",
+        name,
+        ok and "setup() ran before it was enabled" or (tostring(err):match("^[^\n]*"):gsub(":$", ""))
+      ),
+      { "check the name under `extensions` in setup(); see :h org-extensions" }
+    )
+  end
   local names = vim.tbl_keys(M.loaded)
   table.sort(names)
   if #names == 0 then
-    h.info("No extensions enabled (see :h org-extensions)")
+    h.info("No extensions enabled; see :h org-extensions")
     return
   end
   for _, name in ipairs(names) do
@@ -269,7 +288,7 @@ function M.stability_label(name)
   if stability == "stable" then
     return "stability: stable"
   end
-  return "stability: experimental, its options may change (:h org-extensions-stability)"
+  return "stability: experimental, its options may change; see :h org-extensions-stability"
 end
 
 return M

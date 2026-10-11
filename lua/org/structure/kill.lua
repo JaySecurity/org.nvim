@@ -233,7 +233,7 @@ function M.paste_subtree(opts)
   vim.api.nvim_win_set_cursor(0, { first, 0 })
   if not opts.lines and M.clip_folded and vim.deep_equal(M.clip, lines) then
     -- (not zx: that would reset the folds of the whole buffer)
-    pcall(vim.cmd, first .. "foldclose")
+    pcall(vim.api.nvim_command, first .. "foldclose")
   end
   utils.notify(string.format("Clipboard pasted as level %d subtree", new_level))
   return first, at + #new - 1
@@ -275,7 +275,7 @@ local function fold_yanked(bufnr, s, e)
     for i = #tops, 1, -1 do
       local l = tops[i]
       if vim.fn.foldclosed(l) == -1 and vim.fn.foldlevel(l) > 0 then
-        pcall(vim.cmd, l .. "foldclose")
+        pcall(vim.api.nvim_command, l .. "foldclose")
       end
     end
   end)
@@ -392,11 +392,11 @@ function M.clone_subtree()
     utils.warn("No subtree to clone")
     return
   end
-  local n = utils.input({ prompt = "Number of clones to produce: " })
-  if n == nil then
+  local answer = utils.input({ prompt = "Number of clones to produce: " })
+  if answer == nil then
     return
   end
-  n = tonumber(vim.trim(n))
+  local n = tonumber(vim.trim(answer))
   if not n or n < 0 or n ~= math.floor(n) then
     utils.warn("Invalid number of replications")
     return
@@ -411,10 +411,11 @@ function M.clone_subtree()
   end
   local shift = ""
   if has_ts and vim.v.count == 0 then
-    shift = utils.input({ prompt = "Date shift per clone (e.g. +1w, empty to copy unchanged): " })
-    if shift == nil then
+    local answer_shift = utils.input({ prompt = "Date shift per clone (e.g. +1w, empty to copy unchanged): " })
+    if answer_shift == nil then
       return
     end
+    shift = answer_shift
   end
   local sn, su
   if shift:match("%S") then

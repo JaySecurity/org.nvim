@@ -1,0 +1,34 @@
+#+TITLE: A plain org file
+#+STARTUP: content
+
+* TODO Write the report                                         :work:
+  SCHEDULED: <2026-10-12 Mon> DEADLINE: <2026-10-16 Fri -2d>
+  :PROPERTIES:
+  :EFFORT:   1:30
+  :END:
+  :LOGBOOK:
+  CLOCK: [2026-10-09 Fri 09:00]--[2026-10-09 Fri 10:15] =>  1:15
+  :END:
+  Some *bold*, /italic/ and =verbatim= text, a [[https://orgmode.org][link]],
+  a [[file:notes.org::*Ideas][file link]] and a footnote[fn:1].
+** DONE Gather the numbers [2/2]
+   - [X] sales
+   - [X] costs
+** Numbers
+   | Month | Sales | Costs |
+   |-------+-------+-------|
+   | Jan   |   100 |    80 |
+   | Feb   |   120 |    90 |
+   #+TBLFM: $4=$2-$3
+* Code
+#+begin_src lua
+print("hello")
+#+end_src
+* Habits
+** TODO Exercise
+   SCHEDULED: <2026-10-11 Sun .+1d>
+   :PROPERTIES:
+   :STYLE:    habit
+   :END:
+
+[fn:1] A footnote.

@@ -194,7 +194,7 @@ end
 --- automatic rule is on (org-update-checkbox-count-maybe).
 function M.update_checkbox_count_maybe(bufnr, lnum)
   if M.automatic_rule("checkbox") then
-    M.update_statistics_for(bufnr, lnum)
+    M.update_checkbox_count(bufnr, lnum)
   end
 end
 

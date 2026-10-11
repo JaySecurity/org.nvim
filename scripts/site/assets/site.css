@@ -23,6 +23,10 @@
   --hl-b: #b0302a;
   --hl-h: #3a2a8a;
   --shadow: 0 8px 24px rgba(31, 35, 40, 0.14);
+  --ok: #1a7f37;
+  --ok-soft: #e8f5eb;
+  --bad: #b0302a;
+  --bad-soft: #fcecea;
   --sidebar: 17rem;
   --topbar: 3.5rem;
   color-scheme: light;
@@ -51,6 +55,10 @@
     --hl-b: #ff8f86;
     --hl-h: #c6b6ff;
     --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --ok: #7fd29f;
+    --ok-soft: #173022;
+    --bad: #ff8f86;
+    --bad-soft: #3a1e1c;
     color-scheme: dark;
   }
 }
@@ -77,6 +85,10 @@
   --hl-b: #ff8f86;
   --hl-h: #c6b6ff;
   --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --ok: #7fd29f;
+  --ok-soft: #173022;
+  --bad: #ff8f86;
+  --bad-soft: #3a1e1c;
   color-scheme: dark;
 }
 
@@ -539,6 +551,137 @@ details > summary {
   font-size: 2.5rem;
   font-weight: 800;
   color: var(--accent);
+}
+
+/* Extensions status: summary tiles, the criteria table, badges */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+.stat {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-soft);
+  color: var(--fg-muted);
+}
+.stat .big {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  font-size: 0.9rem;
+}
+.legend .pass,
+.ext-status td.pass .mark {
+  color: var(--ok);
+}
+.legend .fail,
+.ext-status td.fail .mark {
+  color: var(--bad);
+}
+.legend .unknown,
+.ext-status td.unknown {
+  color: var(--fg-muted);
+}
+.ext-status th,
+.ext-status td {
+  white-space: nowrap;
+}
+.ext-status thead th a {
+  color: inherit;
+}
+.ext-status td:nth-child(n + 3) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ext-status td.fail {
+  background: var(--bad-soft);
+}
+.ext-status tr.candidate th,
+.ext-status tr.candidate td {
+  background: var(--ok-soft);
+}
+/* the name stays in view while the criteria scroll */
+.ext-status tbody th {
+  position: sticky;
+  left: 0;
+  background: var(--bg);
+}
+.badge {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  border: 1px solid var(--border);
+}
+.badge.stable {
+  color: var(--ok);
+  background: var(--ok-soft);
+  border-color: transparent;
+}
+.badge.experimental {
+  color: var(--fg-muted);
+  background: var(--bg-soft);
+}
+.ext-list li {
+  margin: 0.35rem 0;
+}
+@media (max-width: 560px) {
+  .ext-status .badge {
+    padding: 0.05rem 0.3rem;
+  }
+  .ext-status .badge .word {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+/* Known differences: contents in columns, one section per difference */
+.toc {
+  margin: 1.5rem 0;
+  padding: 0.75rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-soft);
+}
+.toc h2 {
+  margin: 0.25rem 0 0.5rem;
+  border: 0;
+  font-size: 1rem;
+}
+.toc ol.columns {
+  columns: 2 18rem;
+  column-gap: 2rem;
+  margin: 0;
+  padding-left: 1.5rem;
+}
+.toc ol.columns li {
+  break-inside: avoid;
+  margin: 0.15rem 0;
+}
+section.difference {
+  scroll-margin-top: calc(var(--topbar) + 1rem);
+}
+section.difference h2 a.anchor {
+  color: inherit;
+  text-decoration: none;
+}
+section.difference h2 a.anchor:hover::after {
+  content: " #";
+  color: var(--fg-muted);
 }
 
 /* vimdoc */

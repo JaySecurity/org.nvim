@@ -93,8 +93,8 @@ function M.spans(buf, lines)
   local marks = vim.api.nvim_buf_get_extmarks(buf, ns, 0, -1, { details = true })
   for _, m in ipairs(marks) do
     local row, col, d = m[2], m[3], m[4]
-    local group = d.hl_group or d.line_hl_group
-    if group then
+    local group = d and (d.hl_group or d.line_hl_group)
+    if d and group then
       by_row[row] = by_row[row] or {}
       local e = d.end_col or (d.line_hl_group and #(lines[row + 1] or "")) or col
       local line = (d.line_hl_group and not d.hl_group) or nil
@@ -702,7 +702,7 @@ end
 --- (Emacs outputs them with an empty category).
 function M.csv_lines()
   local S, lines = current()
-  if not S then
+  if not S or not lines then
     return {}
   end
   local sep = (config.opts.agenda.time_grid or {}).separator or " ┄┄┄┄┄ "
