@@ -741,6 +741,12 @@ describe("export: Emacs parity (difftest known differences)", function()
     has(out, ":PROPERTIES:\n:CUSTOM<sub>ID</sub>: foo\nText after.")
   end)
 
+  it("an item with an empty tag (- :: text) is a plain item", function()
+    local out = html({ "- alpha :: one", "- :: two", "", "Para.", "", "- [ ] :: five", "- gamma :: six" })
+    has(out, "<dt>(no term)</dt><dd>:: two</dd>")
+    has(out, '<li class="off"><code>[&nbsp;]</code> :: five</li>')
+  end)
+
   it("a footnote label defined twice exports its last definition", function()
     -- org-export-get-footnote-definition fills its cache with puthash
     local out = ox.export_as("ascii", {

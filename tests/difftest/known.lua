@@ -100,12 +100,6 @@ return {
   },
   {
     oracle = "export%-.*",
-    reason = [[A description item with an empty tag ("- :: text") is a plain
-      item for Emacs, a description item with an empty term for org.nvim.]],
-    input = "^%s*[%-%+] ::",
-  },
-  {
-    oracle = "export%-.*",
     reason = [[A description item whose tag is a macro that expands to nothing
       ("- {{{title}}} :: text"): Emacs expands macros before parsing, so
       it's a plain item; org.nvim exports a description item.]],
