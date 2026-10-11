@@ -8,6 +8,12 @@ pull request, by its [Conventional Commits](https://www.conventionalcommits.org/
 This file is generated from the git history by `make changelog`
 (`scripts/changelog.lua`); edit the pull request titles, not this file.
 
+## [v2.10.0] - 2026-10-11
+
+### Fixes
+
+- Emacs-parity fixes from new differential tests, strict types, faster first open and agenda, :checkhealth sections ([#246](https://github.com/xheisenbugx/org.nvim/pull/246))
+
 ## [v2.9.1] - 2026-10-11
 
 ### Fixes
@@ -428,6 +434,7 @@ This file is generated from the git history by `make changelog`
 
 </details>
 
+[v2.10.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.9.1...v2.10.0
 [v2.9.1]: https://github.com/xheisenbugx/org.nvim/compare/v2.9.0...v2.9.1
 [v2.9.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.8.0...v2.9.0
 [v2.8.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.7.0...v2.8.0
