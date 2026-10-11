@@ -201,13 +201,6 @@ return {
     ours = "^\\end{description}$",
   },
   {
-    oracle = "export%-ascii",
-    reason = [[A block holding only a blank line: org.nvim's ASCII export
-      prints a "| " line, Emacs a blank one.]],
-    ours = "|%s*$",
-    input = "^#%+begin_",
-  },
-  {
     oracle = "agenda",
     reason = [[A headline that is only tags ("* :work:"): Emacs shows the tags
       as the title too, org.nvim an empty title.]],

@@ -946,7 +946,9 @@ local function box_string(s, info)
   s = s:gsub("\n[ \t]*$", "")
   local pre = u and "│ " or "| "
   local lines = {}
-  for line in (s .. "\n"):gmatch("(.-)\n") do
+  -- an empty string stays empty (replace-regexp-in-string finds no "^"
+  -- in it): a block holding only a blank line has an empty box
+  for line in (s == "" and "" or (s .. "\n")):gmatch("(.-)\n") do
     lines[#lines + 1] = pre .. line
   end
   return fmt(u and "┌────\n%s\n└────" or ",----\n%s\n`----", table.concat(lines, "\n"))

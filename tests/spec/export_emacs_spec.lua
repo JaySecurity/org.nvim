@@ -703,4 +703,13 @@ describe("export: Emacs parity (difftest known differences)", function()
     eq(77, vim.fn.strchars(lines[2]))
     ok(lines[1]:match("^%* 日本語 title +:work:$"), lines[1])
   end)
+
+  it("a block holding only a blank line has an empty box (ASCII) or quote (Markdown)", function()
+    -- org-ascii--box-string and org-md-quote-block replace "^" in an
+    -- empty string: nothing
+    local lines = { "#+begin_example", "", "#+end_example", "", "#+begin_quote", "", "#+end_quote", "", "End." }
+    eq(",----\n\n`----\n\n\n\nEnd.\n", (ox.export_as("ascii", lines, { body_only = true })))
+    local md = ox.export_as("md", lines, { body_only = true })
+    hasnt(md, ">")
+  end)
 end)

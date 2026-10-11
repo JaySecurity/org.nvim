@@ -31,6 +31,10 @@ end
 
 --- "^" -> "    " on every line, like (replace-regexp-in-string "^" "    " s)
 local function prefix_lines(s, p)
+  if s == "" then
+    -- replace-regexp-in-string finds no "^" in an empty string
+    return ""
+  end
   local out = {}
   local ends = s:match("\n$") ~= nil
   local body = ends and s:sub(1, -2) or s
