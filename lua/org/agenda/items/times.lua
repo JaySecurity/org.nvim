@@ -33,7 +33,7 @@ local function match_one(s, i)
       local mm = s:match("^:([0-5]%d)", j)
       local ok = false
       if mm then
-        min = tonumber(mm)
+        min = tonumber(mm) or 0
         j = j + 3
         local ap = s:sub(j, j + 1):lower()
         if ap == "am" or ap == "pm" then

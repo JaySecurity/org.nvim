@@ -285,10 +285,13 @@ function M.show_1(level, verbose)
     return nil
   end
   local target = M.resolve_target(item)
+  if not target then
+    return nil
+  end
   local msg
   vim.api.nvim_win_call(w, function()
     local file = files.get_buffer(target.bufnr)
-    hl = file:headline_at(target.lnum) or hl
+    hl = file and file:headline_at(target.lnum) or hl
     vim.api.nvim_win_set_cursor(w, { hl.line, 0 })
     vim.cmd("normal! zt")
     if level ~= 1 then

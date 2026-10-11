@@ -210,7 +210,7 @@ local function dst_find_data(t0)
   local t0_off, t0_name = current_time_zone(t0)
   local t1 = next_time_zone_transition(t0)
   local t2 = t1 and next_time_zone_transition(t1)
-  if not t2 then
+  if not (t1 and t2) then
     return {
       utc_diff = idiv(t0_off, 60),
       dst_offset = 0,

@@ -341,7 +341,7 @@ local function dst_in_effect(z, date)
   local _, _, year = gregorian_from_absolute(floor(date))
   local sm, sd, sy = z.starts(year)
   local em, ed, ey = z.ends(year)
-  if not (sm and em) then
+  if not (sm and sd and sy and em and ed and ey) then
     return false
   end
   local dst_starts = absolute_from_gregorian(sm, sd, sy) + z.starts_time / 60.0 / 24.0

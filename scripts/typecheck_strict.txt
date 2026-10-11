@@ -16,3 +16,4 @@ lua/org/lists.lua
 lua/org/lists
 lua/org/clock.lua
 lua/org/clock
+lua/org/agenda

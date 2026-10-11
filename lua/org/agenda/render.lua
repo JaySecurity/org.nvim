@@ -994,7 +994,10 @@ local function grid_minutes(t)
   return math.floor(t / 100) * 60 + t % 100
 end
 
---- org-agenda-add-time-grid-maybe: should the grid be shown?
+--- org-agenda-add-time-grid-maybe: should the grid be shown, and should
+--- it drop the grid times that an entry has (remove-match)?
+---@return boolean shown
+---@return boolean? remove
 local function show_grid(grid, d, today, ndays, has_timed)
   if not grid or grid.enabled == false or grid.hidden then
     return false
@@ -1009,7 +1012,7 @@ local function show_grid(grid, d, today, ndays, has_timed)
   if set["require-timed"] and not has_timed then
     return false
   end
-  return true, set["remove-match"]
+  return true, set["remove-match"] == true
 end
 
 --- Minutes of an org-duration value ("10:00", 30, "1d 2:00").
@@ -1130,7 +1133,7 @@ local function render_day(b, list, d, ctx, sorting)
     end
   end
   local rows = list
-  local shown, remove = false, false
+  local shown, remove = false, nil ---@type boolean, boolean?
   if not ctx.time_grid_off then
     shown, remove = show_grid(grid, d, ctx.today, ctx.ndays, has_timed)
   end

@@ -108,7 +108,7 @@ local SOURCE_RANK = {
 ---@param files org.File[]
 ---@param from integer
 ---@param to integer
----@param opts? { today?: integer, log_mode?: boolean|string, restrict?: table, skip?: function, block?: table,
+---@param opts? { today?: integer, log_mode?: boolean|string|string[], restrict?: table, skip?: function, block?: table,
 ---  inactive?: boolean, no_deadlines?: boolean, archives?: string|boolean, include_diary?: boolean }
 ---@return table<integer, org.AgendaItem[]> items by day
 function M.agenda(files, from, to, opts)
@@ -118,8 +118,18 @@ function M.agenda(files, from, to, opts)
   -- the clock check lists clocked entries only; log "only" shows log items only
   local clockcheck = opts.log_mode == "clockcheck"
   local log_only = clockcheck or opts.log_mode == "only"
+  local ctx
+  local function add(day, item)
+    if day < from or day > to or (log_only and not item.log) then
+      return
+    end
+    item.day = day
+    item.fidx = ctx.fidx
+    by_day[day] = by_day[day] or {}
+    table.insert(by_day[day], item)
+  end
   ---@type org.agenda.items.DayContext
-  local ctx = {
+  ctx = {
     opts = opts,
     cfg = config.opts,
     acfg = acfg,
@@ -139,19 +149,13 @@ function M.agenda(files, from, to, opts)
     -- to nil: a range's first and last days show only their own time
     block_acfg = vim.tbl_extend("force", acfg, { default_appointment_duration = false }),
     fidx = 0,
+    add = add,
+    eval_sexp = shared.sexp_evaluator(from, to),
   }
-  function ctx.add(day, item)
-    if day < from or day > to or (log_only and not item.log) then
-      return
-    end
-    item.day = day
-    item.fidx = ctx.fidx
-    by_day[day] = by_day[day] or {}
-    table.insert(by_day[day], item)
-  end
   local log_list = acfg.log_mode_items or { "closed", "clock" }
-  if type(opts.log_mode) == "table" then
-    log_list = opts.log_mode
+  local log_mode = opts.log_mode
+  if type(log_mode) == "table" then
+    log_list = log_mode
   end
   for _, k in ipairs(log_list) do
     ctx.log_items[k] = true
@@ -161,7 +165,6 @@ function M.agenda(files, from, to, opts)
   end
   local types = ctx.types
 
-  ctx.eval_sexp = shared.sexp_evaluator(from, to)
   if package.loaded["org.agenda.holidays"] then
     package.loaded["org.agenda.holidays"].reset()
   end

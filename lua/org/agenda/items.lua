@@ -55,6 +55,8 @@ M.day_sources = {}
 ---@field filename string|nil
 ---@field bufnr integer|nil
 ---@field lnum integer
+---@field level integer outline level (0 outside an entry)
+---@field fidx? integer index of the file (or diary, extra day source) it comes from, in a day agenda
 ---@field raw string
 ---@field title string headline text without TODO keyword, priority and tags
 ---@field display_title string|nil title as displayed (times/timestamps removed)
@@ -70,6 +72,9 @@ M.day_sources = {}
 ---@field end_time integer|nil
 ---@field extra string|nil leader ("Scheduled: ", "In   3 d.: ", ...)
 ---@field face string|nil highlight group for the text
+---@field undone_face? string the face when not done
+---@field fixface? boolean the face follows the TODO state (done or not)
+---@field habit? table the parsed habit of a scheduled habit (org.agenda.habits.parse)
 ---@field urgency number Emacs 'urgency
 ---@field prio number Emacs 'priority (org-get-priority)
 ---@field ts_date integer|nil day number used by the ts-*/timestamp-* sorting

@@ -14,6 +14,17 @@ end
 local date = require("org.date")
 local shared = require("org.agenda.items.shared")
 
+--- An active timestamp or date range of an entry (`block_sources`).
+---@class org.agenda.items.BlockSource
+---@field date org.Date
+---@field line? integer the line it is on (set by `block_sources` on an org-tr-regexp range)
+---@field start_col? integer
+---@field end_col? integer
+---@field mid? integer the column of the end's `<` (an org-tr-regexp range)
+---@field index? integer its index in `headline.timestamps`
+---@field planning? "scheduled"|"deadline" the planning keyword a range on the planning line belongs to
+---@field raw_col? integer where org-tr-regexp's match starts, when before `start_col`
+
 --- The timestamp `text` (without its brackets) as Emacs reads the start or
 --- the end of an org-tr-regexp match: the date, and the first time of day
 --- (or time range) in it for the agenda line, even past a `>` the match
@@ -45,7 +56,7 @@ end
 --- The active date ranges of `line` as Emacs' org-tr-regexp finds them:
 --- `<date .*?>--<date .*?>`, whose start runs over a `>` until one is
 --- followed by `--<date`. `mid` is the column of the end's `<`.
----@return { date: org.Date, start_col: integer, end_col: integer, mid: integer }[]
+---@return org.agenda.items.BlockSource[]
 local function tr_ranges(line)
   local out, pos = {}, 1
   -- (a range has a ">-": most planning lines have none, and the pattern
@@ -211,7 +222,7 @@ local function block_sources(hl)
       local s = text:find("<%d%d%d%d%-%d%d%-%d%d", floor[t.line] or 1)
       if s and s < t.start_col then
         local first = date.parse_all(text:sub(s, t.start_col - 1))[1]
-        local start = first and first.start_col == 1 and first.date
+        local start = (first and first.start_col == 1) and first.date or nil
         if not start then
           local y, m, d = text:match("^<(%d+)%-(%d+)%-(%d+)", s)
           start = date.from_days(date.days_from_civil(tonumber(y), tonumber(m), tonumber(d)))
