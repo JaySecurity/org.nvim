@@ -563,3 +563,317 @@ describe("health: external tools", function()
     ok(n == require("org.config").opts.notifications)
   end)
 end)
+
+--- Run `fn(h)` with a `vim.health` stub, returning every message as
+--- "<kind>: <text>", advice as "  advice: <text>".
+local function capture(fn)
+  local out = {}
+  local h = {}
+  for _, kind in ipairs({ "start", "ok", "info", "warn", "error" }) do
+    h[kind] = function(msg, advice)
+      out[#out + 1] = kind .. ": " .. tostring(msg)
+      if type(advice) == "string" then
+        advice = { advice }
+      end
+      for _, a in ipairs(advice or {}) do
+        out[#out + 1] = "  advice: " .. a
+      end
+    end
+  end
+  fn(h)
+  return out
+end
+
+--- The first message matching the Lua pattern `pat`, or nil.
+local function find_msg(out, pat)
+  for _, msg in ipairs(out) do
+    if msg:find(pat) then
+      return msg
+    end
+  end
+end
+
+--- Run `fn` with `vim.fn.executable` answering 0 for the names in
+--- `missing` (and 1 for those in `present`).
+local function with_executables(missing, present, fn)
+  local executable = vim.fn.executable
+  vim.fn.executable = function(exe)
+    if missing[exe] then
+      return 0
+    elseif present[exe] then
+      return 1
+    end
+    return executable(exe)
+  end
+  local okay, err = pcall(fn)
+  vim.fn.executable = executable
+  assert(okay, err)
+end
+
+describe("health: sections", function()
+  local health = require("org.health")
+  local dir
+
+  before_each(function()
+    dir = vim.fs.normalize(vim.fn.tempname())
+    vim.fn.mkdir(dir .. "/notes", "p")
+    vim.fn.mkdir(dir .. "/empty", "p")
+    vim.fn.writefile({ "* A" }, dir .. "/notes/a.org")
+    vim.fn.writefile({ "x" }, dir .. "/notes/b.txt")
+  end)
+
+  after_each(function()
+    vim.fn.delete(dir, "rf")
+  end)
+
+  describe("agenda files", function()
+    with_config({ agenda_files = {} })
+
+    it("says what is wrong with each entry that gives no file", function()
+      eq(
+        {
+          dir .. "/empty: no .org files in this directory (subdirectories aren't searched: use dir/**/*.org)",
+          dir .. "/nope/*.org: the glob matches no .org file",
+          dir .. "/missing.org: no such file",
+          dir .. "/notes/b.txt: not an .org file",
+        },
+        health.agenda_problems({
+          dir .. "/notes",
+          dir .. "/empty",
+          dir .. "/notes/*.org",
+          dir .. "/nope/*.org",
+          dir .. "/missing.org",
+          dir .. "/notes/b.txt",
+          dir .. "/notes/a.org",
+        })
+      )
+    end)
+
+    it("warns per entry, not with a generic message, when entries are wrong", function()
+      require("org.config").opts.agenda_files = { dir .. "/notes/*.org", dir .. "/missing.org" }
+      local out = capture(health.check_files)
+      eq("start: org.nvim files", out[1])
+      ok(find_msg(out, "^ok: 1 agenda file%(s%) found"), vim.inspect(out))
+      eq("warn: agenda_files: " .. dir .. "/missing.org: no such file", find_msg(out, "missing%.org"))
+      require("org.config").opts.agenda_files = { dir .. "/missing.org" }
+      out = capture(health.check_files)
+      ok(find_msg(out, "no such file"), vim.inspect(out))
+      ok(not find_msg(out, "No agenda files match"), vim.inspect(out))
+    end)
+
+    it("says when agenda_files is empty, and reads a list file", function()
+      ok(find_msg(capture(health.check_files), "^info: agenda_files is empty"))
+      vim.fn.writefile({ dir .. "/notes/a.org", "# comment", dir .. "/gone.org" }, dir .. "/agenda-list")
+      require("org.config").opts.agenda_files = dir .. "/agenda-list"
+      local out = capture(health.check_files)
+      ok(find_msg(out, "^info: agenda_files lists them in .*agenda%-list %(2 entries%)"), vim.inspect(out))
+      ok(find_msg(out, "^warn: agenda_files: .*gone%.org: no such file"), vim.inspect(out))
+    end)
+  end)
+
+  describe("state files", function()
+    with_config({ id = {}, clock = { persist = false } })
+
+    after_each(function()
+      require("org.id")._reset()
+    end)
+
+    it("reports the ID database and the files it lists that are gone", function()
+      local file = dir .. "/ids.json"
+      vim.fn.writefile({
+        vim.json.encode({ a = dir .. "/notes/a.org", b = dir .. "/notes/a.org", c = dir .. "/gone.org" }),
+      }, file)
+      require("org.config").opts.id = { locations_file = file }
+      require("org.id")._reset()
+      local out = capture(health.check_state)
+      ok(find_msg(out, "^ok: ID database: .*ids%.json %(json, [%d.]+ KB%): 3 IDs in 2 files"), vim.inspect(out))
+      eq("warn: ID database: 1 of the 2 files it lists no longer exist", find_msg(out, "no longer exist"))
+      ok(find_msg(out, "advice: :Org id_update_locations"), vim.inspect(out))
+      local s = require("org.id").status(1)
+      eq({ 3, 2, 1 }, { s.ids, s.files, s.checked })
+    end)
+
+    it("says when the ID database isn't written yet", function()
+      require("org.config").opts.id = { locations_file = dir .. "/none.json" }
+      require("org.id")._reset()
+      ok(find_msg(capture(health.check_state), "^info: ID database: .*none%.json not written yet"))
+    end)
+
+    it("checks the persisted clock", function()
+      local clock = require("org.config").opts.clock
+      ok(find_msg(capture(health.check_state), "^info: clock%.persist is off"))
+      clock.persist, clock.persist_file = true, dir .. "/clock.json"
+      ok(find_msg(capture(health.check_state), "^ok: clock%.persist = true: .*%(written when Neovim exits%)"))
+      vim.fn.writefile({ vim.json.encode({ state = { title = "Write report" }, history = {} }) }, clock.persist_file)
+      ok(find_msg(capture(health.check_state), "%(saved clock: Write report%)"))
+      vim.fn.writefile({ "{ not json" }, clock.persist_file)
+      ok(find_msg(capture(health.check_state), "^warn: clock%.persist_file is not valid JSON"))
+    end)
+  end)
+
+  describe("picker", function()
+    with_config({ picker = "auto" })
+
+    it("reports the picker in use and a missing or unknown one", function()
+      local pickers = require("org.pickers")
+      local available = pickers.available
+      pickers.available = function(name)
+        return name == "fzf-lua"
+      end
+      local okay, err = pcall(function()
+        local out = capture(health.check_picker)
+        eq('ok: pickers use fzf-lua (picker = "auto")', out[2])
+        eq("info: installed pickers: fzf-lua", out[3])
+        require("org.config").opts.picker = "telescope"
+        ok(find_msg(capture(health.check_picker), '^warn: picker = "telescope", but telescope is not installed'))
+        require("org.config").opts.picker = "telescop"
+        ok(find_msg(capture(health.check_picker), '^warn: picker = "telescop" is not a picker'))
+        require("org.config").opts.picker = "select"
+        eq("ok: pickers use vim.ui.select", capture(health.check_picker)[2])
+      end)
+      pickers.available = available
+      assert(okay, err)
+    end)
+  end)
+
+  describe("encryption", function()
+    with_config({ crypt = { gpg_program = "gpg" }, mobile = {} })
+
+    it("warns about a missing gpg only when entries are encrypted on save", function()
+      with_executables({ gpg = true, openssl = true }, {}, function()
+        ok(find_msg(capture(health.check_crypto), "^info: gpg not found"))
+        require("org.config").opts.crypt.encrypt_on_save = true
+        ok(find_msg(capture(health.check_crypto), "^warn: gpg not found, but crypt%.encrypt_on_save is on"))
+        local out = capture(health.check_crypto)
+        ok(not find_msg(out, "openssl"), vim.inspect(out))
+        require("org.config").opts.mobile.use_encryption = true
+        ok(find_msg(capture(health.check_crypto), "^warn: mobile%.use_encryption is on, but openssl"))
+      end)
+      with_executables({}, { gpg = true }, function()
+        ok(find_msg(capture(health.check_crypto), "^ok: gpg found"))
+      end)
+    end)
+  end)
+
+  describe("conflicts", function()
+    it("checks the filetype and other plugins' org runtime files", function()
+      local out = capture(health.check_core)
+      ok(find_msg(out, "^ok: %*%.org files get the org filetype"), vim.inspect(out))
+      ok(not find_msg(out, "runtime files"), vim.inspect(out))
+      vim.fn.mkdir(dir .. "/other/ftplugin", "p")
+      vim.fn.writefile({ '" another org plugin' }, dir .. "/other/ftplugin/org.vim")
+      vim.opt.rtp:append(dir .. "/other")
+      package.loaded["orgmode"] = {}
+      local okay, err = pcall(function()
+        out = capture(health.check_core)
+        ok(
+          find_msg(out, "^warn: other plugins have runtime files for the org filetype: .*other/ftplugin/org%.vim"),
+          vim.inspect(out)
+        )
+        ok(find_msg(out, "^warn: nvim%-orgmode is also loaded"), vim.inspect(out))
+      end)
+      package.loaded["orgmode"] = nil
+      vim.opt.rtp:remove(dir .. "/other")
+      assert(okay, err)
+    end)
+  end)
+
+  describe("Emacs", function()
+    local NAMES = { "ORG_EMACS", "EMACS", "ORG_LISP_DIR", "ORG_DIR" }
+    local saved
+
+    before_each(function()
+      saved = {}
+      for _, n in ipairs(NAMES) do
+        saved[n] = vim.env[n]
+        vim.env[n] = nil
+      end
+    end)
+
+    after_each(function()
+      for _, n in ipairs(NAMES) do
+        vim.env[n] = saved[n]
+      end
+    end)
+
+    it("shows no section without Emacs", function()
+      with_executables({ emacs = true }, {}, function()
+        eq({}, capture(health.check_emacs))
+      end)
+    end)
+
+    it("reads the Org release of ORG_LISP_DIR without starting Emacs", function()
+      vim.fn.writefile({
+        "(defun org-release ()",
+        '   (let ((org-release "9.8.10"))',
+        "     org-release))",
+      }, dir .. "/org-version.el")
+      eq("9.8.10", health.org_lisp_version(dir))
+      eq(nil, health.org_lisp_version(dir .. "/notes"))
+      vim.env.ORG_EMACS, vim.env.ORG_LISP_DIR = "org-test-no-such-emacs", dir
+      local out = capture(health.check_emacs)
+      eq("start: org.nvim development (Emacs parity)", out[1])
+      ok(find_msg(out, "^info: org%-test%-no%-such%-emacs not found"), vim.inspect(out))
+      eq("info: Org 9.8.10 in " .. dir, out[3])
+      vim.env.ORG_LISP_DIR = dir .. "/notes"
+      ok(find_msg(capture(health.check_emacs), "holds Org %(no org%-version%.el%), the parity scripts need 9%.8%.10"))
+    end)
+  end)
+
+  describe("extensions", function()
+    it("reports an enabled extension that didn't load", function()
+      local exts = require("org.config").opts.extensions
+      exts.no_such_ext = true
+      local okay, out = pcall(capture, require("org.extensions").check)
+      exts.no_such_ext = nil
+      assert(okay, out)
+      ok(
+        find_msg(
+          out,
+          "^error: extension no_such_ext is enabled but not loaded: module 'org%.extensions%.no_such_ext' not found$"
+        ),
+        vim.inspect(out)
+      )
+    end)
+
+    it("checks the options of the built-in extensions", function()
+      eq(
+        { "extensions.pomodoro.wrk", "extensions.roam.directry" },
+        health.unknown_options({
+          extensions = {
+            roam = { directry = "x", enabled = true },
+            pomodoro = { work = 25, wrk = 2 },
+            third_party = { anything = 1 },
+            sidebar = false,
+          },
+        })
+      )
+      local all = {}
+      for _, name in ipairs(require("org.extensions").builtin()) do
+        all[name] = vim.deepcopy(require("org.extensions." .. name).defaults or {})
+      end
+      eq({}, health.unknown_options({ extensions = all }))
+    end)
+  end)
+
+  it("runs every section", function()
+    local out = capture(function(h)
+      local saved = vim.health
+      vim.health = h
+      local okay, err = pcall(health.check)
+      vim.health = saved
+      assert(okay, err)
+    end)
+    for _, section in ipairs({
+      "org.nvim",
+      "org.nvim configuration",
+      "org.nvim files",
+      "org.nvim state files",
+      "org.nvim picker",
+      "org.nvim external tools",
+      "org.nvim extensions",
+    }) do
+      ok(vim.tbl_contains(out, "start: " .. section), section .. "\n" .. table.concat(out, "\n"))
+    end
+  end)
+end)

@@ -135,7 +135,7 @@ describe("extension stability", function()
     if experimental then
       local line = "ok: enabled: "
         .. experimental
-        .. "\ninfo: stability: experimental, its options may change (:h org-extensions-stability)"
+        .. "\ninfo: stability: experimental, its options may change; see :h org-extensions-stability"
       ok(text:find(line, 1, true), text)
     end
   end)
