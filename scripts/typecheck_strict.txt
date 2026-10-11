@@ -23,3 +23,5 @@ lua/org/links.lua
 lua/org/links
 lua/org/columns.lua
 lua/org/columns
+lua/org/mobile.lua
+lua/org/mobile
