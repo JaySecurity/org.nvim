@@ -18,3 +18,4 @@ lua/org/clock.lua
 lua/org/clock
 lua/org/agenda
 lua/org/pickers
+lua/org/health
