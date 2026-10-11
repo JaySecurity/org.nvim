@@ -216,7 +216,7 @@ end
 
 local function start_timers()
   stop_timer(tick_timer)
-  tick_timer = vim.uv.new_timer()
+  tick_timer = assert(vim.uv.new_timer())
   tick_timer:start(60000, 60000, vim.schedule_wrap(tick))
   track_activity()
   check_effort()
@@ -225,7 +225,7 @@ local function start_timers()
   local secs = tonumber(clock_cfg().auto_clockout_timer)
   if secs and secs > 0 and M.auto_clockout_enabled ~= false then
     -- org-clock-auto-clockout: clock out once idle for `secs` seconds
-    auto_timer = vim.uv.new_timer()
+    auto_timer = assert(vim.uv.new_timer())
     local period = math.max(1000, math.min(secs * 250, 30000))
     auto_timer:start(
       period,

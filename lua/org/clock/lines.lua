@@ -136,11 +136,12 @@ function M.timestamps_adjust_closest(n)
   -- the history is newest first: the previous task is the next entry
   local other = idx and M.history[idx + (on_start and 1 or -1)]
   local obuf, olnum = find_entry(other)
-  if not obuf then
+  if not obuf or not olnum then
     utils.notify("No clock to adjust")
     return true
   end
-  local ohl = files.get_buffer(obuf):headline_at(olnum)
+  -- find_entry returns a headline's line
+  local ohl = assert(files.get_buffer(obuf):headline_at(olnum))
   local clocks = vim.deepcopy(ohl.clocks)
   table.sort(clocks, function(a, b)
     return a.line < b.line

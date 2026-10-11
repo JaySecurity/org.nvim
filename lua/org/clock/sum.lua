@@ -68,7 +68,7 @@ local function clock_sum(roots, ts, te, pred)
         t = t + clipped_clock_minutes(c.start, c["end"], ts_s, te_s)
       end
     end
-    if hl == run_hl and run_start:minutes() >= ts and run_start:minutes() <= te then
+    if hl == run_hl and run_start and run_start:minutes() >= ts and run_start:minutes() <= te then
       t = t + math.max(0, date.elapsed_minutes(run_start, date.now()))
     end
     return t
