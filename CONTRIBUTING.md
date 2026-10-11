@@ -213,6 +213,23 @@ nil check (an `assert` where the value can't be nil) over
 `---@diagnostic disable`; a disable that stays needs a comment saying why.
 Don't take a path off the list to make the check pass.
 
+### Health checks
+
+`:checkhealth org` (`lua/org/health/init.lua`, `:h org-health`) is what a
+user runs first when something doesn't work, and what a bug report
+includes. A feature that needs an external program, a path or a file of
+its own adds a check there, in the section it belongs to (or an
+extension's `health(h, opts)` function, which `org.extensions.check` calls
+under the extension's name). Checks must be fast and never prompt: look
+for programs with `vim.fn.executable()` rather than running them, bound any
+file scan, no network. Warn only when the feature is turned on (a missing
+`gpg` is a warning with `crypt.encrypt_on_save`, an info line otherwise),
+and say what to do and which option or `:h` tag to read in the advice
+(write `see :h tag` at the end: a `)` right after the tag ends up in the
+link). Each check is a function taking `vim.health`, so
+`tests/spec/health_spec.lua` can run it with a stub and stubbed
+executables; document it under `:h org-health`.
+
 ### Fuzzing
 
 The fuzz specs (`tests/spec/fuzz_*_spec.lua`) generate random Org text

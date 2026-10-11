@@ -110,6 +110,12 @@ make extensions-report                     # each extension against the promotio
   so logic that must run around every write (`:w` or org's own saves)
   registers a hook in `lua/org/write_hooks.lua`, not a
   BufWritePre/BufWritePost autocommand. See CONTRIBUTING.md.
+- **`:checkhealth org` checks what a feature needs.** A feature that
+  needs an external program, a path or a state file adds a check in
+  `lua/org/health/init.lua` (an extension: its `health(h, opts)`). Checks
+  are fast (`executable()`, no running programs, no network, bounded
+  scans), never prompt, warn only when the feature is on, and are
+  documented under `:h org-health` (CONTRIBUTING.md, "Health checks").
 - **Key conflicts matter.** Before adding a default key in `mappings.lua`,
   check it isn't a prefix of, or already taken by, another mapping.
 
