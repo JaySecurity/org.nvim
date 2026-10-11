@@ -350,6 +350,18 @@ function M.wrap_math_block(d, info)
   if d == nil then
     return nil
   end
+  -- the objects at the top of a caption have no parent: the caption line
+  -- (a list) holding each
+  local in_caption = {}
+  element.map(d, "*", function(e)
+    for _, cap in ipairs(e.caption or {}) do
+      for _, list in pairs({ cap[1], cap[2] }) do
+        for _, o in ipairs(list) do
+          in_caption[o] = list
+        end
+      end
+    end
+  end)
   local objs = element.map(d, { entity = true, ["latex-fragment"] = true }, function(o)
     return o
   end, { with_affiliated = true })
@@ -357,7 +369,7 @@ function M.wrap_math_block(d, info)
     -- A top-level object of a secondary string (TITLE, AUTHOR, DATE) has no
     -- parent; it is wrapped too, like Emacs does.
     if (object.parent == nil or object.parent.type ~= "latex-math-block") and valid_math_object(object) then
-      local sib = element.siblings(object) or (d.type == nil and d or nil)
+      local sib = element.siblings(object) or in_caption[object] or (d.type == nil and d or nil)
       if sib then
         local idx
         for i, x in ipairs(sib) do

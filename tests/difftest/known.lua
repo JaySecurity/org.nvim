@@ -253,16 +253,6 @@ return {
     ours = "^\\end{description}$",
   },
   {
-    oracle = "export%-latex",
-    reason = [[An entity in a caption ("#+CAPTION: A \alpha"): Emacs exports
-      it as in the text, "\(\alpha\)"; org.nvim's \captionof keeps
-      "\alpha".]],
-    emacs = "\\caption",
-    same = function(s)
-      return (s:gsub("\\%((\\%a+)\\%)", "%1"))
-    end,
-  },
-  {
     oracle = "export%-ascii",
     reason = [[A block holding only a blank line: org.nvim's ASCII export
       prints a "| " line, Emacs a blank one.]],

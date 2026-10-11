@@ -640,4 +640,10 @@ describe("export: Emacs parity (difftest known differences)", function()
     local e, o = parity.normalise("export", { "A $\\backslash$\\ x." }, { "A $\\backslash$$\\backslash$ x." })
     eq(e, o)
   end)
+
+  it("LaTeX puts math entities of a caption in \\(...\\) as in the text", function()
+    -- org-latex--wrap-latex-math-block maps over affiliated keywords too
+    local out = latex({ "#+CAPTION[Short \\gamma]: A \\alpha\\beta and \\pi *b \\delta*", "| a |" })
+    has(out, "\\caption[Short \\(\\gamma\\)]{A \\(\\alpha \\beta\\) and \\(\\pi\\) \\textbf{b \\(\\delta\\)}}")
+  end)
 end)
