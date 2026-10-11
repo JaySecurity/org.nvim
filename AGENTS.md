@@ -17,6 +17,7 @@ make playground                            # re-record the tutor lessons for the
 make typecheck                             # lua-language-server --check with .luarc.json
 make coverage                              # specs with line coverage; report in coverage/report.md
 make fuzz                                  # fuzz specs with 40x the seeds, random start
+make bench                                 # first open and a 50,000-headline agenda, timed (CONTRIBUTING.md)
 make extensions-report                     # each extension against the promotion criteria (CONTRIBUTING.md)
 ```
 

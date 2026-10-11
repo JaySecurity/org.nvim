@@ -553,6 +553,99 @@ fail fast (a literal character), keep `.*` out of look-behinds (`.\{-}`
 stops where the look-behind ends), or use `lc=N` for a fixed leading
 context.
 
+### Opening a file
+
+Starting Neovim on an org file runs `setup()` and attaches the buffer:
+keymaps, folds, syntax, decorations. That path should load only what
+editing, folding and drawing a plain file need; everything a command
+uses (agenda views, babel, export, the table editor, the clock, image
+previews, link following, crypt, pickers, ...) loads on first use.
+`tests/spec/first_open_spec.lua` opens `tests/fixtures/first_open.org`
+in a Neovim of its own (`tests/helpers/first_open.lua`) and fails when a
+module on its deny-list loads, or more than 60 org modules do; it is
+deterministic and runs in the main suite. `perf_budgets_spec.lua` times
+`setup()` and the first open against budgets (70 ms and 300 ms, times
+`ORG_PERF_SCALE`).
+
+When the deny-list fails, find what requires the module (wrap `require`
+and print `debug.getinfo(2, "Sl")`) and make that use lazy: keep the
+per-buffer part of a subsystem in a small module (`org.table.attach`,
+`org.clock.attach`, `org.ui.images.startup`), check the cheap condition
+first and require the module only when it holds, or, for a facade whose
+own functions are a hot path, load its parts on first use with
+`require("org.lazy").parts(M, shared, { ... })` (`org.lists`). What the
+first pass found (Neovim 0.13-dev, Apple M1 Ultra, medians of 15 runs
+on a machine busy with other jobs, so the times are slower than a
+laptop's):
+
+| | Before | After |
+| --- | ---: | ---: |
+| org modules loaded by `setup()` | 14 | 14 |
+| org modules loaded by opening a plain file | 93 | 46 |
+| opening a 12-line file | 74 ms | 56 ms |
+| opening `tests/fixtures/first_open.org` (35 lines) | 74 ms | 55 ms |
+
+The rest of the first open is mostly Neovim's own work: about 450 buffer
+keymaps (`nvim_buf_set_keymap`, about 15 µs each), the first definition
+of about 150 highlight groups, and compiling the syntax patterns.
+
+### Benchmarks
+
+```sh
+make bench                    # 5 runs of each, a table of medians
+make bench ARGS="--runs 9"    # more runs
+make bench ARGS="--files 50"  # a smaller corpus
+make bench ARGS="--json"      # the numbers as JSON
+```
+
+[`scripts/bench.lua`](scripts/bench.lua) times the first open and the
+agenda over a generated corpus (`gen.agenda_corpus` in
+`tests/helpers/gen.lua`: 200 files, 50,000 headlines with TODO keywords,
+priorities, tags, SCHEDULED and DEADLINE dates around 2026-05-13 with
+times, repeaters and warnings, habits, properties, clocks and plain
+timestamps, the same every time). Each measurement runs in a new Neovim
+with throwaway data and cache directories, `agenda.index.background` and
+`watch` off. `tests/spec/bench_spec.lua` runs it on a tiny corpus so
+that it keeps working. Numbers from Neovim 0.13.0-dev on an Apple M1
+Ultra (20 threads, 128 GB, macOS 26, load average about 10 from other
+jobs), medians of 5:
+
+| Operation | Before | After | Agenda lines |
+| --- | ---: | ---: | ---: |
+| `setup()` | 8 ms | 9 ms | |
+| open the first org file (35 lines) | 57 ms | 55 ms | |
+| cold week agenda (no index: 200 files read and parsed) | 2,869 ms | 2,286 ms | 1,627 |
+| warm week agenda (from the agenda index) | 1,035 ms | 519 ms | 1,627 |
+| hot week agenda (files in memory) | 645 ms | 123 ms | 1,627 |
+| tags match `+work-home` | 200 ms | 119 ms | 2,575 |
+| TODO list | 471 ms | 339 ms | 17,901 |
+| refresh the week after editing one file | 683 ms | 138 ms | 1,628 |
+
+("Before" is the first-open work above without the agenda fixes below.)
+The cold view is mostly the parse of 8.8 MB of Org; it varies from
+about 1 to 3 seconds from run to run on macOS arm64, with the JIT
+(below).
+
+What the agenda pass found:
+
+- **The JIT.** `require("jit.p")` with the `v` mode showed three quarters
+  of a week view spent in the JIT compiler. The entry finders and the
+  renderer run short, branchy loops (an entry's dates, its tags): most
+  traces aborted ("leaving loop in root trace", closures created in a
+  loop), and the ones compiled filled the machine-code area, which on
+  macOS arm64 often can't grow (`jit.v` logs "failed to allocate mcode
+  memory") and then flushes every trace in Neovim, about 100 times per
+  view. Interpreted, the same view took a quarter of the time, and still
+  less than with a larger machine-code area. `org.agenda.items`,
+  `org.agenda.render` and `org.agenda.habits` call `jit.off(true, true)`;
+  the parser keeps the JIT, which helps it when it doesn't flush. To check
+  a module, load it with the JIT off (`jit.off(loadfile(path), true)`
+  in `package.preload`) and compare.
+- A date-range pattern ran over every planning line on every build;
+  it now runs only on lines with a `>-`.
+- `utils.find_buffer` resolved each agenda file's path (`realpath`) on
+  every build; the result is kept until a shell command or focus change.
+
 ## Promoting an extension
 
 Every extension is ✅ stable or 🧪 experimental (`:h

@@ -1447,6 +1447,7 @@ git clone https://github.com/xheisenbugx/org.nvim && cd org.nvim
 make test                                 # run all specs headlessly
 make test SPEC=tests/spec/agenda_spec.lua # one spec
 make lint                                 # stylua --check + source lint rules
+make bench                                # time the first open and a 50,000-headline agenda
 ```
 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) explains how the code is organised

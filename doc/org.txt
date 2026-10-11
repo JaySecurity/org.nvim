@@ -1852,6 +1852,16 @@ dropped.
 is doing. It is written when the background is done, a little after a
 view added files to it, and when Neovim exits.
 
+How long it takes, over 200 files of 250 headlines (50,000, 8.8 MB;
+`make bench` in the repository generates them and times the views, see
+"Performance budgets" in CONTRIBUTING.md), on an Apple M1 Ultra:
+
+  week agenda, no index (every file read and parsed)   about 2.3 s
+  week agenda from the index (a new session)           about 0.5 s
+  week agenda again (the files in memory)              about 0.12 s
+  the week after editing and saving one file           about 0.14 s
+  tags match, TODO list (17,900 entries)               0.12 s, 0.34 s
+
 Agenda contents                                          *org-agenda-contents*
 
 For each day, per file, in this order (org-agenda-get-day-entries):
