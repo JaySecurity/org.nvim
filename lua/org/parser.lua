@@ -786,18 +786,35 @@ function parse_section(hl, lines, from, to, log_drawer, min_inline)
   hl.timestamps = {}
   hl.block_ranges = {}
 
-  -- An inline task's heading ends the section's text: like
-  -- org-back-to-heading, what follows belongs to the inline task.
+  -- Inline tasks in the section are not its text: an inline task's lines
+  -- run to its END line, or without one (like org-clock-sum reads them)
+  -- up to the next heading. What follows an END line is the section's
+  -- again for org-element and org-clock-sum, whose clocks count for the
+  -- entry; but neither the agenda nor org-entry-get (TIMESTAMP) give its
+  -- timestamps to the entry, so only its clocks are read. skip[k]: the
+  -- last line of the inline task whose heading is line k.
+  ---@type table<integer, integer>|nil
+  local skip
   if min_inline then
-    for k = from, to do
+    local k = from
+    while k <= to do
       local l = lines[k]
-      if l:byte(1) == 42 then
-        local lv = M.headline_level(l)
-        if lv and lv >= min_inline then
-          to = k - 1
-          break
+      local lv = l:byte(1) == 42 and M.headline_level(l)
+      if lv and lv >= min_inline then
+        local stop = to
+        for j = k + 1, to do
+          local lj = lines[j]
+          local lvj = lj:byte(1) == 42 and M.headline_level(lj)
+          if lvj then
+            stop = (lvj >= min_inline and lj:match("^%*+%s+END%s*$")) and j or j - 1
+            break
+          end
         end
+        skip = skip or {}
+        skip[k] = stop
+        k = stop
       end
+      k = k + 1
     end
   end
 
@@ -863,9 +880,25 @@ function parse_section(hl, lines, from, to, log_drawer, min_inline)
   -- found once for all the drawers before it
   ---@type integer|false
   local next_end = 0
+  -- past an inline task: only clocks are read
+  local tail = false
   while i <= to do
+    while skip and skip[i] do
+      i = skip[i] + 1
+      tail = true
+    end
+    if i > to then
+      break
+    end
     local line = lines[i]
-    if i <= verbatim_end then
+    if tail then
+      if i > verbatim_end and line:find("^%s*#%+") then
+        verbatim_end = M.verbatim_block_end(lines, i, to) or verbatim_end
+      end
+      if i > verbatim_end and line:find("\\begin{", 1, true) then
+        verbatim_end = latex_environment_end(lines, i, to) or verbatim_end
+      end
+    elseif i <= verbatim_end then
       -- inside a src/example/export/comment block or a LaTeX
       -- environment: no timestamps, but org-agenda-get-blocks only skips
       -- src blocks
@@ -927,7 +960,7 @@ function parse_section(hl, lines, from, to, log_drawer, min_inline)
         add_block_ranges(hl, line, i)
       end
     end
-    local clock = line:find("CLOCK:", 1, true) and M.parse_clock_line(line)
+    local clock = (not tail or i > verbatim_end) and line:find("CLOCK:", 1, true) and M.parse_clock_line(line)
     if clock then
       clock.line = i
       hl.clocks[#hl.clocks + 1] = clock

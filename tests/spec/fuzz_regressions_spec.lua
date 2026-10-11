@@ -72,4 +72,36 @@ describe("fuzz regressions", function()
     require("org.properties").set_property(nil, "B", "2")
     eq({ "* H", ":properties:", ":A: 1", ":B:        2", ":end:" }, buf_lines(buf))
   end)
+
+  describe("with inline tasks", function()
+    with_config({ inlinetask_min_level = 15 })
+
+    it("counts the clocks after an inline task's END line for the entry", function()
+      -- Emacs Org 9.8.10: org-element puts these lines in H's section and
+      -- org-clock-sum counts the clock for H; the agenda doesn't list the
+      -- timestamp for H, nor does org-entry-get read it as H's TIMESTAMP
+      local file = require("org.parser").parse({
+        "* H",
+        "*************** task",
+        "CLOCK: [2024-01-01 Mon 08:00]--[2024-01-01 Mon 08:30] =>  0:30",
+        "*************** END",
+        "CLOCK: [2024-01-01 Mon 10:00]--[2024-01-01 Mon 11:00] =>  1:00",
+        "<2024-01-02 Tue>",
+        "*************** no END",
+        "CLOCK: [2024-01-01 Mon 12:00]--[2024-01-01 Mon 12:15] =>  0:15",
+      })
+      local h, task, endless = file.headlines[1], file.headlines[2], file.headlines[3]
+      local function lines_of(clocks)
+        return vim.tbl_map(function(c)
+          return c.line
+        end, clocks)
+      end
+      eq({ 5 }, lines_of(h.clocks))
+      eq({}, h.timestamps)
+      eq(30, task.clocks[1].minutes)
+      eq(1, #task.clocks)
+      -- an inline task without END keeps the lines up to the next heading
+      eq({ 8 }, lines_of(endless.clocks))
+    end)
+  end)
 end)
