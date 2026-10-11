@@ -599,3 +599,49 @@ describe("agenda blocks from planning date ranges (org-agenda-get-blocks)", func
     eq({ "(5/5): y" }, day_entries(y, A + 1))
   end)
 end)
+
+describe("agenda blocks that org-tr-regexp finds (difftest #243)", function()
+  local A = date.days_from_civil(2026, 9, 28)
+  local function blocks(lines, d)
+    local file = parser.parse(lines, "/tmp/agenda_blocks.org")
+    local out = {}
+    for _, it in ipairs(items.agenda({ file }, d, d, { today = d })[d] or {}) do
+      if it.type == "range" then
+        out[#out + 1] = it
+      end
+    end
+    return out
+  end
+
+  it("a range in a comment or example block counts, not in a src block (seeds 2521020, 2521177)", function()
+    for _, block in ipairs({ "comment", "example" }) do
+      local list = blocks({
+        "* x alpha",
+        "#+begin_" .. block,
+        "<2025-08-21 Thu>--<2026-10-07 Wed>",
+        "#+end_" .. block,
+      }, A)
+      eq(1, #list, block)
+      eq("(404/413): ", list[1].extra)
+      ok(list[1].block_range, "an editable block")
+    end
+    eq(1, #blocks({ "* y", ": <2026-09-01 Tue>--<2026-10-10 12:15>" }, A))
+    eq(0, #blocks({ "* z", "#+begin_src sh", "<2025-08-21 Thu>--<2026-10-07 Wed>", "#+end_src" }, A))
+    eq(0, #blocks({ "* z", "# <2025-08-21 Thu>--<2026-10-07 Wed>" }, A))
+  end)
+
+  it("a range whose start runs over a > takes its time from it (seed 2521173)", function()
+    local d = date.days_from_civil(2026, 10, 4)
+    local list = blocks({ "* 日本語 delta", "SCHEDULED: <2026-10-04 Sun> 07:15>--<2026-11-20 Fri>" }, d)
+    eq(1, #list)
+    eq("scheduled", list[1].planning_kind)
+    eq(7 * 60 + 15, list[1].time)
+    eq("(1/48): ", list[1].extra)
+    -- the first time range counts (seed 81)
+    d = date.days_from_civil(2026, 9, 30)
+    list = blocks({ "* t", "SCHEDULED: <2026-09-30 15:30-16:30 .+2y> 08:00>--<2026-10-15 06:15>" }, d)
+    eq(1, #list)
+    eq(15 * 60 + 30, list[1].time)
+    eq(16 * 60 + 30, list[1].end_time)
+  end)
+end)

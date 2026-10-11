@@ -2054,9 +2054,11 @@ end
 T["verse-block"] = function(_, contents, info)
   local br = close_tag("br", nil, info)
   contents = contents or ""
-  contents = contents:gsub(vim.pesc(br) .. "[ \t]*\n", "\n")
+  -- each newline, with a <br> before it or the blanks before it (not
+  -- those before the <br>: "plan <br />"), becomes a <br> and a newline
+  contents = contents:gsub(vim.pesc(br) .. "[ \t]*\n", "\0"):gsub("[ \t]*\n", "\0")
   -- lint: allow gsub: a <br> tag
-  contents = contents:gsub("[ \t]*\n", br .. "\n")
+  contents = contents:gsub("%z", br .. "\n")
   contents = contents:gsub("\n([ \t]+)", function(ws)
     return "\n" .. string.rep("&nbsp;", #ws)
   end)

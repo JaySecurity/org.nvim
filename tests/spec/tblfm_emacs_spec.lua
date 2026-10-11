@@ -680,3 +680,13 @@ describe("tblfm emacs compat", function()
     eq("59", g[1][3])
   end)
 end)
+
+describe("tblfm: Calc names with a number subscript", function()
+  -- Calc reads H_2O as the subscript H_2 times O (difftest seeds 2520871,
+  -- 2521047)
+  it("H_2O is H_2 O", function()
+    eq("H_2 O + paren", calc({ "| H_2O | (paren) |", "#+TBLFM: $3=$1+$2" })[1][3])
+    eq("H_2 O > 0 ? 1 : 0", calc({ "| H_2O |", "#+TBLFM: $3=if($1>$2, 1, 0)" })[1][3])
+    eq("x_a + 1", calc({ "| x_a |", "#+TBLFM: $2=$1+1" })[1][2])
+  end)
+end)

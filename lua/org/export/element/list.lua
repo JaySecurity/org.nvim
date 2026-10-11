@@ -130,19 +130,10 @@ function P:list_struct(L, i, e)
       j = j + 1
     elseif blank(l) then
       j = j + 1
-    elseif l:match("^%*+ ") and headline_stars(l) >= self.inlinetask_min then
-      -- skip inline tasks
-      local origin = j + 1
-      local k = origin
-      while k <= e and not L[k]:match("^%*+ ") do
-        k = k + 1
-      end
-      if k <= e and L[k]:match("^%*+ [ \t]*END[ \t]*$") then
-        j = k + 1
-      else
-        j = origin
-      end
     else
+      -- text, or an inline task: Emacs ends the list there, as at any
+      -- line at column 0 (org-element--list-struct would skip inline
+      -- tasks, but the list it parses stops before one)
       local ind2 = indentation(l)
       local k = j - 1
       while k >= i and blank(L[k]) do

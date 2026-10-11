@@ -556,6 +556,7 @@ local function source_date(target, item)
     item.sexp
     or item.inactive
     or item.log
+    or item.block_range
     or not item.day
     or not (t == "scheduled" or t == "deadline" or t == "timestamp" or t == "range")
   then

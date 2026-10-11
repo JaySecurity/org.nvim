@@ -77,6 +77,11 @@ local function tokenize(s)
       end
     elseif ch:match("[%a]") then
       local id = s:match("^[%a][%w_']*", i)
+      -- a number subscript ends a name: Calc reads H_2O as H_2 times O
+      local cut = id:match("_%d+()%a")
+      if cut then
+        id = id:sub(1, cut - 1)
+      end
       i = i + #id
       push("id", id, space)
     elseif ch == '"' then
