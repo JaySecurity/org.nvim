@@ -158,6 +158,7 @@ end
 ---@field converted integer options converted
 ---@field defaults string[] lines suggested to keep nvim-orgmode's defaults
 ---@field mapping_defaults table<string, string[]> per mapping section: lines for its keys
+---@field _set_maps? table the mappings the old config set, while converting
 
 ---@return org.migrate.Result
 local function new_result()
@@ -1056,7 +1057,10 @@ end
 
 --- The org.nvim defaults of a mapping section: normalized lhs -> action.
 local function default_keys(section, prefix)
-  local defaults = require("org.config").defaults.mappings[section] or {}
+  local defaults = require("org.config").defaults.mappings[section]
+  if type(defaults) ~= "table" then
+    defaults = {}
+  end
   local out = {}
   for name, value in pairs(defaults) do
     local list = type(value) == "table" and value or { value }

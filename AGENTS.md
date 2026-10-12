@@ -49,8 +49,8 @@ make extensions-report                     # each extension against the promotio
   except in the paths listed in `scripts/typecheck_strict.txt` (the
   public API, the parser and its cache, dates and timestamps, structure,
   lists, clock, agenda, table, babel, capture, links, columns, mobile,
-  export, pickers, health, folding, the UI and every extension), where
-  they fail it too. Fix a new warning (usually a wrong `---@param`/`---@return`, or
+  export, pickers, health, folding, the UI, config migration and every
+  extension), where they fail it too. Fix a new warning (usually a wrong `---@param`/`---@return`, or
   a missing nil check) rather than silencing it. To make a module strict,
   add its path as one line there and fix what `make typecheck` reports;
   never remove a path to get a pass (CONTRIBUTING.md, "Strict paths").

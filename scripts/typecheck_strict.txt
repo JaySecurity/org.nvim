@@ -36,3 +36,4 @@ lua/org/fold.lua
 lua/org/fold
 lua/org/ui.lua
 lua/org/ui
+lua/org/migrate.lua
