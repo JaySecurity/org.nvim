@@ -41,3 +41,4 @@ lua/org/extensions/journal
 lua/org/extensions/kanban
 lua/org/extensions/literate
 lua/org/extensions/lsp
+lua/org/extensions/merge
