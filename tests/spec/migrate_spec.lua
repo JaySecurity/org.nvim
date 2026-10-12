@@ -741,9 +741,18 @@ describe("migrate: :Org migrate_config", function()
   end)
 
   it("completes file names", function()
-    local items = require("org.commands").complete(root .. "/README", "Org migrate_config " .. root .. "/README")
-    -- on Windows the completed paths use backslashes
-    ok(vim.tbl_contains(vim.tbl_map(vim.fs.normalize, items), vim.fs.normalize(root .. "/README.md")))
+    -- a relative name in a scratch directory: no drive letters or
+    -- separators to differ on Windows
+    local dir = vim.fn.tempname()
+    vim.fn.mkdir(dir, "p")
+    vim.fn.writefile({}, dir .. "/orgmode_setup.lua")
+    local cwd = vim.fn.getcwd()
+    vim.cmd.lcd(vim.fn.fnameescape(dir))
+    local ok_, items = pcall(require("org.commands").complete, "orgmode_s", "Org migrate_config orgmode_s")
+    vim.cmd.lcd(vim.fn.fnameescape(cwd))
+    vim.fn.delete(dir, "rf")
+    ok(ok_)
+    eq({ "orgmode_setup.lua" }, items)
   end)
 end)
 
