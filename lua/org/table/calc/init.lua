@@ -164,7 +164,7 @@ local K = {
 local V = require("org.table.calc_vec")(K)
 set_mat(V.mat_mul, V.mat_div, V.mat_pow)
 K.is_matrix = V.is_matrix
-require("org.table.calc_alg")(K)
+require("org.table.calc_alg").setup(K)
 
 M._format_float = format_float
 M._days_from_civil = days_from_civil
