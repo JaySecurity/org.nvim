@@ -196,7 +196,7 @@ function M.task(hl, o, today, clocks)
     if s <= d then
       start_min, finish_min = smin, dmin
     end
-  elseif s then
+  elseif s and sts then
     start, start_min = s, smin
     if smin and sts.end_hour then
       -- a time range: that part of the day
@@ -526,7 +526,7 @@ local function draw_row(cv, st, row, n, today, bgs, last_day)
       run_n = run_n + 1
       return
     end
-    if run_n > 0 then
+    if run_n > 0 and run_ch then
       cv:put(string.rep(run_ch, run_n), run_hl)
     end
     run_ch, run_n, run_hl = ch, 1, hl
@@ -577,7 +577,7 @@ local function draw_row(cv, st, row, n, today, bgs, last_day)
       end
     end
   end
-  if run_n > 0 then
+  if run_n > 0 and run_ch then
     cv:put(string.rep(run_ch, run_n), run_hl)
   end
 end
