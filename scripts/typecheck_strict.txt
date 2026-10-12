@@ -63,3 +63,10 @@ lua/org/export/hooks.lua
 lua/org/export/bind.lua
 lua/org/export/publish.lua
 lua/org/export/icalendar.lua
+lua/org/export/org.lua
+lua/org/export/man.lua
+lua/org/export/texinfo.lua
+lua/org/export/text.lua
+lua/org/export/ast.lua
+lua/org/export/dictionary.lua
+lua/org/export/entities.lua
