@@ -189,10 +189,12 @@ function P:fill_paragraph(node, ignore_first)
       if i == 1 or not l:match("^[^ \t]") then
         return false
       end
-      local scanning = self.scanning
-      self.scanning = true
+      -- scanning, an object with contents (a radio target, emphasis, a
+      -- link) notes them in scan_kids instead of parsing them
+      local scanning, kids = self.scanning, self.scan_kids
+      self.scanning, self.scan_kids = true, {}
       local okc, obj = pcall(self.object_at, self, l, 1, R)
-      self.scanning = scanning
+      self.scanning, self.scan_kids = scanning, kids
       return okc and obj ~= nil
     end
   end

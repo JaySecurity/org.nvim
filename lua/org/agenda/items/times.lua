@@ -189,13 +189,20 @@ local function set_time(item, stamp, acfg, remove_stamps, sexp_stamp, dotime)
   if remove_stamps then
     title = strip_active_timestamps(title)
   end
-  local found = dotime and M.dotime_time(dotime)
+  -- Emacs searches DOTIME followed by the headline without its
+  -- timestamps, so a timestamp in DOTIME can run into the headline:
+  -- "10:45>--<a Sun 08:30 " before "@@html:<b>@@ x" is the time 08:30
+  local in_dotime = dotime
+  if dotime and acfg.search_headline_for_time ~= false then
+    in_dotime = dotime .. strip_timestamps(item.title)
+  end
+  local found = in_dotime and M.dotime_time(in_dotime)
   if found then
     item.time, item.end_time = found.start, found.stop
     -- the entry sorts by the first time in DOTIME (org-get-time-of-day),
     -- which a timestamp's time can follow: "<a 10:00>--<a Mon 13:15>"
     -- shows 13:15 and sorts at 10:00
-    local first = M.find_time(dotime)
+    local first = M.find_time(in_dotime)
     if first and first.start ~= found.start then
       item.sort_time = first.start
     end
