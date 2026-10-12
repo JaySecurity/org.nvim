@@ -171,7 +171,7 @@ function M.reveal_cursor(context)
   local ok = vim.wo.foldexpr == "v:lua.require'org.fold'.foldexpr(v:lnum)"
     and pcall(M.show_context_for, vim.api.nvim_win_get_cursor(0)[1], context)
   if not ok then
-    pcall(vim.cmd, "normal! zv")
+    pcall(vim.api.nvim_command, "normal! zv")
   end
 end
 
@@ -190,7 +190,7 @@ function M.show_context(lnum, detail)
   show_heading_path(hl)
   if detail == "ancestors-full" then
     -- the whole subtree
-    pcall(vim.cmd, hl.line .. "," .. hl.end_line .. "foldopen!")
+    pcall(vim.api.nvim_command, hl.line .. "," .. hl.end_line .. "foldopen!")
     M.unconceal(0, hl.line, hl.end_line)
     close_drawers(hl.line, hl.end_line)
   elseif not on_heading or detail == "local" then

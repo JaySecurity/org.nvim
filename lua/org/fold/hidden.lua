@@ -308,7 +308,7 @@ vim.api.nvim_create_autocmd("WinClosed", {
   callback = function(args)
     local win = tonumber(args.match)
     local ns = win and closed_ns[win]
-    if ns then
+    if win and ns then
       closed_ns[win] = nil
       for _, b in ipairs(vim.api.nvim_list_bufs()) do
         if vim.api.nvim_buf_is_loaded(b) then

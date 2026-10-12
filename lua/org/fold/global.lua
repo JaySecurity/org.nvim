@@ -151,7 +151,7 @@ local function hide_outline(fresh)
   for i = #starts, 1, -1 do
     local l = starts[i]
     if l ~= prev and vim.fn.foldclosed(l) == -1 and vim.fn.foldlevel(l) > 0 then
-      pcall(vim.cmd, l .. "foldclose")
+      pcall(vim.api.nvim_command, l .. "foldclose")
     end
     prev = l
   end

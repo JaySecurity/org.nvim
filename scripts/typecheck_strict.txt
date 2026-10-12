@@ -32,3 +32,5 @@ lua/org/extensions
 lua/org/table.lua
 lua/org/table
 lua/org/export
+lua/org/fold.lua
+lua/org/fold
