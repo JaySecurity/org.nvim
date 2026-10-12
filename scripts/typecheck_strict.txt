@@ -34,3 +34,4 @@ lua/org/extensions/cli
 lua/org/extensions/code
 lua/org/extensions/diagrams
 lua/org/extensions/drill
+lua/org/extensions/heatmap
