@@ -8,6 +8,14 @@ pull request, by its [Conventional Commits](https://www.conventionalcommits.org/
 This file is generated from the git history by `make changelog`
 (`scripts/changelog.lua`); edit the pull request titles, not this file.
 
+## [v2.12.1] - 2026-10-12
+
+<details><summary>Tests, CI and chores (1)</summary>
+
+- **chore(parity):** Measure against Org 9.8.11 ([#256](https://github.com/xheisenbugx/org.nvim/pull/256))
+
+</details>
+
 ## [v2.12.0] - 2026-10-12
 
 ### Features
@@ -451,6 +459,7 @@ This file is generated from the git history by `make changelog`
 
 </details>
 
+[v2.12.1]: https://github.com/xheisenbugx/org.nvim/compare/v2.12.0...v2.12.1
 [v2.12.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.11.0...v2.12.0
 [v2.11.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.10.0...v2.11.0
 [v2.10.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.9.1...v2.10.0
