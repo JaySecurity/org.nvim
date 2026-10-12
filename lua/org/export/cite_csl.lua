@@ -19,6 +19,10 @@ local function ox()
   return require("org.export.ox")
 end
 
+--- The cite option `name`, or `default` when it is unset.
+---@param name string
+---@param default any
+---@return any
 local function copt(name, default)
   local c = (require("org.config").opts.export or {}).cite or {}
   local v = c[name]
@@ -379,7 +383,7 @@ local function parse_reference(reference, info)
   local cps = U.codepoints(text)
   local b, md = R.search(LABEL_RE, cps, 0)
   local suffix_set = false
-  if b then
+  if b and md then
     location_start = b
     label = label_of(md:str(1))
     local p = md:e(1)
@@ -458,11 +462,11 @@ local function create_structure(citation, info)
   end
   local footnote = C.inside_footnote_p(citation)
   if citation.prefix and cites[1] then
-    local p = U.assoc(cites[1], "prefix")
+    local p = assert(U.assoc(cites[1], "prefix"))
     p[2] = interpret(citation.prefix) .. " " .. (p[2] or "")
   end
   if citation.suffix and cites[#cites] then
-    local p = U.assoc(cites[#cites], "suffix")
+    local p = assert(U.assoc(cites[#cites], "suffix"))
     p[2] = (p[2] or "") .. " " .. interpret(citation.suffix)
   end
   if not footnote and note_style_p(info) then

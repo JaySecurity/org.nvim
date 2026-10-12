@@ -20,6 +20,11 @@ local defaults = {
   --- Fold `#+begin_...` blocks when the file is opened (org-hide-block-startup;
   --- #+STARTUP: hideblocks).
   hide_block_startup = false,
+  --- Reload a buffer when another program changes its file on disk (a sync
+  --- tool, a version control pull): an unmodified buffer reloads at once,
+  --- keeping the cursor and folds (`u` undoes it); a modified one is kept
+  --- and a warning shown (Emacs: global-auto-revert-mode, off there).
+  reload_on_change = true,
   --- Turn on the Beamer editing mode when a file is opened
   --- (org-startup-with-beamer-mode; #+STARTUP: beamer).
   startup_with_beamer_mode = false,

@@ -116,6 +116,9 @@ function M.parse_include_value(value, dir)
 end
 
 --- Lines of `file` restricted to `range` ("a-b", b exclusive).
+---@param content string[]
+---@param range? string
+---@return string[]
 local function restrict_lines(content, range)
   if not range then
     return content
@@ -130,6 +133,10 @@ end
 
 --- Locate `search` in an org file's lines (org-link-search) and return the
 --- lines of the element found (subtree, named element or target paragraph).
+---@param content string[]
+---@param search string
+---@param only_contents? boolean
+---@return string[]
 function M.include_location(content, search, only_contents)
   local file = require("org.parser").parse(content)
   local hl

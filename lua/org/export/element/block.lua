@@ -173,14 +173,44 @@ end
 
 --- Fill a paragraph (or verse) node with objects.
 function P:fill_paragraph(node, ignore_first)
-  local lines = M.remove_indentation(node.raw_lines, ignore_first)
+  local R = M.RESTRICTIONS[node.type == "verse-block" and "verse-block" or "paragraph"]
+  local ignore
+  local indented = false
+  for _, l in ipairs(node.raw_lines) do
+    if l:match("^[ \t]+%S") then
+      indented = true
+      break
+    end
+  end
+  if indented and node.type == "paragraph" then
+    -- org-element-normalize-contents measures the lines that start with
+    -- text: an unindented line starting with an object doesn't count
+    ignore = function(i, l)
+      if i == 1 or not l:match("^[^ \t]") then
+        return false
+      end
+      local scanning = self.scanning
+      self.scanning = true
+      local okc, obj = pcall(self.object_at, self, l, 1, R)
+      self.scanning = scanning
+      return okc and obj ~= nil
+    end
+  end
+  local lines = M.remove_indentation(node.raw_lines, ignore_first, ignore)
   local text = table.concat(lines, "\n") .. (node.no_final_newline and "" or "\n")
   node.contents =
     self:parse_objects(text, M.RESTRICTIONS[node.type == "verse-block" and "verse-block" or "paragraph"], node)
   -- Emacs only removes the common indentation from plain text
   -- (org-element-normalize-contents): multi-line verbatim values keep it
-  local removed = #lines > 1 and #node.raw_lines[#lines] - #lines[#lines] or 0
-  if removed > 0 and node.raw_lines[#lines]:sub(1, removed):match("^ +$") then
+  local removed, last = 0, #lines
+  for k = #lines, 2, -1 do
+    -- the last line the indentation was removed from (an ignored one keeps it)
+    if #node.raw_lines[k] > #lines[k] then
+      removed, last = #node.raw_lines[k] - #lines[k], k
+      break
+    end
+  end
+  if removed > 0 and node.raw_lines[last]:sub(1, removed):match("^ +$") then
     local pad = "\n" .. string.rep(" ", removed)
     local types = { verbatim = true, code = true, ["inline-src-block"] = true, ["latex-fragment"] = true }
     M.map(node.contents, types, function(o)

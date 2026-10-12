@@ -15,6 +15,9 @@ local aget = U.aget
 -- JSON (objects become ordered alists)
 ---------------------------------------------------------------------------
 
+--- Decode a JSON text: any Lua value (objects as ordered alists).
+---@param s string
+---@return any
 local function json_decode(s)
   local pos = 1
   local n = #s
@@ -526,17 +529,17 @@ function M.process_brackets(s, lhb, rhb)
   local result = s
   while true do
     local b, md = R.search(COMMAND_RE, result)
-    if b then
+    if b and md then
       local cps = U.codepoints(result)
       result = U.from_codepoints(cps, 1, b) .. (md:str(1) or "") .. U.from_codepoints(cps, md:e(0) + 1, #cps)
     else
       b, md = R.search(COMMAND_WO_ARG_RE, result)
-      if b then
+      if b and md then
         local cps = U.codepoints(result)
         result = U.from_codepoints(cps, 1, b) .. U.from_codepoints(cps, md:e(0) + 1, #cps)
       else
         b, md = R.search(BRACES_RE, result)
-        if b then
+        if b and md then
           local cps = U.codepoints(result)
           result = U.from_codepoints(cps, 1, b)
             .. (md:str(1) or "")

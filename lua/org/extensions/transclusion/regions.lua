@@ -34,7 +34,7 @@ end
 
 local function undojoin(buf)
   api.nvim_buf_call(buf, function()
-    pcall(vim.cmd, "undojoin")
+    pcall(vim.api.nvim_command, "undojoin")
   end)
 end
 

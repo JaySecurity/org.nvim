@@ -84,7 +84,7 @@ function M.format_code_default(el, info)
   for _, l in ipairs(code_lines) do
     max_width = math.max(max_width, #l)
   end
-  if num_start then
+  if num_fmt then
     max_width = max_width + #string.format(num_fmt, num_start)
   end
   return M.format_code(code, function(loc, num, ref)

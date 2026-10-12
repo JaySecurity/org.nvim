@@ -1700,74 +1700,74 @@ ox-beamer	org-beamer-outline-frame-options	opt	done	lua/org/config/misc.lua:67 e
 ox-beamer	org-beamer-outline-frame-title	opt	done	lua/org/config/misc.lua:66 export.beamer.outline_frame_title	-	-
 ox-beamer	org-beamer-subtitle-format	opt	done	lua/org/config/misc.lua:68 export.beamer.subtitle_format	-	-
 ox-beamer	org-beamer-theme	opt	done	lua/org/config/misc.lua:69 export.beamer.theme	-	-
-ox-html	org-html-allow-name-attribute-in-anchors	opt	done	lua/org/export/html.lua:1793 export.html.allow_name_attribute_in_anchors	read from config but not listed in defaults/doc	-
+ox-html	org-html-allow-name-attribute-in-anchors	opt	done	lua/org/export/html/backend.lua:60 export.html.allow_name_attribute_in_anchors	read from config but not listed in defaults/doc	-
 ox-html	org-html-checkbox-type	opt	done	lua/org/config/clock.lua:101 export.html.checkbox_type	-	-
-ox-html	org-html-coding-system	opt	done	lua/org/export/html.lua:1847 export.html.coding_system	read from config but not listed in defaults/doc	-
+ox-html	org-html-coding-system	opt	done	lua/org/export/html/backend.lua:142 export.html.coding_system	read from config but not listed in defaults/doc	-
 ox-html	org-html-container-element	opt	done	lua/org/config/clock.lua:77 export.html.container	-	-
 ox-html	org-html-content-class	opt	done	lua/org/config/clock.lua:78 export.html.content_class	-	-
 ox-html	org-html-creator-string	opt	done	lua/org/config/clock.lua:92 export.html.creator_string	-	-
 ox-html	org-html-datetime-formats	opt	done	-	PROBED: date, time, time range and date range <time datetime> identical to Emacs	S
-ox-html	org-html-divs	opt	done	lua/org/export/html.lua:1794 export.html.divs	read from config but not listed in defaults/doc	-
+ox-html	org-html-divs	opt	done	lua/org/export/html/backend.lua:62 export.html.divs	read from config but not listed in defaults/doc	-
 ox-html	org-html-doctype	opt	done	lua/org/config/clock.lua:75 export.html.doctype	-	-
 ox-html	org-html-equation-reference-format	opt	done	lua/org/config/clock.lua:106 export.html.equation_reference_format	-	-
 ox-html	org-html-extension	opt	done	lua/org/config/clock.lua:79 export.html.extension	-	-
 ox-html	org-html-footnote-format	opt	done	lua/org/config/clock.lua:104 export.html.footnote_format	-	-
 ox-html	org-html-footnote-separator	opt	done	lua/org/config/clock.lua:105 export.html.footnote_separator	-	-
-ox-html	org-html-footnotes-section	opt	done	lua/org/export/html.lua:1799 export.html.footnotes_section	read from config but not listed in defaults/doc	-
-ox-html	org-html-format-drawer-function	opt	done	lua/org/export/html.lua:849 export.html.format_drawer_function	read from config but not listed in defaults/doc	-
-ox-html	org-html-format-headline-function	opt	done	lua/org/export/html.lua:155 export.html.format_headline_function	read from config but not listed in defaults/doc	-
-ox-html	org-html-format-inlinetask-function	opt	done	lua/org/export/html.lua:1072 export.html.format_inlinetask_function	read from config but not listed in defaults/doc	-
+ox-html	org-html-footnotes-section	opt	done	lua/org/export/html/backend.lua:74 export.html.footnotes_section	read from config but not listed in defaults/doc	-
+ox-html	org-html-format-drawer-function	opt	done	lua/org/export/html/transcode.lua:102 export.html.format_drawer_function	read from config but not listed in defaults/doc	-
+ox-html	org-html-format-headline-function	opt	done	lua/org/export/html.lua:179 export.html.format_headline_function	read from config but not listed in defaults/doc	-
+ox-html	org-html-format-inlinetask-function	opt	done	lua/org/export/html/headline.lua:177 export.html.format_inlinetask_function	read from config but not listed in defaults/doc	-
 ox-html	org-html-head	opt	done	lua/org/config/clock.lua:84 export.html.head	-	-
 ox-html	org-html-head-extra	opt	done	lua/org/config/clock.lua:85 export.html.head_extra	-	-
 ox-html	org-html-head-include-default-style	opt	done	lua/org/config/clock.lua:80 export.html.head_include_default_style	-	-
 ox-html	org-html-head-include-scripts	opt	done	lua/org/config/clock.lua:86 export.html.head_include_scripts	-	-
-ox-html	org-html-home/up-format	opt	done	lua/org/export/html.lua:1800 export.html.home_up_format	read from config but not listed in defaults/doc	-
+ox-html	org-html-home/up-format	opt	done	lua/org/export/html/backend.lua:75 export.html.home_up_format	read from config but not listed in defaults/doc	-
 ox-html	org-html-html5-fancy	opt	done	lua/org/config/clock.lua:76 export.html.html5_fancy	-	-
 ox-html	org-html-htmlize-font-prefix	opt	done	-	read in html.lua class naming; spec checks my- prefix	S
 ox-html	org-html-htmlize-output-type	opt	done	-	css/inline-css/false via tree-sitter captures; spans differ from font-lock (unavoidable); spec'd	M
 ox-html	org-html-indent	opt	done	-	PROBED: new XHTML doc (dl, nested ol, example, center, details, table, footnote, src) indented identically to Emacs 9.8.10	S
-ox-html	org-html-infojs-options	opt	done	lua/org/export/html.lua:647 #+INFOJS_OPT	defaults only per file via #+INFOJS_OPT; no global option table	-
+ox-html	org-html-infojs-options	opt	done	lua/org/export/html/backend.lua:159 #+INFOJS_OPT	defaults only per file via #+INFOJS_OPT; no global option table	-
 ox-html	org-html-infojs-template	opt	done	-	PROBED: non-default infojs_opt values (view/toc/ltoc/tdepth/mouse/buttons/home) identical to Emacs	S
-ox-html	org-html-inline-image-rules	opt	done	lua/org/export/html.lua:1801 export.html.inline_image_rules	read from config but not listed in defaults/doc	-
+ox-html	org-html-inline-image-rules	opt	done	lua/org/export/html/backend.lua:76 export.html.inline_image_rules	read from config but not listed in defaults/doc	-
 ox-html	org-html-inline-images	opt	done	lua/org/config/clock.lua:102 export.html.inline_images	-	-
-ox-html	org-html-klipse-css	opt	done	lua/org/export/html.lua:1850 export.html.klipse_css	read from config but not listed in defaults/doc	-
-ox-html	org-html-klipse-js	opt	done	lua/org/export/html.lua:1851 export.html.klipse_js	read from config but not listed in defaults/doc	-
-ox-html	org-html-klipse-selection-script	opt	done	lua/org/export/html.lua:1852 export.html.klipse_selection_script	read from config but not listed in defaults/doc	-
-ox-html	org-html-klipsify-src	opt	done	lua/org/export/html.lua:1849 export.html.klipsify_src	read from config but not listed in defaults/doc	-
+ox-html	org-html-klipse-css	opt	done	lua/org/export/html/backend.lua:146 export.html.klipse_css	read from config but not listed in defaults/doc	-
+ox-html	org-html-klipse-js	opt	done	lua/org/export/html/backend.lua:152 export.html.klipse_js	read from config but not listed in defaults/doc	-
+ox-html	org-html-klipse-selection-script	opt	done	lua/org/export/html/backend.lua:157 export.html.klipse_selection_script	read from config but not listed in defaults/doc	-
+ox-html	org-html-klipsify-src	opt	done	lua/org/export/html/backend.lua:144 export.html.klipsify_src	read from config but not listed in defaults/doc	-
 ox-html	org-html-link-home	opt	done	lua/org/config/clock.lua:93 export.html.link_home	-	-
 ox-html	org-html-link-org-files-as-html	opt	done	lua/org/config/clock.lua:96 export.html.link_org_files_as_html	-	-
 ox-html	org-html-link-up	opt	done	lua/org/config/clock.lua:94 export.html.link_up	-	-
 ox-html	org-html-link-use-abs-url	opt	done	lua/org/config/clock.lua:95 export.html.link_use_abs_url	-	-
 ox-html	org-html-mathjax-options	opt	done	lua/org/config/clock.lua:112 export.html.mathjax_options	-	-
-ox-html	org-html-mathjax-template	opt	done	lua/org/export/html.lua:1803 export.html.mathjax_template	read from config but not listed in defaults/doc	-
-ox-html	org-html-meta-tags	opt	done	lua/org/export/html.lua:424 export.html.meta_tags	read from config but not listed in defaults/doc	-
+ox-html	org-html-mathjax-template	opt	done	lua/org/export/html/backend.lua:78 export.html.mathjax_template	read from config but not listed in defaults/doc	-
+ox-html	org-html-meta-tags	opt	done	lua/org/export/html/template.lua:65 export.html.meta_tags	read from config but not listed in defaults/doc	-
 ox-html	org-html-metadata-timestamp-format	opt	done	lua/org/config/clock.lua:97 export.html.metadata_timestamp_format	-	-
 ox-html	org-html-postamble	opt	done	lua/org/config/clock.lua:88 export.html.postamble	-	-
 ox-html	org-html-postamble-format	opt	done	lua/org/config/clock.lua:89 export.html.postamble_format	-	-
 ox-html	org-html-preamble	opt	done	lua/org/config/clock.lua:87 export.html.preamble	-	-
 ox-html	org-html-preamble-format	opt	done	lua/org/config/clock.lua:90 export.html.preamble_format	-	-
 ox-html	org-html-prefer-user-labels	opt	done	lua/org/config/clock.lua:100 export.html.prefer_user_labels	-	-
-ox-html	org-html-scripts	opt	done	lua/org/export/html.lua:1853 export.html.scripts	read from config but not listed in defaults/doc	-
+ox-html	org-html-scripts	opt	done	lua/org/export/html/backend.lua:59 export.html.scripts	read from config but not listed in defaults/doc	-
 ox-html	org-html-self-link-headlines	opt	done	lua/org/config/clock.lua:99 export.html.self_link_headlines	-	-
-ox-html	org-html-style-default	opt	done	lua/org/export/html.lua:460 export.html.style / head_include_default_style	default CSS replaceable by disabling it and setting head	-
-ox-html	org-html-table-align-individual-fields	opt	done	lua/org/export/html.lua:1809 export.html.table_align_individual_fields	read from config but not listed in defaults/doc	-
+ox-html	org-html-style-default	opt	done	lua/org/export/html/backend.lua:31 export.html.style / head_include_default_style	default CSS replaceable by disabling it and setting head	-
+ox-html	org-html-table-align-individual-fields	opt	done	lua/org/export/html/backend.lua:84 export.html.table_align_individual_fields	read from config but not listed in defaults/doc	-
 ox-html	org-html-table-caption-above	opt	done	lua/org/config/clock.lua:103 export.html.table_caption_above	-	-
-ox-html	org-html-table-data-tags	opt	done	lua/org/export/html.lua:1811 export.html.table_data_tags	read from config but not listed in defaults/doc	-
-ox-html	org-html-table-default-attributes	opt	done	lua/org/export/html.lua:1834 export.html.table_default_attributes	read from config but not listed in defaults/doc	-
-ox-html	org-html-table-header-tags	opt	done	lua/org/export/html.lua:1812 export.html.table_header_tags	read from config but not listed in defaults/doc	-
-ox-html	org-html-table-row-close-tag	opt	done	lua/org/export/html.lua:1842 export.html.table_row_close_tag	read from config but not listed in defaults/doc	-
-ox-html	org-html-table-row-open-tag	opt	done	lua/org/export/html.lua:1841 export.html.table_row_open_tag	read from config but not listed in defaults/doc	-
-ox-html	org-html-table-use-header-tags-for-first-column	opt	done	lua/org/export/html.lua:1813 export.html.table_use_header_tags_for_first_column	read from config but not listed in defaults/doc	-
-ox-html	org-html-tag-class-prefix	opt	done	lua/org/export/html.lua:1814 export.html.tag_class_prefix	read from config but not listed in defaults/doc	-
-ox-html	org-html-text-markup-alist	opt	done	lua/org/export/html.lua:1815 export.html.text_markup_alist	read from config but not listed in defaults/doc	-
-ox-html	org-html-todo-kwd-class-prefix	opt	done	lua/org/export/html.lua:1823 export.html.todo_kwd_class_prefix	read from config but not listed in defaults/doc	-
+ox-html	org-html-table-data-tags	opt	done	lua/org/export/html/backend.lua:86 export.html.table_data_tags	read from config but not listed in defaults/doc	-
+ox-html	org-html-table-default-attributes	opt	done	lua/org/export/html/backend.lua:123 export.html.table_default_attributes	read from config but not listed in defaults/doc	-
+ox-html	org-html-table-header-tags	opt	done	lua/org/export/html/backend.lua:87 export.html.table_header_tags	read from config but not listed in defaults/doc	-
+ox-html	org-html-table-row-close-tag	opt	done	lua/org/export/html/backend.lua:132 export.html.table_row_close_tag	read from config but not listed in defaults/doc	-
+ox-html	org-html-table-row-open-tag	opt	done	lua/org/export/html/backend.lua:131 export.html.table_row_open_tag	read from config but not listed in defaults/doc	-
+ox-html	org-html-table-use-header-tags-for-first-column	opt	done	lua/org/export/html/backend.lua:88 export.html.table_use_header_tags_for_first_column	read from config but not listed in defaults/doc	-
+ox-html	org-html-tag-class-prefix	opt	done	lua/org/export/html/backend.lua:89 export.html.tag_class_prefix	read from config but not listed in defaults/doc	-
+ox-html	org-html-text-markup-alist	opt	done	lua/org/export/html/backend.lua:91 export.html.text_markup_alist	read from config but not listed in defaults/doc	-
+ox-html	org-html-todo-kwd-class-prefix	opt	done	lua/org/export/html/backend.lua:103 export.html.todo_kwd_class_prefix	read from config but not listed in defaults/doc	-
 ox-html	org-html-toplevel-hlevel	opt	done	lua/org/config/clock.lua:98 export.html.toplevel_hlevel	-	-
 ox-html	org-html-use-infojs	opt	done	lua/org/config/clock.lua:107 export.html.use_infojs	-	-
 ox-html	org-html-validation-link	opt	done	lua/org/config/clock.lua:91 export.html.validation_link	-	-
-ox-html	org-html-viewport	opt	done	lua/org/export/html.lua:1826 export.html.viewport	read from config but not listed in defaults/doc	-
+ox-html	org-html-viewport	opt	done	lua/org/export/html/backend.lua:107 export.html.viewport	read from config but not listed in defaults/doc	-
 ox-html	org-html-with-latex	opt	done	-	PROBED tex:html/verbatim/nil identical; image mode spec'd with fake process (hash differs, documented)	M
 ox-html	org-html-wrap-src-lines	opt	done	lua/org/config/clock.lua:108 export.html.wrap_src_lines	-	-
-ox-html	org-html-xml-declaration	opt	done	lua/org/export/html.lua:1843 export.html.xml_declaration	read from config but not listed in defaults/doc	-
+ox-html	org-html-xml-declaration	opt	done	lua/org/export/html/backend.lua:134 export.html.xml_declaration	read from config but not listed in defaults/doc	-
 ox-icalendar	org-icalendar-alarm-time	opt	done	lua/org/config/misc.lua:78 export.icalendar.alarm_time	-	-
 ox-icalendar	org-icalendar-categories	opt	done	lua/org/config/misc.lua:85 export.icalendar.categories	-	-
 ox-icalendar	org-icalendar-combined-agenda-file	opt	done	lua/org/config/misc.lua:75 export.icalendar.combined_agenda_file	-	-
@@ -1813,59 +1813,59 @@ ox-koma-letter	org-koma-letter-use-from-logo	opt	done	-	read as from-logo: defau
 ox-koma-letter	org-koma-letter-use-phone	opt	done	-	PROBED K2: phone:t in buffer -> \KOMAoption{fromphone}{true} after LCO; var in config golden	L
 ox-koma-letter	org-koma-letter-use-place	opt	done	-	PROBED K5: use_place=false -> \setkomavar{place}{} as Emacs	L
 ox-koma-letter	org-koma-letter-use-url	opt	done	-	read as url: default; config golden fromurl true; K2 url:t matches Emacs	L
-ox-latex	org-latex-active-timestamp-format	opt	done	lua/org/export/latex.lua:2040 export.latex.active_timestamp_format	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-active-timestamp-format	opt	done	lua/org/export/latex/backend.lua:37 export.latex.active_timestamp_format	read from config but not listed in defaults/doc	-
 ox-latex	org-latex-bib-compiler	opt	done	lua/org/config/misc.lua:17 export.latex.bib_compiler	-	-
 ox-latex	org-latex-caption-above	opt	done	lua/org/config/misc.lua:23 export.latex.caption_above	-	-
 ox-latex	org-latex-classes	opt	done	lua/org/config/misc.lua:12 export.latex.classes	-	-
 ox-latex	org-latex-compiler	opt	done	lua/org/config/misc.lua:15 export.latex.compiler	-	-
 ox-latex	org-latex-compiler-file-string	opt	done	-	PROBED: lualatex and default pdflatex first line identical to Emacs; false omits it; beamer too	S
-ox-latex	org-latex-custom-lang-environments	opt	done	lua/org/export/latex.lua:1586 export.latex.custom_lang_environments	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-custom-lang-environments	opt	done	lua/org/export/latex/src.lua:46 export.latex.custom_lang_environments	read from config but not listed in defaults/doc	-
 ox-latex	org-latex-default-class	opt	done	lua/org/config/misc.lua:11 export.latex.default_class	-	-
 ox-latex	org-latex-default-figure-position	opt	done	lua/org/config/misc.lua:30 export.latex.default_figure_position	-	-
-ox-latex	org-latex-default-footnote-command	opt	done	lua/org/export/latex.lua:2047 export.latex.default_footnote_command	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-default-quote-environment	opt	done	lua/org/export/latex.lua:2045 export.latex.default_quote_environment	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-default-footnote-command	opt	done	lua/org/export/latex/backend.lua:45 export.latex.default_footnote_command	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-default-quote-environment	opt	done	lua/org/export/latex/backend.lua:42 export.latex.default_quote_environment	read from config but not listed in defaults/doc	-
 ox-latex	org-latex-default-table-environment	opt	done	lua/org/config/misc.lua:31 export.latex.default_table_environment	-	-
 ox-latex	org-latex-default-table-mode	opt	done	lua/org/config/misc.lua:32 export.latex.default_table_mode	-	-
-ox-latex	org-latex-diary-timestamp-format	opt	done	lua/org/export/latex.lua:2048 export.latex.diary_timestamp_format	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-engraved-options	opt	done	lua/org/export/latex.lua generate_engraved_preamble (\fvset), inline \Verb options, mathescape; tests/spec/export_latex_engraved_emacs_spec.lua	export.latex.engraved_options (default = Emacs alist); golden .tex from Emacs 9.8.10 + engrave-faces 0.3.1 byte-identical	-
-ox-latex	org-latex-engraved-preamble	opt	done	lua/org/export/latex.lua generate_engraved_preamble ([FVEXTRA-SETUP]/[LISTINGS-SETUP], plaintop/plain); tests/spec/export_latex_engraved_emacs_spec.lua	export.latex.engraved_preamble; whole preamble byte-identical to Emacs	-
+ox-latex	org-latex-diary-timestamp-format	opt	done	lua/org/export/latex/backend.lua:50 export.latex.diary_timestamp_format	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-engraved-options	opt	done	lua/org/export/latex/engraved.lua generate_engraved_preamble (\fvset), inline \Verb options, mathescape; tests/spec/export_latex_engraved_emacs_spec.lua	export.latex.engraved_options (default = Emacs alist); golden .tex from Emacs 9.8.10 + engrave-faces 0.3.1 byte-identical	-
+ox-latex	org-latex-engraved-preamble	opt	done	lua/org/export/latex/engraved.lua generate_engraved_preamble ([FVEXTRA-SETUP]/[LISTINGS-SETUP], plaintop/plain); tests/spec/export_latex_engraved_emacs_spec.lua	export.latex.engraved_preamble; whole preamble byte-identical to Emacs	-
 ox-latex	org-latex-engraved-theme	opt	done	lua/org/export/engrave.lua get_theme + latex.lua (\engravedtheme wrappers, #+LATEX_ENGRAVED_THEME, :engraved-theme); tests/spec/export_latex_engraved_emacs_spec.lua	default preset byte-identical; t = current colour scheme, name = Neovim colourscheme (Emacs: Emacs theme) — documented difference; face assignment from tree-sitter differs where font-lock does (see :h org-export-unsupported)	-
-ox-latex	org-latex-footnote-defined-format	opt	done	lua/org/export/latex.lua:2049 export.latex.footnote_defined_format	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-footnote-separator	opt	done	lua/org/export/latex.lua:2050 export.latex.footnote_separator	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-format-drawer-function	opt	done	lua/org/export/latex.lua:779 export.latex.format_drawer_function	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-format-headline-function	opt	done	lua/org/export/latex.lua:927 export.latex.format_headline_function	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-format-inlinetask-function	opt	done	lua/org/export/latex.lua:1076 export.latex.format_inlinetask_function	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-footnote-defined-format	opt	done	lua/org/export/latex/backend.lua:54 export.latex.footnote_defined_format	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-footnote-separator	opt	done	lua/org/export/latex/backend.lua:55 export.latex.footnote_separator	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-format-drawer-function	opt	done	lua/org/export/latex/transcode.lua:64 export.latex.format_drawer_function	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-format-headline-function	opt	done	lua/org/export/latex/headline.lua:90 export.latex.format_headline_function	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-format-inlinetask-function	opt	done	lua/org/export/latex/elements.lua:73 export.latex.format_inlinetask_function	read from config but not listed in defaults/doc	-
 ox-latex	org-latex-hyperref-template	opt	done	lua/org/config/misc.lua:35 export.latex.hyperref_template	-	-
-ox-latex	org-latex-image-default-height	opt	done	lua/org/export/latex.lua:2053 export.latex.image_default_height	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-image-default-option	opt	done	lua/org/export/latex.lua:2054 export.latex.image_default_option	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-image-default-scale	opt	done	lua/org/export/latex.lua:2052 export.latex.image_default_scale	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-image-default-height	opt	done	lua/org/export/latex/backend.lua:58 export.latex.image_default_height	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-image-default-option	opt	done	lua/org/export/latex/backend.lua:59 export.latex.image_default_option	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-image-default-scale	opt	done	lua/org/export/latex/backend.lua:57 export.latex.image_default_scale	read from config but not listed in defaults/doc	-
 ox-latex	org-latex-image-default-width	opt	done	lua/org/config/misc.lua:29 export.latex.image_default_width	-	-
 ox-latex	org-latex-images-centered	opt	done	lua/org/config/misc.lua:28 export.latex.images_centered	-	-
-ox-latex	org-latex-inactive-timestamp-format	opt	done	lua/org/export/latex.lua:2057 export.latex.inactive_timestamp_format	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-inline-image-rules	opt	done	lua/org/export/latex.lua:2058 export.latex.inline_image_rules	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-inputenc-alist	opt	done	lua/org/export/latex.lua:549 export.latex.inputenc_alist	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-inactive-timestamp-format	opt	done	lua/org/export/latex/backend.lua:62 export.latex.inactive_timestamp_format	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-inline-image-rules	opt	done	lua/org/export/latex/backend.lua:63 export.latex.inline_image_rules	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-inputenc-alist	opt	done	lua/org/export/latex/preamble.lua:120 export.latex.inputenc_alist	read from config but not listed in defaults/doc	-
 ox-latex	org-latex-known-warnings	opt	done	-	latex.log_warnings uses option (Vim regexes instead of Emacs regexps); spec'd	S
-ox-latex	org-latex-link-with-unknown-path-format	opt	done	lua/org/export/latex.lua:2059 export.latex.link_with_unknown_path_format	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-listings-langs	opt	done	lua/org/export/latex.lua:2061 export.latex.listings_langs	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-listings-options	opt	done	lua/org/export/latex.lua:2062 export.latex.listings_options	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-listings-src-omit-language	opt	done	lua/org/export/latex.lua:2063 export.latex.listings_src_omit_language	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-logfiles-extensions	opt	done	lua/org/export/latex.lua:2217 export.latex.logfiles_extensions	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-minted-langs	opt	done	lua/org/export/latex.lua:2064 export.latex.minted_langs	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-minted-options	opt	done	lua/org/export/latex.lua:2065 export.latex.minted_options	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-link-with-unknown-path-format	opt	done	lua/org/export/latex/backend.lua:64 export.latex.link_with_unknown_path_format	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-listings-langs	opt	done	lua/org/export/latex/backend.lua:66 export.latex.listings_langs	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-listings-options	opt	done	lua/org/export/latex/backend.lua:67 export.latex.listings_options	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-listings-src-omit-language	opt	done	lua/org/export/latex/backend.lua:68 export.latex.listings_src_omit_language	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-logfiles-extensions	opt	done	lua/org/export/latex/compile.lua:104 export.latex.logfiles_extensions	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-minted-langs	opt	done	lua/org/export/latex/backend.lua:69 export.latex.minted_langs	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-minted-options	opt	done	lua/org/export/latex/backend.lua:70 export.latex.minted_options	read from config but not listed in defaults/doc	-
 ox-latex	org-latex-pdf-process	opt	done	lua/org/config/misc.lua:16 export.latex.pdf_process	-	-
 ox-latex	org-latex-prefer-user-labels	opt	done	lua/org/config/misc.lua:24 export.latex.prefer_user_labels	-	-
 ox-latex	org-latex-reference-command	opt	done	lua/org/config/misc.lua:25 export.latex.reference_command	-	-
 ox-latex	org-latex-remove-logfiles	opt	done	lua/org/config/misc.lua:18 export.latex.remove_logfiles	-	-
 ox-latex	org-latex-src-block-backend	opt	done	lua/org/config/misc.lua:22 export.latex.src_block_backend	-	-
-ox-latex	org-latex-subtitle-format	opt	done	lua/org/export/latex.lua:2068 export.latex.subtitle_format	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-subtitle-separate	opt	done	lua/org/export/latex.lua:2069 export.latex.subtitle_separate	read from config but not listed in defaults/doc	-
-ox-latex	org-latex-table-scientific-notation	opt	done	lua/org/export/latex.lua:2070 export.latex.table_scientific_notation	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-subtitle-format	opt	done	lua/org/export/latex/backend.lua:73 export.latex.subtitle_format	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-subtitle-separate	opt	done	lua/org/export/latex/backend.lua:74 export.latex.subtitle_separate	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-table-scientific-notation	opt	done	lua/org/export/latex/backend.lua:75 export.latex.table_scientific_notation	read from config but not listed in defaults/doc	-
 ox-latex	org-latex-tables-booktabs	opt	done	lua/org/config/misc.lua:26 export.latex.tables_booktabs	-	-
 ox-latex	org-latex-tables-centered	opt	done	lua/org/config/misc.lua:27 export.latex.tables_centered	-	-
-ox-latex	org-latex-text-markup-alist	opt	done	lua/org/export/latex.lua:2073 export.latex.text_markup_alist	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-text-markup-alist	opt	done	lua/org/export/latex/backend.lua:79 export.latex.text_markup_alist	read from config but not listed in defaults/doc	-
 ox-latex	org-latex-title-command	opt	done	lua/org/config/misc.lua:33 export.latex.title_command	-	-
 ox-latex	org-latex-toc-command	opt	done	lua/org/config/misc.lua:34 export.latex.toc_command	-	-
-ox-latex	org-latex-toc-include-unnumbered	opt	done	lua/org/export/latex.lua:2083 export.latex.toc_include_unnumbered	read from config but not listed in defaults/doc	-
+ox-latex	org-latex-toc-include-unnumbered	opt	done	lua/org/export/latex/backend.lua:93 export.latex.toc_include_unnumbered	read from config but not listed in defaults/doc	-
 ox-latex	org-latex-use-sans	opt	done	lua/org/config/misc.lua:36 export.latex.use_sans	-	-
 ox-man	org-man-logfiles-extensions	opt	done	-	read in compile(); scratch check: custom {aux} removes .aux and keeps .log	M
 ox-man	org-man-pdf-process	opt	done	-	shell list with %f %F %b %o %O or function; scratch check of function form + spec with fake cmds	M

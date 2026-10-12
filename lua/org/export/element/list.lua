@@ -117,7 +117,8 @@ function P:list_struct(L, i, e)
         it.last = j - 1
         struct[#struct + 1] = it
       end
-      local fi = full_item(l)
+      -- item_match matched, and full_item accepts every bullet it does
+      local fi = assert(full_item(l))
       items[#items + 1] = {
         line = j,
         ind = ind,
@@ -262,7 +263,9 @@ function P:item(L, it, iend, struct, by_line, ltype)
   else
     local cb = skip_blank(L, it.line + 1, ce)
     if cb <= ce then
-      node.pre_blank = cb - it.line - 1
+      -- count-lines from the item's line: 1 when the contents start on the
+      -- next line (org-element-item-parser)
+      node.pre_blank = cb - it.line
       body = vim.list_slice(L, cb, ce)
     end
   end

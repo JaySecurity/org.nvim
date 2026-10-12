@@ -24,6 +24,9 @@ function M.open_ref(params)
   local proto = require("org.protocol")
   local links = require("org.links")
   local ref = proto.sanitize_uri(params.ref)
+  if not ref then
+    return nil
+  end
   local title = params.title ~= "" and params.title or nil
   local body = params.body or ""
   if ropts().protocol_store_links then

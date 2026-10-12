@@ -161,6 +161,7 @@ function M.parse(lines)
     for x = 1, #g[y] do
       if at(y, x) == "+" and is_h(at(y, x + 1)) and is_v(at(y + 1, x)) then
         -- Right: the first corner of the top border with a border below.
+        ---@type integer?
         local x2 = x + 1
         while at(y, x2) and not (at(y, x2) == "+" and is_v(at(y + 1, x2))) do
           if not (is_h(at(y, x2)) or at(y, x2) == "+") then
@@ -170,6 +171,7 @@ function M.parse(lines)
           x2 = x2 + 1
         end
         -- Down: the first corner of the left border with a border right.
+        ---@type integer?
         local y2 = y + 1
         while x2 and at(y2, x) and not (at(y2, x) == "+" and (is_h(at(y2, x + 1)) or at(y2, x + 1) == "+")) do
           if not is_v(at(y2, x)) then
@@ -305,7 +307,11 @@ end
 ---@param lines string[]
 function M.to_latex(lines)
   local cells, g = M.parse(lines)
-  if not cells then
+  if not cells or not g then
+    return nil
+  end
+  local origin = cells[1]
+  if not origin then
     return nil
   end
   local col_list, row_list = col_row_lists(cells)
@@ -313,7 +319,7 @@ function M.to_latex(lines)
   for _, r in ipairs(row_list) do
     is_row[r] = true
   end
-  local origin, tail = cells[1], cells[1]
+  local tail = origin
   for _, c in ipairs(cells) do
     if c.bottom > tail.bottom or (c.bottom == tail.bottom and c.right > tail.right) then
       tail = c
@@ -493,8 +499,10 @@ function M.create_or_convert()
     if utils.confirm("Convert table to table.el table? ") then
       tbl.align()
       local info = tbl.find(bufnr, lnum)
-      vim.api.nvim_buf_set_lines(bufnr, info.start - 1, info.finish, false, M.from_org(info.lines))
-      vim.api.nvim_win_set_cursor(0, { info.start, 0 })
+      if info then
+        vim.api.nvim_buf_set_lines(bufnr, info.start - 1, info.finish, false, M.from_org(info.lines))
+        vim.api.nvim_win_set_cursor(0, { info.start, 0 })
+      end
     end
     return
   end
@@ -502,7 +510,7 @@ function M.create_or_convert()
   local rows = cols and read_numbers("Number of rows", "3")
   local widths = rows and read_numbers("Cell width(s)", "5")
   local heights = widths and read_numbers("Cell height(s)", "1")
-  if not heights then
+  if not (cols and rows and widths and heights) then
     return
   end
   -- Emacs draws the table at the cursor, pushing a blank line down; here a

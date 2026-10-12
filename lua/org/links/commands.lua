@@ -141,7 +141,7 @@ local function goto_link(dir)
     if found then
       vim.cmd("normal! m'")
       vim.api.nvim_win_set_cursor(0, { l, found.start_col - 1 })
-      pcall(vim.cmd, "normal! zv")
+      pcall(vim.api.nvim_command, "normal! zv")
       if wrapped then
         utils.notify(
           dir > 0 and "Link search wrapped back to beginning of buffer" or "Link search wrapped back to end of buffer"

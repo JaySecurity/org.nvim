@@ -388,7 +388,7 @@ local function joined(bufnr, tick, fn)
   end
   vim.api.nvim_buf_call(bufnr, function()
     -- E790 after an undo: then it is a step of its own
-    pcall(vim.cmd, "undojoin")
+    pcall(vim.api.nvim_command, "undojoin")
     fn()
   end)
 end
@@ -432,14 +432,17 @@ function M.execute(opts)
     done(false)
     return false
   end
-  local args, target = b.args, nil
+  local args, target
   if b.call then
     args, target = M.block_args(b, b.file, bufnr)
-    if not target then
+    if not (args and target) then
       utils.error("#+CALL: no block named " .. tostring(b.target))
       done(false, true)
       return
     end
+  else
+    -- a source block's header arguments, which M.at_block always sets
+    args = b.args --[[@as table]]
   end
   local src = target or b
   if opts.params then
@@ -633,7 +636,7 @@ local function evaluate_ref(bufnr, b, ref, file, opts)
   local state = { pos = 0 }
   if b.call then
     args, src = M.block_args(b, file, bufnr)
-    if not src then
+    if not (args and src) then
       error("#+CALL: no block named " .. tostring(b.target), 0)
     end
   else

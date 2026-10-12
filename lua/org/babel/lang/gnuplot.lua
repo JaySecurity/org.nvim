@@ -89,7 +89,7 @@ end
 
 --- `:xlabels '((1 . "one") (2 . "two"))` as `"one" 1, "two" 2`.
 local function labels(v)
-  local s = ob.unq(v)
+  local s = ob.unq(v) or ""
   local parts = {}
   for n, label in s:gmatch('%(%s*(%-?%d+)%s*%.%s*"([^"]*)"%s*%)') do
     parts[#parts + 1] = string.format('"%s" %d', label, tonumber(n))

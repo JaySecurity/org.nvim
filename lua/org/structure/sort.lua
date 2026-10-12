@@ -337,6 +337,8 @@ function M.sort(sorting_type)
   local file = files.get_buffer(bufnr)
   -- the records: siblings at the level of the first entry in the range
   local start, stop, what
+  -- an inline task in the text of the headline whose children are sorted
+  local inline_first = false
   if visual then
     local first
     for _, h in ipairs(file.headlines) do
@@ -364,6 +366,16 @@ function M.sort(sorting_type)
         return
       end
       start, stop, what = hl.children[1].line, hl.end_line, "children"
+      local min_inline = parser.inlinetask_min_level()
+      if min_inline then
+        for _, l in ipairs(get_lines(bufnr, hl.line + 1, start - 1)) do
+          local lv = l:byte(1) == 42 and parser.headline_level(l)
+          if lv and lv >= min_inline then
+            inline_first = true
+            break
+          end
+        end
+      end
       -- like org-sort-entries: one of the trailing blank lines stays in
       -- the range, so that it goes with the last record
       local trimmed = stop
@@ -423,6 +435,14 @@ function M.sort(sorting_type)
     if abort then
       return
     end
+  end
+  if inline_first then
+    -- org-sort-entries takes the inline task (or END line) for the first
+    -- child (outline-next-heading) and sorts the entries of its level:
+    -- its keys are the parent's heading (org-get-heading goes back past
+    -- inline tasks), all equal, so nothing moves
+    utils.notify("Sorting entries...done")
+    return
   end
   local key = entry_key(choice.kind, prop, with_case, keyfn)
   local records = {}

@@ -1103,6 +1103,68 @@ function M.inlinetask_min_level()
   return type(v) == "number" and v or nil
 end
 
+--- The text after the END line of inline task `hl`, up to the next heading,
+--- as Emacs' agenda sees it: org-agenda-get-timestamps and
+--- org-agenda-get-blocks go back to the heading with org-outline-regexp-bol,
+--- which finds the END line, so the timestamps there belong to an entry
+--- titled "END", with the tags org-get-tags finds there (the inline task's)
+--- and its category. A headline object for that END line (its section the
+--- text after it), nil when there is no such text. Not in file.headlines.
+---@param hl org.Headline
+---@return org.Headline|nil
+function M.inline_end_entry(hl)
+  local memo = rawget(hl, "_end_entry")
+  if memo ~= nil then
+    return memo or nil
+  end
+  local file = hl.file
+  local lines = file.lines
+  local from = hl.end_line + 1
+  local to = from - 1
+  if hl.inlinetask and hl.end_line > hl.line then
+    for k = from, #lines do
+      if lines[k]:byte(1) == 42 and M.headline_level(lines[k]) then
+        break
+      end
+      to = k
+    end
+  end
+  if to < from then
+    rawset(hl, "_end_entry", false)
+    return nil
+  end
+  local parts = M.parse_headline_line(lines[hl.end_line], file.settings.todo) or {}
+  local entry = {
+    file = file,
+    level = hl.level,
+    line = hl.end_line,
+    raw = lines[hl.end_line],
+    todo = parts.todo,
+    priority = parts.priority,
+    commented = parts.commented or false,
+    title = parts.title or "END",
+    -- the inline task's own tags, as org-get-tags gives them there
+    tags = hl.tags,
+    children = {},
+    index = hl.index,
+    inlinetask = true,
+    parent = hl.parent,
+    end_line = to,
+    body_end = to,
+    _section_to = to,
+    _lazy_section = true,
+    get_tags = function(_, opts)
+      return hl:get_tags(opts)
+    end,
+    get_category = function()
+      return hl:get_category()
+    end,
+  }
+  setmetatable(entry, Headline)
+  rawset(hl, "_end_entry", entry)
+  return entry
+end
+
 --- Level of `line` as an outline headline: nil for text and, when inline
 --- tasks are on, for inline tasks (org-with-limited-levels).
 function M.outline_level(line)
@@ -1225,6 +1287,7 @@ function File:category()
   return props and props.CATEGORY or self.settings.category or "???"
 end
 
+---@return string
 function File:title()
   return self.settings.title or (self.filename and vim.fn.fnamemodify(self.filename, ":t:r")) or "untitled"
 end
@@ -1300,6 +1363,7 @@ end
 ---------------------------------------------------------------------------
 
 --- Title with links replaced by their descriptions and emphasis kept.
+---@return string
 function Headline:plain_title()
   local t = self.title:gsub("%[%[([^%]]-)%]%[([^%]]-)%]%]", "%2")
   t = t:gsub("%[%[([^%]]-)%]%]", "%1")

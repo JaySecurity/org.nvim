@@ -752,7 +752,7 @@ function M.move_card(dir)
     ci = ci + dir
   end
   local to = st.cols[ci]
-  if not to then
+  if not to or not kws then
     return
   end
   local kw = kws[1]

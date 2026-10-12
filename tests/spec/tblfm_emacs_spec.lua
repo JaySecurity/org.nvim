@@ -714,3 +714,159 @@ describe("tblfm: field formulas on rows written short", function()
     eq({ "2", "9", "5" }, g[3])
   end)
 end)
+
+describe("tblfm: Calc over text fields (Emacs Org 9.8.10 + Calc)", function()
+  -- difftest seeds 20, 58, 248, 267, 269, 271, 400, 1033, 50659: what
+  -- Calc makes of fields that are not numbers
+  it("braces are vectors: {{{title}}} is [[[title]]]", function()
+    eq("[[[(46 title)]]]", calc({ "| {{{title}}} | 46 |", "#+TBLFM: $3=$1*$2" })[1][3])
+    eq("[[[42 + title + 32]]]", calc({ "| 42 | {{{title}}} | 32 |", "#+TBLFM: $4=$1+$2+$3" })[1][4])
+    eq("[[[nan]]]", calc({ "| {{{title}}} | |", "#+TBLFM: $3=$1*$2;E" })[1][3])
+    eq("max(title, x)", calc({ "| {{{title}}} | x |", "#+TBLFM: $3=vmax($1..$2)" })[1][3])
+  end)
+
+  it("x^{10} is x^[10], a_{i} the subscript a_[i]", function()
+    eq("x^[10] > 71.8 ? 1 : 0", calc({ "| x^{10} | 71.8 |", "#+TBLFM: $3=if($1>$2, 1, 0)" })[1][3])
+    eq("[-4, a_[i]]", calc({ "| -4 a_{i} |", "#+TBLFM: $3=$1..$2" })[1][3])
+    eq("H_2 O a_b", calc({ "| H_2O | a_b |", "#+TBLFM: $3=$1*$2" })[1][3])
+    local g = calc({
+      "|",
+      "|---+---|",
+      "| | 80",
+      "| 94.5 | 41",
+      "| | x^{10}",
+      "|---+---|",
+      "| | |",
+      "#+TBLFM: @>$2=vsum(@2..@-1)",
+    })
+    eq("121 + x^[10]", g[5][2])
+  end)
+
+  it("a vector element starts at a brace: [src_python{1+1}, 3]", function()
+    eq("src_python + 5", calc({ "| src_python{1+1} | 3 |", "#+TBLFM: $3=vsum($1..$2)" })[1][3])
+  end)
+
+  it("a quoted string is the vector of its character codes", function()
+    eq("[a, [113, 117, 111, 116, 101, 100]]", calc({ '| a | "quoted" |', "#+TBLFM: $3=$1..$2" })[1][3])
+    eq("[114]", calc({ '| "q" |', "#+TBLFM: $2=$1+1" })[1][2])
+  end)
+
+  it("an @ range of one field is that field: vsum(task) stays", function()
+    local g = calc({
+      "| Price1",
+      "|---+---+---+---|",
+      "| | task | plan",
+      "| | | | 66",
+      "#+TBLFM: @>$2=vsum(@2..@-1)",
+    })
+    eq("vsum(task)", g[3][2])
+    -- a range ending on an hline stays a vector: vsum([Sum]) is Sum
+    eq("Sum", calc({ "| | gamma", "|---+---|", "| Sum |", "#+TBLFM: @>$1=vsum(@I..@II)" })[2][1])
+  end)
+
+  it("equal formulas compare: alpha > alpha is 0", function()
+    eq("0", calc({ "| alpha | alpha |", "#+TBLFM: $3=if($1>$2, 1, 0)" })[1][3])
+  end)
+
+  it("a table whose #+TBLFM line is empty is left alone, not aligned", function()
+    local _, lines = calc({ "| 1   | 2 |", "#+TBLFM:" })
+    eq({ "| 1   | 2 |", "#+TBLFM:" }, lines)
+    _, lines = calc({ "| 1   | 2 |", "#+TBLFM: :: " })
+    eq("| 1   | 2 |", lines[1])
+  end)
+end)
+
+describe("tblfm: references inside quoted strings (Emacs Org 9.8.10 + Calc)", function()
+  -- org-table-eval-formula replaces references by regexp over the whole
+  -- formula, quoted strings included
+  --- Calc's vector of the character codes of `s`.
+  local function codes(s)
+    local out = {}
+    for ch in s:gmatch(".") do
+      out[#out + 1] = tostring(ch:byte())
+    end
+    return "[" .. table.concat(out, ", ") .. "]"
+  end
+
+  it("Calc: $1, @1$2, $1..$2, $# and @# are replaced inside a string", function()
+    eq(codes("(abc)"), calc({ "| abc | 2 |   |", '#+TBLFM: $3="$1"' })[1][3])
+    eq(codes("x(2)y"), calc({ "| 5 | 2 |   |", '#+TBLFM: $3="x$2y"' })[1][3])
+    eq(codes("(2)"), calc({ "| 5 | 2 |   |", '#+TBLFM: $3="@1$2"' })[1][3])
+    eq(codes("[5,2]"), calc({ "| 5 | 2 |   |", '#+TBLFM: $3="$1..$2"' })[1][3])
+    eq(codes("3-1"), calc({ "| abc | def |   |", '#+TBLFM: $3="$#-@#"' })[1][3])
+    eq("9", calc({ "| a | b |   |", "| c | d |   |", "| x | y |   |", '#+TBLFM: @3$3=vlen("@1$1..@2$2")' })[3][3])
+  end)
+
+  it("Calc: an empty field is (0), nan with E; N keeps the string", function()
+    eq(codes("(0)"), calc({ "| x |   |   |", '#+TBLFM: $3="$2"' })[1][3])
+    eq(codes("nan"), calc({ "| x |   |   |", '#+TBLFM: $3="$2";E' })[1][3])
+    eq(codes("(5)"), calc({ "| 5 | 2 |   |", '#+TBLFM: $3="$1";N' })[1][3])
+    eq(codes("(0)"), calc({ "| x |   |   |", '#+TBLFM: $3="$1";N' })[1][3])
+  end)
+
+  it("Calc: an inactive timestamp field becomes <...> in the string", function()
+    eq(codes("(<2024-01-02 Tue>)"), calc({ "| [2024-01-02 Tue] | 2 |   |", '#+TBLFM: $3="$1"' })[1][3])
+  end)
+
+  it("Calc: names, constants and column names are replaced too", function()
+    eq(codes("(42)"), calc({ "#+CONSTANTS: c=42", "| 5 | 2 |   |", '#+TBLFM: $3="$c"' }, 2)[1][3])
+    eq(codes("a(#UNDEFINED_NAME)"), calc({ "| 5 | 2 |   |", '#+TBLFM: $3="a$b"' })[1][3])
+    eq(codes("(0)"), calc({ "| ! | x | y |", "|   | 5 | 2 |", "|   |   |   |", '#+TBLFM: @3$2="$x"' })[3][2])
+  end)
+
+  it("Calc: an @ or $ that starts no reference stays", function()
+    eq(codes("a@b"), calc({ "| 5 | 2 |   |", '#+TBLFM: $3="a@b"' })[1][3])
+    eq("[102, 41]", calc({ "| 5 | 2 |   |", '#+TBLFM: $3="a$" + $1' })[1][3])
+    eq("[41]", calc({ "| 5 | 2 |   |", '#+TBLFM: $3=$1 + "$"' })[1][3])
+  end)
+
+  it("Calc: durations: the field in seconds, a string result is 00:00:00", function()
+    eq("00:00:00", calc({ "| 1:30 | 2 |   |", '#+TBLFM: $3="$1";T' })[1][3])
+    eq("00:00", calc({ "| 1:30 |   |", '#+TBLFM: $2="$1";U' })[1][2])
+  end)
+
+  it("Lisp: a field is a quoted string, so only L or N give its text", function()
+    eq("#ERROR", calc({ "| abc | def |   |", '#+TBLFM: $3=\'(concat "$1" "-" "$2")' })[1][3])
+    eq("abc-def", calc({ "| abc | def |   |", '#+TBLFM: $3=\'(concat "$1" "-" "$2");L' })[1][3])
+    eq("5-6", calc({ "| 5 | 6 |   |", '#+TBLFM: $3=\'(concat "$1" "-" "$2");N' })[1][3])
+    eq("12", calc({ "| 1 | 2 |   |", '#+TBLFM: $3=\'(concat "$1$2");L' })[1][3])
+    eq("[a b]", calc({ "| a b | 2 |   |", '#+TBLFM: $3=\'(concat "[$1]");L' })[1][3])
+    eq("#ERROR", calc({ "| a b | 2 |   |", '#+TBLFM: $3=\'(concat "[$1]")' })[1][3])
+    eq("#ERROR", calc({ '| a"b | 2 |   |', '#+TBLFM: $3=\'(concat "[$1]");L' })[1][3])
+    eq('"5"', calc({ "| 5 | 2 |   |", '#+TBLFM: $3=\'(format "%s" "\\"$1\\"");L' })[1][3])
+    -- `""5" costs 5$"` reads as "" 5 " costs 5$": (format "%s" "") is ""
+    eq("", calc({ "| 5 | 2 |   |", '#+TBLFM: $3=\'(format "%s" "$1 costs 5$")' })[1][3])
+    eq("5 costs 5$", calc({ "| 5 | 2 |   |", '#+TBLFM: $3=\'(format "%s" "$1 costs 5$");L' })[1][3])
+  end)
+
+  it("Lisp: ranges, $<, $>, $# and @# inside a string", function()
+    eq("5 5 2", calc({ "| 5 | 2 |   |", '#+TBLFM: $3=\'(format "%s %s" "@1$1" "$1..$2");L' })[1][3])
+    eq("5", calc({ "| 5 | 2 |   |", '#+TBLFM: $3=\'(format "%s" "$<$>");L' })[1][3])
+    eq("31", calc({ "| abc | def |   |", '#+TBLFM: $3=\'(concat "$#" "@#")' })[1][3])
+    eq("2", calc({ "| 5 | 2 |   |", '#+TBLFM: $3=\'(format "%s" "$-1");L' })[1][3])
+    local g = calc({
+      "| a | b |   |",
+      "| c | d |   |",
+      "| x | y |   |",
+      '#+TBLFM: @3$3=\'(format "%s" "@1$1..@2$2");L',
+    })
+    eq("a b c d", g[3][3])
+  end)
+
+  it("Lisp: names and durations inside a string", function()
+    eq("42", calc({ "#+CONSTANTS: c=42", "| 5 | 2 |   |", '#+TBLFM: $3=\'(format "%s" "$c")' }, 2)[1][3])
+    eq("#UNDEFINED_NAME", calc({ "| 5 | 2 |   |", '#+TBLFM: $3=\'(format "%s" "$b")' })[1][3])
+    eq("01:30:00", calc({ "| 1:30 | 2 |   |", '#+TBLFM: $3=\'(format "%s" "$1");T' })[1][3])
+    eq("1:30", calc({ "| 1:30 | 2 |   |", '#+TBLFM: $3=\'(format "%s" "$1");L' })[1][3])
+    eq("a@b", calc({ "| 5 | 2 |   |", '#+TBLFM: $3=\'(format "%s" "a@b")' })[1][3])
+  end)
+
+  it("N accepts any constant result: vectors, complex, HMS, intervals", function()
+    eq("[1, 2]", calc({ "| 1 |   |", "#+TBLFM: $2=[1,2];N" })[1][2])
+    eq("(2, 3)", calc({ "| 1 |   |", "#+TBLFM: $2=(2,3);N" })[1][2])
+    eq("[1 .. 3]", calc({ "| 1 |   |", "#+TBLFM: $2=[1..3];N" })[1][2])
+    eq("3 mod 7", calc({ "| 1 |   |", "#+TBLFM: $2=3 mod 7;N" })[1][2])
+    eq("#ERROR", calc({ "| 1 |   |", "#+TBLFM: $2=[x,1];N" })[1][2])
+    eq("#ERROR", calc({ "| 1 |   |", "#+TBLFM: $2=<2024-01-02>;N" })[1][2])
+  end)
+end)

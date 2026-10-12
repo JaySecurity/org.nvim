@@ -65,8 +65,9 @@ function M.cmd_set_todo(words, flags)
   if not res then
     run.fail_with_messages("could not change the TODO state of " .. hl:plain_title())
   end
+  ---@cast res -nil
   local now = run.headline_at(bufnr, lnum)
-  return changed(flags, bufnr, lnum, "todo", old, now.todo, { repeated = res.repeated or false })
+  return changed(flags, bufnr, lnum, "todo", old, now and now.todo or nil, { repeated = res.repeated or false })
 end
 
 function M.cmd_set_tags(words, flags)
@@ -159,6 +160,7 @@ local function read_planning_date(s)
   if not d then
     fail("cannot read date " .. s, "bad_value", { date = s })
   end
+  ---@cast d -nil
   return d:clone({ active = true, range_end = vim.NIL })
 end
 
@@ -275,6 +277,7 @@ function M.cmd_archive(words, flags)
     run.fail_with_messages("could not archive " .. title)
   end
   run.check_prompted()
+  ---@type table|vim.NIL, string|vim.NIL
   local hl_after, archive_file = vim.NIL, vim.NIL
   local dbuf, dline
   local marks = require("org.marks")

@@ -23,8 +23,9 @@
 ---   `(x+1)*2` is `2 x + 2`. simplify, expand, collect, deriv, integ and
 ---   solve live in org.table.calc_alg, matrices in org.table.calc_vec.
 --- - Modulo forms `3 mod 7`.
---- - Quoted strings (`"big"`) are an extension: Calc turns them into
----   vectors of character codes, this module keeps them as text.
+--- - Quoted strings are vectors of character codes, as in Calc: `"ab"` is
+---   `[97, 98]`. Braces are brackets too (`x^{10}` is `x^[10]`) and `_`
+---   is the subscript operator (`a_i`, `[a, b]_2` is `b`).
 ---
 --- The evaluator is split by concern under lua/org/table/calc/: big
 --- (bignums), values (value types, modes and date forms), parser, arith
@@ -94,6 +95,20 @@ require("org.table.calc.units")
 -- Entry point
 ---------------------------------------------------------------------------
 
+--- math-constp: a number or an HMS, error, interval or modulo form, or a
+--- vector of those (the results `calc-eval` 'num accepts).
+local function is_const(v)
+  if tag(v) == "vec" then
+    for _, x in ipairs(v) do
+      if not is_const(x) then
+        return false
+      end
+    end
+    return true
+  end
+  return is_object(v) and tag(v) ~= "date"
+end
+
 --- Evaluate a Calc formula.
 ---@param s string the formula, references already substituted
 ---@param opts? { prec?: integer, float_format?: table, deg?: boolean, frac?: boolean, num?: boolean }
@@ -108,7 +123,7 @@ function M.eval(s, opts)
   set_simplifying(false)
   local ok, res = pcall(function()
     local v = eval(M.parse(s))
-    if opts.num and not is_real(v) then
+    if opts.num and not is_const(v) then
       error("result is not a number")
     end
     return display(v, opts.float_format or { "float", 8 }, modes.prec)
@@ -163,7 +178,7 @@ local K = {
 local V = require("org.table.calc_vec")(K)
 set_mat(V.mat_mul, V.mat_div, V.mat_pow)
 K.is_matrix = V.is_matrix
-require("org.table.calc_alg")(K)
+require("org.table.calc_alg").setup(K)
 
 M._format_float = format_float
 M._days_from_civil = days_from_civil

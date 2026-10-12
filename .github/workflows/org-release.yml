@@ -1,0 +1,80 @@
+name: Org releases
+
+# Weekly: is there an Emacs Org release newer than the one org.nvim is
+# measured against (ORG_VERSION in difftest.yml)? The latest is the highest
+# of GNU ELPA's org package and the release_* tags of the org-mode git
+# repository. When it is newer, docs/parity/inventory.el lists the commands
+# and options of both releases, and an issue labelled "org-release" gets
+# the version and the inventory diff: a new one, or the open one updated
+# (never a second; a closed issue for that release isn't reopened).
+# scripts/emacs-parity/release-watch.sh does the work; see "Watching for
+# Org releases" in CONTRIBUTING.md.
+on:
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: org-release
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # a scheduled run starts from the default branch (main, the last
+          # release): compare with dev, where a version bump lands first
+          ref: ${{ github.event_name == 'schedule' && 'dev' || github.ref }}
+          # nothing pushes; gh reads GH_TOKEN
+          persist-credentials: false
+      - name: Compare the latest Org release with the pinned one
+        id: check
+        shell: bash
+        run: |
+          pinned=$(scripts/emacs-parity/release-watch.sh pinned)
+          latest=$(scripts/emacs-parity/release-watch.sh latest)
+          {
+            echo "pinned=$pinned"
+            echo "latest=$latest"
+          } >> "$GITHUB_OUTPUT"
+          if scripts/emacs-parity/release-watch.sh newer "$pinned" "$latest"; then
+            echo "newer=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Org $latest is out; org.nvim is measured against Org $pinned"
+          else
+            echo "newer=false" >> "$GITHUB_OUTPUT"
+            echo "The latest Org release is $latest; org.nvim is measured against $pinned: nothing to do"
+          fi
+      - uses: purcell/setup-emacs@bdc64dc730ae1fcba200bfd52cb1b4cf6159cbe5 # v8.0
+        if: steps.check.outputs.newer == 'true'
+        with:
+          version: "30.1"
+      - name: Inventory both releases
+        if: steps.check.outputs.newer == 'true'
+        shell: bash
+        env:
+          PINNED: ${{ steps.check.outputs.pinned }}
+          LATEST: ${{ steps.check.outputs.latest }}
+        run: |
+          scripts/emacs-parity/release-watch.sh inventory "$PINNED" "$RUNNER_TEMP/inventory/old"
+          scripts/emacs-parity/release-watch.sh inventory "$LATEST" "$RUNNER_TEMP/inventory/new"
+          scripts/emacs-parity/release-watch.sh report \
+            "$RUNNER_TEMP/inventory/old" "$RUNNER_TEMP/inventory/new" "$PINNED" "$LATEST" > "$RUNNER_TEMP/report.md"
+          cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Open or update the issue
+        if: steps.check.outputs.newer == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PINNED: ${{ steps.check.outputs.pinned }}
+          LATEST: ${{ steps.check.outputs.latest }}
+        run: scripts/emacs-parity/release-watch.sh issue "$LATEST" "$PINNED" "$RUNNER_TEMP/report.md"

@@ -859,7 +859,7 @@ end
 local function render_cite_or_group(c, style, links, top_dl, gr_dl, ys_dl, ac_dl)
   if c.kind == "top" or c.kind == "group" or c.kind == "year-suffix-collapsed" then
     local delimiter = c.kind == "top" and top_dl or (c.kind == "group" and gr_dl or ys_dl)
-    local out = { {} }
+    local out = { {} } ---@type any[]
     for _, it in ipairs(c) do
       out[#out + 1] = render_cite_or_group(it, style, links, top_dl, gr_dl, ys_dl, ac_dl) or false
       if it.kind == "group" or it.kind == "year-suffix-collapsed" then

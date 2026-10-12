@@ -46,13 +46,14 @@ make extensions-report                     # each extension against the promotio
   repo with `.luarc.json`. Any warning or error fails it; the type-system
   checks the code isn't annotated well enough for yet (`need-check-nil`,
   `param-type-mismatch`, `undefined-field`, ...) are demoted to hints,
-  except in the paths listed in `scripts/typecheck_strict.txt`
-  (`lua/org/api/`, `parser.lua`, `element.lua`, `files.lua`, `date.lua`,
-  `timestamps.lua`), where they fail it too. Fix a
-  new warning (usually a wrong `---@param`/`---@return`, or a missing nil
-  check) rather than silencing it. To make a module strict, add its path
-  as one line there and fix what `make typecheck` reports; never remove
-  a path to get a pass (CONTRIBUTING.md, "Strict paths").
+  except in the paths listed in `scripts/typecheck_strict.txt` (the
+  public API, the parser and its cache, dates and timestamps, structure,
+  lists, clock, agenda, table, babel, capture, links, columns, mobile,
+  export, pickers, health, folding, the UI, config migration, file reload
+  and every extension), where they fail it too. Fix a new warning (usually a wrong `---@param`/`---@return`, or
+  a missing nil check) rather than silencing it. To make a module strict,
+  add its path as one line there and fix what `make typecheck` reports;
+  never remove a path to get a pass (CONTRIBUTING.md, "Strict paths").
 
 ## Layout
 
@@ -74,10 +75,17 @@ make extensions-report                     # each extension against the promotio
 | `lua/org/mobile.lua`, `mobile/` | MobileOrg sync: MD5, file helpers and encryption in the facade; index.org, agendas.org, push, pull edits, applying the inbox and flagged entries in the parts |
 | `lua/org/export/element.lua`, `export/element/` | the export parser (port of org-element): node and text helpers in the facade; line classification, parser state, blocks, element parsers, lists, markup, links, objects, document and tree helpers in the parts |
 | `lua/org/export/odt.lua`, `export/odt/` | ODT export: constants, per-export state and encoding in the facade; headlines, labels, media, LaTeX, source code, timestamps, transcoders, tables, template, back-end, packaging, conversion in the parts |
+| `lua/org/table/calc_alg.lua`, `table/calc_alg/` | the table Calc's symbolic algebra: Calc's internals and the shared helpers (normalize, subst, angle conversions) in the facade; simplify, expand, polynomials and collect, deriv, integ and solve in the parts |
+| `lua/org/export/cite.lua`, `export/cite/` | citations in export (port of oc.el): configuration, tree helpers, the generic tools and the export interface in the facade; citations in footnotes, bibliography files and the basic, natbib / bibtex and biblatex processors in the parts (the CSL one is `export/cite_csl.lua` over `export/csl/`) |
+| `lua/org/export/csl/render.lua`, `export/csl/render/` | CSL rendering elements (port of citeproc-el): the context, text casing, joining, generic elements, conditions, labels and compilation in the facade; names, dates, numbers and page ranges, sort keys in the parts |
+| `lua/org/export/latex.lua`, `export/latex/` | LaTeX export: configuration, escaping and label helpers in the facade; math filters, preamble, engraved source, template, transcoders, headlines, links, plain text, source blocks, tables, back-end, PDF compilation in the parts |
+| `lua/org/export/html.lua`, `export/html/` | HTML export: configuration, escaping, attribute and anchor helpers in the facade; code, table of contents and footnotes, template, transcoders, headlines, LaTeX, links, blocks, tables, back-end in the parts |
+| `lua/org/export/ascii.lua`, `export/ascii/` | plain text export: configuration and character / column helpers in the facade; fill prefixes, line breaking, filling, layout, template, transcoders, tables, filters and back-end in the parts |
 | `lua/org/api/` | the public Lua API (`:h org-api`); everything else is internal |
 | `lua/org/pickers/` | picker sources and the snacks / fzf-lua / telescope / mini.pick / `vim.ui.select` adapters |
 | `lua/org/extensions/` | optional extensions, each enabled under `extensions` in `setup()` |
 | `lua/org/extensions/transclusion/` | transclusion: options, shared helpers and setup in `init.lua` (the facade); materialized regions, keeping them read-only, rendering, watching sources, actions and saving / export in the parts, beside the keyword, source, highlight and edit modules |
+| `lua/org/extensions/hugo/backend.lua`, `hugo/backend/` | the `hugo` export back-end: booleans, anchors, references and the back-end definition in the facade; markup / blocks / headlines, paragraphs / tables / special blocks, links / attachments and the template / filters in the parts |
 | `lua/org/extensions/cli/run.lua`, `cli/` | the `org` command line: usage, output, failures, the command table and `main` in `run.lua` (the facade); headless prompts, arguments and config, targets, guarding and saving, the read / info / capture / clock / export commands and the session server in the parts; the write commands in `write.lua` |
 | `lua/org/symbols.lua`, `lua/org/integrations/` | the outline as document symbols, and the aerial.nvim / outline.nvim providers built on it |
 | `lua/aerial/`, `lua/outline/`, `lua/telescope/` | one-line shims those plugins `require` by name; they load only when the plugin is installed |

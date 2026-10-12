@@ -14,7 +14,7 @@ local big_norm = big.big_norm
 -- frac:    { tag = "frac", n = integer, d = integer } (d > 1)
 -- vector:  { tag = "vec", ... }
 -- date:    { tag = "date", v = days since 0000-12-31 (fraction = time) }
--- string:  { tag = "str", s = text }
+-- (a string "ab" is the vector of its character codes, [97, 98])
 -- symbolic: { tag = "sym", name } { tag = "call", name, args } { tag = "op", op, a, b } { tag = "neg", a }
 
 local function tag(v)

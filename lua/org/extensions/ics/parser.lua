@@ -1036,6 +1036,9 @@ end
 ---@field events org.ics.Event[]
 ---@field zones table<string, table> VTIMEZONE observances by TZID
 ---@field unresolved table<string, boolean> TZIDs read as local time
+---@field zone_cache table<string, table> per TZID, offsets of its VTIMEZONE (vtimezone_offset)
+---@field resolvers? table<string, function|false> per TZID, its resolver (M.zone)
+---@field occ_cache? table expanded occurrences by range and zone (org.extensions.ics)
 
 --- Parse iCalendar text.
 ---@param text string
@@ -1207,6 +1210,7 @@ function M.occurrences(cal, from, to, opts)
   end
   for _, ev in ipairs(cal.events) do
     if ev.status ~= "CANCELLED" or ev.recurrence_id then
+      ---@type (integer|table)[] start times, or RDATEs with their own zone
       local starts = {}
       if ev.recurrence_id or not (ev.rrule or #ev.rdates > 0) then
         -- a single event far outside the range (the slack covers zone
@@ -1225,10 +1229,11 @@ function M.occurrences(cal, from, to, opts)
         -- span of one occurrence, so one that started before `from` and
         -- still runs is found
         local span = 0
+        local duration = ev.duration
         if ev.stop then
           span = math.max(ev.stop.naive - ev.start.naive, 0)
-        elseif ev.duration then
-          span = math.max(ev.duration, 0)
+        elseif duration then
+          span = math.max(duration, 0)
         end
         if ev.rrule then
           local until_ = ev.rrule.until_

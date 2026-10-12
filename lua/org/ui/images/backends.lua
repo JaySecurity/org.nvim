@@ -30,6 +30,11 @@ M._backends = backends
 
 --- Position of extmark `mark`: row, col, details (nil when it was deleted
 --- or its text was).
+---@param bufnr integer
+---@param mark integer
+---@return integer? row
+---@return integer? col
+---@return vim.api.keyset.extmark_details? details
 local function mark_pos(bufnr, mark)
   local m = vim.api.nvim_buf_get_extmark_by_id(bufnr, ns, mark, { details = true })
   if not m[1] or (m[3] and m[3].invalid) then
@@ -134,7 +139,7 @@ local function restack(bufnr, row)
         vl[#vl + 1] = { { "", "Normal" } }
       end
       local _, c, d = mark_pos(bufnr, q.mark)
-      q.lines = vim.api.nvim_buf_set_extmark(bufnr, ns, row, math.min(d and d.end_col or c, #line), {
+      q.lines = vim.api.nvim_buf_set_extmark(bufnr, ns, row, math.min(d and d.end_col or c or 0, #line), {
         id = q.lines,
         virt_lines = vl,
         right_gravity = false,
@@ -284,7 +289,7 @@ backends["image.nvim"] = {
 }
 
 local function snacks_ok()
-  if type(_G.Snacks) ~= "table" then
+  if type(rawget(_G, "Snacks")) ~= "table" then
     return false
   end
   local ok, res = pcall(function()

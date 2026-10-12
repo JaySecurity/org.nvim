@@ -150,7 +150,7 @@ local function mtime(path)
 end
 
 local function now()
-  local t = vim.uv.clock_gettime("realtime")
+  local t = assert(vim.uv.clock_gettime("realtime"))
   return t.sec + t.nsec / 1e9
 end
 
@@ -636,7 +636,7 @@ function M.htmlize_source(plist, filename, pub_dir)
   })
   -- org-fold-show-all
   vim.api.nvim_win_call(win, function()
-    pcall(vim.cmd, "normal! zR")
+    pcall(vim.api.nvim_command, "normal! zR")
   end)
   local okh, lines = pcall(tohtml.tohtml, win, { title = vim.fn.fnamemodify(filename, ":t") })
   vim.api.nvim_win_close(win, true)
@@ -914,6 +914,7 @@ end
 local function files_to_list(files, project, style, format_entry)
   local root = as_dir(expand(project[2].base_directory))
   if style == "list" then
+    ---@type any[]
     local l = { "unordered" }
     for _, f in ipairs(files) do
       l[#l + 1] = { format_entry(relative(f, root) .. (f:match("/$") and "/" or ""), style, project) }
@@ -929,6 +930,7 @@ local function files_to_list(files, project, style, format_entry)
       end
     end
     local function subtree(dir)
+      ---@type any[]
       local l = { "unordered" }
       for _, f in ipairs(files_only) do
         if vim.fn.fnamemodify(f, ":h") .. "/" == dir then

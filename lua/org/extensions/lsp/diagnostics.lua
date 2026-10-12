@@ -220,7 +220,7 @@ function M.scheduler(publish)
       end
       running[bufnr] = nil
       linted[bufnr], cost[bufnr] = tick, spent
-      if not okj then
+      if not okj or not diags then
         return fail(bufnr, diags)
       end
       publish(vim.uri_from_bufnr(bufnr), diags)
@@ -241,7 +241,7 @@ function M.scheduler(publish)
       -- never lint more than about a third of the time while typing
       delay = math.max(o.debounce or 500, math.floor(2 * (cost[bufnr] or 0)))
     end
-    local t = uv.new_timer()
+    local t = assert(uv.new_timer())
     timers[bufnr] = t
     t:start(
       delay,

@@ -295,7 +295,7 @@ function M.show_reference(st, move)
     return nil
   end
   local r, m, info = test_row(st)
-  if not m then
+  if not m or not info then
     return nil
   end
   formula()._collect_names(m)
@@ -384,7 +384,7 @@ function M.show_reference(st, move)
             at_cursor = { r1, c1 }
           end
         end)
-        i = spec2 and k or j
+        i = (spec2 and k or j) or (i + 1)
       else
         i = (j or i) + 1
       end
@@ -594,7 +594,7 @@ function M.open()
     tbl()._write_formulas(src, tinfo, new, line)
     if not st.tblfm_mark then
       tinfo = tbl().find(src, start)
-      if tinfo.tblfm[1] then
+      if tinfo and tinfo.tblfm[1] then
         st.tblfm_mark = vim.api.nvim_buf_set_extmark(src, anchor_ns, tinfo.tblfm[1] - 1, 0, { right_gravity = false })
       end
     end

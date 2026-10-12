@@ -166,7 +166,7 @@ function M.table_or_string(s, map)
   if not ok then
     return s
   end
-  if not lisp.is_elisp_list(raw) then
+  if raw == nil or not lisp.is_elisp_list(raw) then
     return lisp.from_elisp(raw)
   end
   local out = {}
@@ -217,6 +217,7 @@ end
 
 --- A header value read as Lisp when it is a list (`'("a" "b")`),
 --- otherwise its text; nil when missing.
+---@return string|table|nil
 function M.list_or_string(v)
   if v == nil then
     return nil
@@ -224,11 +225,11 @@ function M.list_or_string(v)
   if type(v) == "table" then
     return v
   end
-  local s = M.unq(v)
+  local s = assert(M.unq(v)) -- v isn't nil
   if s:match("^%s*'?%(") then
     local ok, r = pcall(lisp.read, s)
     if ok then
-      return r
+      return r --[[@as table]] -- the text starts with a parenthesis: a list
     end
   end
   return s
@@ -255,7 +256,7 @@ end
 ---------------------------------------------------------------------------
 
 --- Run a handler: `done({ result, error?, abort? })`.
----@param ctx { bufnr: integer, cwd: string, sync?: boolean, job?: org.babel.Job }
+---@param ctx { bufnr: integer, cwd: string, sync?: boolean, job?: org.babel.Job, lang?: string, opts?: table } `lang` and `opts` (the language's options) are set here
 function M.run(handler, lang, body, args, vars, ctx, done)
   local babel = require("org.babel")
   local utils = require("org.utils")

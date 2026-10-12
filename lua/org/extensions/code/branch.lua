@@ -167,7 +167,7 @@ function M.link_branch()
   end
   local root = require("org.extensions.code.project").current_root()
   local branch = root and git.branch(root)
-  if not branch then
+  if not root or not branch then
     utils.warn("No git branch (not in a repository, or HEAD is detached)")
     return
   end

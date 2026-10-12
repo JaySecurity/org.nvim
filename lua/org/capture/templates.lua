@@ -120,7 +120,7 @@ function M.templates(env)
         end
         if valid and not repl then
           out[key] = t
-        elseif valid then
+        elseif valid and repl then
           if templates[repl] == nil then
             error(string.format("Undefined key `%s' as contextual replacement for `%s'", repl, key), 0)
           end

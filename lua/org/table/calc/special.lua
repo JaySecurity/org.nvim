@@ -29,7 +29,7 @@ local neg = arith.neg
 local mul = arith.mul
 local F = arith.F
 local real_mul = arith.real_mul
-local flatten = functions.flatten
+local flatten_many = functions.flatten_many
 local numeric = functions.numeric
 local float_fn = functions.float_fn
 local to_float = forms.to_float
@@ -67,7 +67,7 @@ F.nroot = function(args)
   return real_nroot(args)
 end
 F.vgmean = function(args)
-  local vals = flatten(args)
+  local vals = flatten_many(args) or { call("vgmean", args) }
   for _, v in ipairs(vals) do
     if not is_real(v) then
       return call("vgmean", args)
@@ -79,8 +79,8 @@ F.vgmean = function(args)
   return F.nroot({ F.vprod(vals), #vals })
 end
 F.vhmean = function(args)
-  local vals = flatten(args)
-  if #vals == 0 then
+  local vals = flatten_many(args)
+  if not vals or #vals == 0 then
     return call("vhmean", args)
   end
   local s = 0

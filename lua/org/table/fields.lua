@@ -101,7 +101,7 @@ function M.sum()
       if n then
         total, count = total + n, count + 1
         times = times + (is_time and 1 or 0)
-        isfloat = isfloat or fl
+        isfloat = isfloat or fl or false
       end
     end
   end
@@ -194,9 +194,12 @@ function M.increment_field(value, previous, step)
   elseif kind == "suffix" then
     return p1 .. num_str(v1 + (same and (v1 - v2) or step))
   elseif kind == "timestamp" then
-    local days = same and (v1.date:days() - v2.date:days()) or step
-    local shifted = v1.date:add_with_range(days, "d")
-    return value:sub(1, v1.start_col - 1) .. shifted:to_string() .. value:sub(v1.end_col + 1)
+    -- analyze's timestamps: { date, start_col, end_col } (date.parse_all)
+    local t1 = v1 --[[@as { date: org.Date, start_col: integer, end_col: integer }]]
+    local t2 = v2 --[[@as { date: org.Date }]]
+    local days = same and (t1.date:days() - t2.date:days()) or step
+    local shifted = t1.date:add_with_range(days, "d")
+    return value:sub(1, t1.start_col - 1) .. shifted:to_string() .. value:sub(t1.end_col + 1)
   end
   return value
 end

@@ -116,6 +116,21 @@ function M.deadline_face(fraction)
   return nil
 end
 
+--- The title an agenda line shows for `hl`. A headline that is only tags
+--- ("* :work:") shows them as its title too: Emacs takes the text of the
+--- headline and removes the tags only after a blank (org-tag-group-re in
+--- org-agenda-fix-displayed-tags), and there is none before them.
+local function agenda_title(hl)
+  local title = hl.title
+  if title == "" and not hl.todo and not hl.priority and hl.raw then
+    local tags = hl.raw:match("^%*+ +(:[%w_@#%%:\128-\255]+:)[ \t]*$")
+    if tags then
+      return tags
+    end
+  end
+  return title
+end
+
 local function new_item(hl, fields)
   order = order + 1
   local item = {
@@ -124,7 +139,7 @@ local function new_item(hl, fields)
     bufnr = hl.file.bufnr,
     lnum = hl.line,
     raw = hl.raw,
-    title = hl.title,
+    title = agenda_title(hl),
     todo = hl.todo,
     priority = hl.priority,
     category = hl:get_category(),

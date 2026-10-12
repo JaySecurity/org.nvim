@@ -222,10 +222,11 @@ function M.delim_list(str)
   for line in (vim.trim(str) .. "\n"):gmatch("(.-)\n") do
     local pos = 1
     while true do
-      pos = line:find("%S", pos)
-      if not pos then
+      local start = line:find("%S", pos)
+      if not start then
         break
       end
+      pos = start
       if line:sub(pos, pos) == '"' then
         local v, nxt = read(line, pos)
         out[#out + 1] = tostring(v)
@@ -418,8 +419,13 @@ function M.array(...)
   return { kind = "array", ... }
 end
 
----@param entries? table
----@return table
+---@class org.hugo.FrontMatterMap
+---@field kind "map"
+---@field entries table[] { key, value } pairs, in order
+---@field quote_keys? boolean
+
+---@param entries? table[]
+---@return org.hugo.FrontMatterMap
 function M.map(entries)
   return { kind = "map", entries = entries or {} }
 end

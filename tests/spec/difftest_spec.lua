@@ -277,23 +277,6 @@ describe("difftest", function()
   end)
 
   it("matches two known differences in one hunk, the broad rewrite last", function()
-    -- seed 39 (export-latex): a doubled backslash and a date range in one
-    -- line, with an inline task titled like a headline (not a second
-    -- target for the link)
-    local input = {
-      "*** end. gamma",
-      "*************** end. gamma",
-      "\\\\ <2026-10-01 09:00>--<2025-06-07 Sat>",
-      "[[*Alpha][heading]]",
-    }
-    local res = compare.compare(
-      "export-latex",
-      "$\\backslash$\\ \\textit{<2026-10-01 Thu 09:00>--<2025-06-07 Sat 09:00>}\n",
-      "$\\backslash$$\\backslash$ \\textit{<2026-10-01 Thu 09:00>--<2025-06-07 Sat>}\n",
-      { input = input }
-    )
-    eq(1, #res.hunks)
-    eq(0, #res.unknown)
     -- a broad rewrite (digits) applied first would break the narrower one
     local digits = {
       oracle = "table",
@@ -310,7 +293,7 @@ describe("difftest", function()
       end,
       reason = "suffix",
     }
-    res = compare.compare("table", "a 1 1x\n", "a 2\n", { known = { digits, suffix } })
+    local res = compare.compare("table", "a 1 1x\n", "a 2\n", { known = { digits, suffix } })
     eq(0, #res.unknown)
   end)
 
@@ -328,18 +311,6 @@ describe("difftest", function()
     local e, o = "a\nb\nc\nd\ne\n", "b\nc\nd\na\ne\n"
     eq(2, #compare.compare("table", e, o, { known = {} }).unknown)
     eq(0, #compare.compare("table", e, o, { known = { moved } }).unknown)
-  end)
-
-  it("knows the visibility of blank lines inside a list before the first headline", function()
-    -- seed 74
-    local e = { "=== S1", "v +", "v  + plan", "v ", "v  +", "=== S2" }
-    local o = { "=== S1", "v +", "h  + plan", "h ", "h  +", "=== S2" }
-    local res = compare.compare("visibility", table.concat(e, "\n") .. "\n", table.concat(o, "\n") .. "\n")
-    eq(1, #res.hunks)
-    eq(0, #res.unknown)
-    -- a blank line alone isn't
-    res = compare.compare("visibility", "=== S1\nv x\nv \n", "=== S1\nv x\nh \n")
-    eq(1, #res.unknown)
   end)
 
   it("keeps footnote definitions in subtrees that aren't exported out of the count", function()

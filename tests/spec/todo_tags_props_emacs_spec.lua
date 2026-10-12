@@ -549,3 +549,110 @@ describe("org-todo on an empty headline (make difftest, commands oracle)", funct
     eq({ "* TODO [#B] ", "* A" }, buf_lines(buf))
   end)
 end)
+
+describe("a timestamp with the wrong weekday keeps its text (make difftest)", function()
+  -- org-add-planning-info replaces the planning entry it sets only, and
+  -- org-timestamp-change the part of a range under the cursor only
+  with_config({ log_done = "time" })
+
+  it("on the planning line when CLOSED is added", function()
+    local buf = org_buffer({ "** TODO", "SCHEDULED: <2026-10-08 Sun 11:00> DEADLINE: <2026-09-28 Mon --2d>" }, { 1, 0 })
+    todo.cycle_next()
+    local lines = buf_lines(buf)
+    eq("** DONE ", lines[1])
+    eq(
+      "CLOSED: [TIME] SCHEDULED: <2026-10-08 Sun 11:00> DEADLINE: <2026-09-28 Mon --2d>",
+      (lines[2]:gsub("^CLOSED: %[[^%]]+%]", "CLOSED: [TIME]"))
+    )
+  end)
+
+  it("at the other end of a date range", function()
+    local buf = org_buffer({ "<2026-10-11 09:45>--<2026-10-14 Fri>" }, { 1, 9 })
+    require("org.timestamps").increment(-1)
+    eq({ "<2026-10-10 Sat 09:45>--<2026-10-14 Fri>" }, buf_lines(buf))
+  end)
+end)
+
+describe("C-c C-t on a COMMENT headline with tags (:h org-differences)", function()
+  -- Emacs puts COMMENT back after aligning the tags, so they end 8 columns
+  -- past org-tags-column; org.nvim aligns them there
+  it("aligns the tags at tags_column", function()
+    local buf = org_buffer({ "* [#B] COMMENT Alpha :@ctx:" }, { 1, 0 })
+    todo.cycle_next()
+    local line = buf_lines(buf)[1]
+    eq("* TODO [#B] COMMENT Alpha", (line:gsub("%s+:@ctx:$", "")))
+    eq(77, vim.fn.strdisplaywidth(line))
+  end)
+end)
+
+describe("priority up/down at the ends of the range (make difftest, commands oracle)", function()
+  -- Emacs org-priority-up / -down: past either end the cookie goes; the
+  -- next shift wraps around to the other end only when the previous
+  -- command was the same shift (`last-command`), else it starts from the
+  -- default. A cookie outside the range is removed by the first shift.
+  -- Rows from `emacs -Q --batch` with Org 9.8.10: header, line, the two
+  -- shifts ("*": right after the first one) and the line after each.
+  local rows = {
+    { nil, "* [#A] X", "up", "up", "* X", "* [#B] X" },
+    { nil, "* [#A] X", "up", "up*", "* X", "* [#C] X" },
+    { nil, "* [#A] X", "down", "down", "* [#B] X", "* [#C] X" },
+    { nil, "* [#C] X", "down", "down", "* X", "* [#B] X" },
+    { nil, "* [#C] X", "down", "down*", "* X", "* [#A] X" },
+    { nil, "* [#C] X", "up", "up", "* [#B] X", "* [#A] X" },
+    { nil, "* [#D] X", "up", "up", "* [#C] X", "* [#B] X" },
+    { nil, "* [#D] X", "down", "down*", "* X", "* [#A] X" },
+    { nil, "* [#Z] X", "up", "up", "* X", "* [#B] X" },
+    { nil, "* [#64] X", "down", "down", "* [#A] X", "* [#B] X" },
+    { nil, "* [#64] X", "up", "up*", "* X", "* [#C] X" },
+    { nil, "* X", "up", "up", "* [#B] X", "* [#A] X" },
+    { nil, "* X", "down", "down*", "* [#B] X", "* [#C] X" },
+    { "#+PRIORITIES: A E C", "* [#A] X", "up", "up", "* X", "* [#C] X" },
+    { "#+PRIORITIES: A E C", "* [#A] X", "up", "up*", "* X", "* [#E] X" },
+    { "#+PRIORITIES: A E C", "* [#E] X", "down", "down", "* X", "* [#C] X" },
+    { "#+PRIORITIES: A E C", "* [#E] X", "down", "down*", "* X", "* [#A] X" },
+    { "#+PRIORITIES: A E C", "* [#D] X", "down", "down", "* [#E] X", "* X" },
+    { "#+PRIORITIES: A E C", "* X", "down", "down", "* [#C] X", "* [#D] X" },
+    { "#+PRIORITIES: 1 10 5", "* [#1] X", "up", "up", "* X", "* [#5] X" },
+    { "#+PRIORITIES: 1 10 5", "* [#1] X", "up", "up*", "* X", "* [#10] X" },
+    { "#+PRIORITIES: 1 10 5", "* [#10] X", "down", "down", "* X", "* [#5] X" },
+    { "#+PRIORITIES: 1 10 5", "* [#10] X", "down", "down*", "* X", "* [#1] X" },
+    { "#+PRIORITIES: 1 10 5", "* [#0] X", "down", "down", "* [#1] X", "* [#2] X" },
+    { "#+PRIORITIES: 1 10 5", "* [#20] X", "up", "up", "* X", "* [#5] X" },
+    { "#+PRIORITIES: 1 10 5", "* [#A] X", "down", "down*", "* X", "* [#1] X" },
+    { "#+PRIORITIES: 1 10 5", "* X", "up", "up", "* [#5] X", "* [#4] X" },
+    { "#+PRIORITIES: 0 64 32", "* [#A] X", "up", "up", "* [#64] X", "* [#63] X" },
+    { "#+PRIORITIES: 0 64 32", "* [#1] X", "up", "up", "* [#0] X", "* X" },
+    { "#+PRIORITIES: 0 64 32", "* [#64] X", "down", "down*", "* X", "* [#0] X" },
+  }
+
+  for _, r in ipairs(rows) do
+    local header, line, first, second, after1, after2 = unpack(r, 1, 6)
+    it(("%s, %s then %s on %s"):format(header or "A-C", first, second, line), function()
+      local lines = header and { header, line } or { line }
+      local buf = org_buffer(lines, { #lines, 0 })
+      local function shift(name)
+        if not name:find("*", 1, true) then
+          priority.forget_cycle()
+        end
+        priority.shift(nil, name:match("^up") and 1 or -1)
+        return buf_lines(buf)[#lines]
+      end
+      eq(after1, shift(first))
+      eq(after2, shift(second))
+    end)
+  end
+
+  it("a cursor motion between the shifts is another command", function()
+    local buf = org_buffer({ "* [#A] Alpha" }, { 1, 0 })
+    priority.up()
+    eq("* Alpha", buf_lines(buf)[1])
+    vim.api.nvim_win_set_cursor(0, { 1, 3 })
+    priority.up()
+    eq("* [#B] Alpha", buf_lines(buf)[1])
+    -- right after a removal, it wraps around
+    buf = org_buffer({ "* [#A] Alpha" }, { 1, 0 })
+    priority.up()
+    priority.up()
+    eq("* [#C] Alpha", buf_lines(buf)[1])
+  end)
+end)

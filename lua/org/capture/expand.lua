@@ -193,7 +193,7 @@ M.user_full_name = user_full_name
 
 local function register(name)
   local ok, v = pcall(vim.fn.getreg, name)
-  if ok and v and v ~= "" then
+  if ok and type(v) == "string" and v ~= "" then
     return (v:gsub("\n$", ""))
   end
   return nil
@@ -538,6 +538,7 @@ function M.expand(text, ctx)
       if answer == nil then
         utils.abort()
       end
+      ---@cast answer string
       local tags = {}
       for t in answer:gmatch("[^:%s]+") do
         tags[#tags + 1] = t
@@ -583,10 +584,11 @@ function M.expand(text, ctx)
       if pre ~= nil then
         val = tostring(pre)
       elseif #clips > 1 and not batch then
-        val = utils.input_complete("Clipboard/kill value: ", clips, clips[1])
-        if val == nil then
-          utils.abort()
+        local picked = utils.input_complete("Clipboard/kill value: ", clips, clips[1])
+        if picked == nil then
+          return utils.abort()
         end
+        val = picked
       end
       strings_all[#strings_all + 1] = val
       return splice(s, p, e, key == "L" and ("[[" .. val .. "]]") or val)
@@ -624,7 +626,7 @@ function M.expand(text, ctx)
         d = pick_date(prompt or "Date", with_time, base_date)
       end
       if not d then
-        utils.abort()
+        return utils.abort()
       end
       local val = fmt_date(d, with_time or d.hour ~= nil, key == "t" or key == "T")
       strings_all[#strings_all + 1] = val

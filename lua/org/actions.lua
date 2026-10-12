@@ -91,6 +91,12 @@ group("Anywhere", {
     global = true,
   },
   clock_menu = { "org.menu", "clock_menu", desc = "Pop up the clock menu (org-clock-menu)", global = true },
+  migrate_config = {
+    "org.migrate",
+    "command",
+    desc = "Convert an nvim-orgmode setup (:Org migrate_config [file])",
+    global = true,
+  },
 })
 
 -- fuzzy pickers (snacks.nvim / fzf-lua / telescope / mini.pick / vim.ui.select)

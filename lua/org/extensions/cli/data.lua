@@ -103,6 +103,7 @@ end
 ---@return table
 function M.headline(hl)
   local p = hl.planning or {}
+  ---@type string|vim.NIL
   local todo_type = NULL
   if hl.todo then
     todo_type = hl:is_done() and "done" or "todo"

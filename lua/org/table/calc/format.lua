@@ -130,6 +130,7 @@ end
 local DISPLAY = {
   ["mod"] = { 400, 400, " mod ", 185 },
   ["+/-"] = { 300, 300, " +/- ", 185 },
+  ["_"] = { 1200, 1201, "_" },
   ["^"] = { 201, 200, "^" },
   ["*"] = { 196, 195, " " },
   ["/"] = { 190, 191, " / " },
@@ -149,6 +150,7 @@ local DISPLAY = {
 }
 -- functions Calc writes as operators
 local CALL_OPS = {
+  subscr = "_",
   idiv = "\\",
   mod = "%",
   vconcat = "|",
@@ -228,8 +230,6 @@ display = function(v, fmt, prec, ctx, div_rhs)
       return "[(" .. parts[1] .. ")]"
     end
     return "[" .. table.concat(parts, ", ") .. "]"
-  elseif t == "str" then
-    return v.s
   elseif t == "date" then
     return date_string(v.v)
   elseif t == "cplx" then

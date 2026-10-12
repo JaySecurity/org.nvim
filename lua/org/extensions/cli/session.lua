@@ -148,15 +148,16 @@ end
 function M.serve(argv, cwd, stdin)
   local out_buf, err_buf = {}, {}
   local saved = { stdout = M.stdout, stderr = M.stderr, read_stdin = M.read_stdin }
-  M.stdout = function(s)
+  local function to_out(s)
     out_buf[#out_buf + 1] = s
   end
-  M.stderr = function(s)
+  local function to_err(s)
     err_buf[#err_buf + 1] = s
   end
-  M.read_stdin = function()
+  local function read_stdin()
     return stdin or ""
   end
+  M.stdout, M.stderr, M.read_stdin = to_out, to_err, read_stdin
   local ok, code = pcall(M.main, argv, { session = true, cwd = cwd })
   M.stdout, M.stderr, M.read_stdin = saved.stdout, saved.stderr, saved.read_stdin
   if not ok then

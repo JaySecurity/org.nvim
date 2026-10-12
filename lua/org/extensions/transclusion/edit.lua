@@ -185,6 +185,8 @@ end
 -- Replace lines `old` of `buf` from 0-based row `row` by `new`, changing
 -- only the lines that differ: marks on the others (a keyword's) stay.
 local function replace_lines(buf, row, old, new)
+  -- vim.text.diff is Neovim 0.12+; 0.11, still supported, has only vim.diff
+  ---@diagnostic disable-next-line: deprecated
   local diff = (vim.text and vim.text.diff) or vim.diff
   local ok, hunks = pcall(diff, table.concat(old, "\n") .. "\n", table.concat(new, "\n") .. "\n", {
     result_type = "indices",

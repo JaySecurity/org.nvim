@@ -46,7 +46,9 @@ local function from_date(d)
   local kind = (d.active and "active" or "inactive") .. (range and "-range" or "")
   local y2, mo2, d2, h2, m2 = d.year, d.month, d.day, d.hour, d.min
   if e then
-    y2, mo2, d2, h2, m2 = e.year, e.month, e.day, e.hour, e.min
+    -- an end without a time has the start's in org.export.element, as
+    -- in org-element-timestamp-parser
+    y2, mo2, d2, h2, m2 = e.year, e.month, e.day, e.hour or d.hour, e.hour and e.min or d.min
   elseif d.end_hour then
     h2, m2 = d.end_hour, d.end_min
   end

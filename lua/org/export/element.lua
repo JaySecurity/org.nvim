@@ -347,11 +347,12 @@ local function trim(s)
 end
 M.trim = trim
 
---- Remove common indentation of `lines` (org-remove-indentation).
-function M.remove_indentation(lines, ignore_first)
+--- Remove common indentation of `lines` (org-remove-indentation). Lines
+--- for which `ignore(i, line)` is true do not count.
+function M.remove_indentation(lines, ignore_first, ignore)
   local min
   for i, l in ipairs(lines) do
-    if not blank(l) and not (ignore_first and i == 1) then
+    if not blank(l) and not (ignore_first and i == 1) and not (ignore and ignore(i, l)) then
       local n = indentation(l)
       min = (not min or n < min) and n or min
     end

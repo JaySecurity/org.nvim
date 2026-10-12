@@ -194,7 +194,7 @@ function M.execute_inline_at(bufnr, lnum, ib, opts)
   local done = opts.on_done or function() end
   local file = get_file(bufnr)
   local src, args = M.inline_info(bufnr, lnum, ib, file)
-  if not src then
+  if not (src and args) then
     utils.error("call_" .. ib.target .. ": no block named " .. ib.target)
     done(false, true)
     return

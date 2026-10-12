@@ -19,7 +19,9 @@ function M.get_footnote_definition(ref, info)
   if not cache then
     cache = { defs = {}, resolved = {} }
     element.map(info.parse_tree, { ["footnote-definition"] = true, ["footnote-reference"] = true }, function(f)
-      if f.fn_type ~= "standard" and f.label and not cache.defs[f.label] then
+      -- a label defined twice: the last definition wins (puthash in
+      -- org-export-get-footnote-definition)
+      if f.fn_type ~= "standard" and f.label then
         cache.defs[f.label] = f
       end
     end, { ignore = info.ignore })

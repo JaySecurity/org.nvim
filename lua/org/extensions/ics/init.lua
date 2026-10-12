@@ -198,6 +198,9 @@ function M.fetch(c, cb)
     return
   end
   local file = M.file_of(c)
+  if not file then
+    return
+  end
   vim.fn.mkdir(vim.fn.fnamemodify(file, ":h"), "p")
   local tmp = file .. ".part"
   fetching[url] = true
@@ -237,7 +240,8 @@ function M.stale(c)
   if not url_of(c) then
     return false
   end
-  local st = vim.uv.fs_stat(M.file_of(c))
+  local file = M.file_of(c)
+  local st = file and vim.uv.fs_stat(file)
   if not st then
     return true
   end
@@ -732,7 +736,7 @@ function M.setup(o)
     end
     if has_url then
       vim.schedule(tick)
-      timer = vim.uv.new_timer()
+      timer = assert(vim.uv.new_timer())
       timer:start(60000, 60000, vim.schedule_wrap(tick))
     end
   end

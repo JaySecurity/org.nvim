@@ -284,7 +284,7 @@ local function complete_file_link(bufnr, absolute)
     cancelreturn = vim.NIL,
   })
   M._complete_bufnr = nil
-  if not ok or file == vim.NIL or vim.trim(file) == "" then
+  if not ok or type(file) ~= "string" or vim.trim(file) == "" then
     return nil
   end
   file = vim.trim(file)

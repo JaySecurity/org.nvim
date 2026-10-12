@@ -648,15 +648,29 @@ end
 --- (r, c). Returns kind ("counter", "named", "field" or "range"), the
 --- value (a string, or a list of strings for ranges; a number for
 --- counters) and the next index.
+---@return string kind, any value, integer next
 local function read_ref(m, s, i, r, c, ctx)
   local spec, j = parse_ref(s, i)
-  if not spec then
+  if not spec or not j then
     error("bad reference near: " .. s:sub(i, i + 5))
   end
   local named
-  spec, named = resolve_name(m, spec, ctx)
+  if spec.name and not spec.row and not ctx.no_names then
+    -- org-table-formula-substitute-names: a `$name` that is no column,
+    -- field, parameter, constant or property is "#UNDEFINED_NAME"
+    local ok, s2, v2 = pcall(resolve_name, m, spec, ctx)
+    if not ok then
+      return "named", "#UNDEFINED_NAME", j
+    end
+    spec, named = s2, v2
+  else
+    spec, named = resolve_name(m, spec, ctx)
+  end
   if named then
     return "named", named, j
+  end
+  if not spec then
+    error("bad reference near: " .. s:sub(i, i + 5))
   end
   if spec.row and spec.row.kind == "counter" and not spec.col then
     return "counter", r, j
@@ -665,11 +679,13 @@ local function read_ref(m, s, i, r, c, ctx)
   end
   local spec2
   if s:sub(j, j + 1) == ".." then
-    spec2, j = parse_ref(s, j + 2)
+    local j2
+    spec2, j2 = parse_ref(s, j + 2)
     spec2 = resolve_name(m, spec2, ctx)
-    if not spec2 then
+    if not spec2 or not j2 then
       error("bad range")
     end
+    j = j2
   end
   if not spec2 then
     local rr = resolve_row(m, spec.row, r, "single")
@@ -685,6 +701,18 @@ local function read_ref(m, s, i, r, c, ctx)
   local c2 = resolve_col(m, spec2.col, c)
   if c1 > c2 then
     c1, c2 = c2, c1
+  end
+  local hline_end = (spec.row and spec.row.kind == "hline") or (spec2.row and spec2.row.kind == "hline")
+  if spec.row and not hline_end and r1 == r2 and c1 == c2 then
+    -- org-table-get-range: an @ range of one field is that field, not a
+    -- vector (`vsum(@2..@-1)` on one row is `vsum(x)`); `$1..$1` stays a
+    -- vector (Emacs reads it as a range of the current row), and so does
+    -- a range ending on an hline (Emacs compares the hline's line)
+    local row = m.data[r1]
+    if not row or c1 < 1 or c1 > m.ncols then
+      error("reference out of range")
+    end
+    return "field", row[c1] or "", j
   end
   local vals = {}
   for rr = r1, r2 do
@@ -789,6 +817,11 @@ local function substitute(m, rhs, r, c, flags, mode, ctx)
   local in_str = nil
   while i <= n do
     local ch = rhs:sub(i, i)
+    -- org-table-eval-formula replaces references by regexp over the whole
+    -- formula text, so a Calc or Lisp formula has them replaced inside
+    -- double-quoted strings too (`"$1"` is `"(5)"` in Calc, `""5""` in
+    -- Lisp, `"5"` with `L`); only the Lua formulas, which are not Emacs',
+    -- keep their strings as written
     if in_str then
       out[#out + 1] = ch
       if ch == "\\" then
@@ -798,7 +831,7 @@ local function substitute(m, rhs, r, c, flags, mode, ctx)
         in_str = nil
       end
       i = i + 1
-    elseif ch == '"' then
+    elseif ch == '"' and mode == "lua" then
       in_str = ch
       out[#out + 1] = ch
       i = i + 1
@@ -834,6 +867,10 @@ local function substitute(m, rhs, r, c, flags, mode, ctx)
     elseif mode == "elisp" and ch == "$" and rhs:sub(i + 1, i + 1) == "$" then
       -- `$$2` in org-sbe: a literal `$` (quote the next value as a string)
       out[#out + 1] = "$ "
+      i = i + 1
+    elseif (ch == "@" or ch == "$") and mode ~= "lua" and not parse_ref(rhs, i) then
+      -- `a@b`, `5$` or `$` alone: no reference, Emacs leaves it as written
+      out[#out + 1] = ch
       i = i + 1
     elseif ch == "@" or ch == "$" then
       local kind, v, j = read_ref(m, rhs, i, r, c, ctx)

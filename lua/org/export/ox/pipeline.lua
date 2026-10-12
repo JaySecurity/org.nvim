@@ -37,6 +37,9 @@ local function subtree_region(lines, line, todo)
     return nil
   end
   local parts = parser.parse_headline_line(lines[s], todo)
+  if not parts then
+    return nil
+  end
   local level = parts.level
   local e = s + 1
   while e <= #lines do
@@ -195,46 +198,7 @@ function export_as(backend, lines, opts)
     keywords = M.collect_keywords(full, dir, nil, nil, filename)
   end
   work = M.delete_comment_trees(work, todo)
-  -- Babel
   local babel_cfg = require("org.config").opts.babel or {}
-  if babel_cfg.evaluate_on_export and not opts.no_babel then
-    -- opts.no_babel_eval: keep the results already in the buffer (the
-    -- live preview), but still apply :exports
-    local ok, res = false, nil
-    if not opts.no_babel_eval then
-      ok, res = pcall(function()
-        return require("org.babel").export_evaluate(opts.bufnr, work)
-      end)
-    end
-    if ok and type(res) == "table" then
-      work = res
-    end
-    work = M.babel_process(work, { filename = filename })
-  end
-  -- before-parsing hook
-  for _, f in ipairs(M.as_list(hooks.before_parsing)) do
-    local r = f(backend.name, work)
-    if type(r) == "table" then
-      work = r
-    end
-  end
-  -- radio targets
-  local radio = {}
-  for _, l in ipairs(work) do
-    for r in l:gmatch("<<<([^<>\n]-)>>>") do
-      radio[#radio + 1] = r
-    end
-  end
-  local link_types = vim.deepcopy(element.DEFAULT_LINK_TYPES)
-  local extra_types = {}
-  for t in pairs((require("org.config").opts.links or {}).types or {}) do
-    extra_types[t] = true
-  end
-  local abbrevs = vim.tbl_extend(
-    "force",
-    (require("org.config").opts.links or {}).abbreviations or {},
-    file0.settings.link_abbrevs or {}
-  )
   local ctx = {
     keywords = keywords,
     filename = filename,
@@ -243,20 +207,6 @@ function export_as(backend, lines, opts)
     no_eval = opts.no_eval_macros and true or false,
   }
   local expander = M.macro_expander(ctx)
-  local popts = {
-    todo = todo,
-    link_types = link_types,
-    extra_link_types = extra_types,
-    abbrevs = abbrevs,
-    radio = radio,
-    macro = expander,
-    no_final_newline = opts.no_final_newline,
-    footnote_section = c.footnote_section or require("org.config").opts.footnote_section,
-    inlinetask_min_level = c.inlinetask_min_level or 15,
-    alpha = require("org.lists").opt("allow_alphabetical"),
-    term = ({ ["."] = "%.", [")"] = "%)" })[require("org.lists").opt("ordered_item_terminator")],
-  }
-  local parser = element.new(popts)
   -- {{{property(NAME[,search])}}}: the headline being parsed, or a searched one
   local pfile
   ctx.property_lookup = function(name, loc, p)
@@ -301,7 +251,127 @@ function export_as(backend, lines, opts)
     end
     return file0.settings.properties[name]
   end
+  -- an exported subtree: the text before it, its headline, planning and
+  -- properties, and the text after it (without the commented subtrees,
+  -- whose macros org-macro-replace-all skips)
+  local outside = subtree
+    and {
+      M.delete_comment_trees(vim.list_slice(lines, 1, subtree.line - 1), todo),
+      vim.list_slice(lines, subtree.line, subtree.first - 1),
+      M.delete_comment_trees(vim.list_slice(lines, subtree.last + 1), todo),
+    }
+  if cfg().replace_macros ~= false and (M.has_macro(work) or (outside and M.has_macro(lines))) then
+    -- org-macro-replace-all, before Babel: macros are replaced in the
+    -- text, so what they expand to is parsed (an empty value can end a
+    -- paragraph or a list item, or empty a description tag). It goes
+    -- over the widened buffer in order, the parsed keywords (#+TITLE,
+    -- #+AUTHOR, ... of the back-end) where they are: {{{n}}} counters
+    -- follow the document, also around an exported subtree.
+    local parsed = {}
+    for _, o in ipairs(vim.list_extend(vim.deepcopy(M.all_options(backend)), M.global_options())) do
+      if o[5] == "parse" and o[2] then
+        parsed[o[2]] = true
+      end
+    end
+    local mopts = {
+      todo = todo,
+      inlinetask_min_level = c.inlinetask_min_level or 15,
+      alpha = require("org.lists").opt("allow_alphabetical"),
+      term = ({ ["."] = "%.", [")"] = "%)" })[require("org.lists").opt("ordered_item_terminator")],
+      parsed_keywords = parsed,
+    }
+    local changed, ch = false, false
+    if outside then
+      -- before the subtree, then its headline, planning and properties
+      -- (the title and EXPORT_ properties are read from them again)
+      outside[1], ch = M.replace_all_macros(outside[1], expander, mopts)
+      changed = changed or ch
+      outside[2], ch = M.replace_all_macros(outside[2], expander, mopts)
+      changed = changed or ch
+      local head = subtree_region(outside[2], 1, todo)
+      if head then
+        subtree.title, subtree.props = head.title, head.props
+      end
+    end
+    work, ch = M.replace_all_macros(work, expander, mopts)
+    changed = changed or ch
+    if outside then
+      outside[3], ch = M.replace_all_macros(outside[3], expander, mopts)
+      changed = changed or ch
+    end
+    if changed then
+      -- the export options are read after the replacement
+      local full = work
+      if outside then
+        full = vim.list_extend(vim.list_extend(vim.list_extend({}, outside[1]), outside[2]), work)
+        vim.list_extend(full, outside[3])
+      end
+      local again = M.collect_keywords(full, dir, nil, nil, filename)
+      for key in pairs(parsed) do
+        keywords[key] = again[key]
+      end
+    end
+  end
+  -- Babel
+  if babel_cfg.evaluate_on_export and not opts.no_babel then
+    -- opts.no_babel_eval: keep the results already in the buffer (the
+    -- live preview), but still apply :exports
+    local ok, res = false, nil
+    if not opts.no_babel_eval then
+      ok, res = pcall(function()
+        return require("org.babel").export_evaluate(opts.bufnr, work)
+      end)
+    end
+    if ok and type(res) == "table" then
+      work = res
+    end
+    work = M.babel_process(work, { filename = filename })
+  end
+  -- before-parsing hook
+  for _, f in ipairs(M.as_list(hooks.before_parsing)) do
+    local r = f(backend.name, work)
+    if type(r) == "table" then
+      work = r
+    end
+  end
+  -- radio targets
+  local radio = {}
+  for _, l in ipairs(work) do
+    for r in l:gmatch("<<<([^<>\n]-)>>>") do
+      radio[#radio + 1] = r
+    end
+  end
+  local link_types = vim.deepcopy(element.DEFAULT_LINK_TYPES)
+  local extra_types = {}
+  for t in pairs((require("org.config").opts.links or {}).types or {}) do
+    extra_types[t] = true
+  end
+  local abbrevs = vim.tbl_extend(
+    "force",
+    (require("org.config").opts.links or {}).abbreviations or {},
+    file0.settings.link_abbrevs or {}
+  )
+  local popts = {
+    todo = todo,
+    link_types = link_types,
+    extra_link_types = extra_types,
+    abbrevs = abbrevs,
+    radio = radio,
+    macro = expander,
+    no_final_newline = opts.no_final_newline,
+    footnote_section = c.footnote_section or require("org.config").opts.footnote_section,
+    inlinetask_min_level = c.inlinetask_min_level or 15,
+    alpha = require("org.lists").opt("allow_alphabetical"),
+    term = ({ ["."] = "%.", [")"] = "%)" })[require("org.lists").opt("ordered_item_terminator")],
+  }
+  local parser = element.new(popts)
   local function parse_secondary(s)
+    if expander and s:find("{{{", 1, true) then
+      -- the keyword's macros are replaced in the buffer first, and its
+      -- value read again, trimmed (org-macro-replace-all)
+      s = trim(parser:replace_macros(s, element.RESTRICTIONS.keyword))
+      return parser:parse_objects(s, element.RESTRICTIONS.keyword, nil, nil, true)
+    end
     return parser:parse_objects(s, element.RESTRICTIONS.keyword)
   end
   local info = M.environment({

@@ -227,7 +227,7 @@ function M.rename(doc, lnum, col, new)
   local refs = targets.references(subject)
   local c, other = conflict(subject, new)
   local forms = FORMS[subject.kind]
-  if c == "ambiguous-heading" then
+  if c == "ambiguous-heading" and other then
     for _, r in ipairs(refs) do
       if r.form == "heading" or r.form == "fuzzy" then
         return nil,
@@ -245,7 +245,7 @@ function M.rename(doc, lnum, col, new)
   -- the declaration
   if subject.kind == "footnote" then
     local home = util.doc_from_path(subject.path)
-    for _, u in ipairs(targets.footnote_uses(home.lines, subject.name)) do
+    for _, u in ipairs(home and targets.footnote_uses(home.lines, subject.name) or {}) do
       add(subject.path, { lnum = u.lnum, s = u.ls, e = u.le, text = new })
     end
   else

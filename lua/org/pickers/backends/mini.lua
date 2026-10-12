@@ -139,6 +139,7 @@ function M.pick(spec, finish, user)
       }
     end
   end
+  ---@type table|fun(): table
   local source_items = items
   if spec.query and spec.query ~= "" then
     -- start with the query typed: called once the picker is active

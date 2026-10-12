@@ -179,7 +179,17 @@ function M.agenda(files, from, to, opts)
     end
   end
 
-  M.each_headline(files, with_candidate(opts, has_agenda_date), function(hl, _, fidx)
+  local parser = require("org.parser")
+  -- the text after an inline task's END line is an entry of its own in
+  -- Emacs' agenda (see parser.inline_end_entry)
+  local function candidate(hl)
+    if has_agenda_date(hl) then
+      return true
+    end
+    local tail = hl.inlinetask and parser.inline_end_entry(hl)
+    return tail ~= nil and tail ~= false and has_agenda_date(tail)
+  end
+  M.each_headline(files, with_candidate(opts, candidate), function(hl, _, fidx)
     ctx.fidx = fidx
     local done = hl:is_done()
     local sexps = has_sexps(hl.file)
@@ -197,6 +207,11 @@ function M.agenda(files, from, to, opts)
       shared.sexp_entries(ctx, hl, done)
     end
     shared.inactive_timestamps(ctx, hl, done, before_first)
+    local tail = hl.inlinetask and parser.inline_end_entry(hl)
+    if tail then
+      shared.timestamps(ctx, tail, false, sexps, {}, before_first)
+      shared.inactive_timestamps(ctx, tail, false, before_first)
+    end
     if opts.log_mode then
       shared.log_entries(ctx, hl)
     end

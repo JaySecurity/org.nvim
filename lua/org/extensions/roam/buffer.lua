@@ -158,6 +158,9 @@ local function render(node)
     end
   end
   local buf = state.buf
+  if not buf then
+    return
+  end
   vim.bo[buf].modifiable = true
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   vim.bo[buf].modifiable = false
@@ -196,7 +199,7 @@ function M.redisplay(force)
     local path = vim.api.nvim_buf_get_name(cur)
     local title = here.hl and here.hl:plain_title() or here.file:title()
     node = {
-      id = id,
+      id = here.id,
       title = title,
       file = path,
       level = here.hl and here.hl.level or 0,
@@ -233,18 +236,21 @@ local function jump()
       or o.position == "left" and "rightbelow vsplit"
       or "aboveleft vsplit"
     vim.cmd(split)
+    -- (nvim_win_set_width/height are deprecated; set_config resizes splits)
     if o.position == "bottom" then
-      vim.api.nvim_win_set_height(state.win, math.min(o.height or 15, math.floor(height / 2)))
+      vim.api.nvim_win_set_config(state.win, { height = math.max(1, math.min(o.height or 15, math.floor(height / 2))) })
     else
-      vim.api.nvim_win_set_width(state.win, math.min(o.width or 50, math.floor(width / 2)))
+      vim.api.nvim_win_set_config(state.win, { width = math.max(1, math.min(o.width or 50, math.floor(width / 2))) })
     end
   end
   require("org.extensions.roam.node").open(t.file, t.lnum, { col = t.col and math.max(0, t.col - 1) or 0 })
 end
 
+---@return integer
 local function create_buffer()
-  if state.buf and vim.api.nvim_buf_is_valid(state.buf) then
-    return state.buf
+  local existing = state.buf
+  if existing and vim.api.nvim_buf_is_valid(existing) then
+    return existing
   end
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_name(buf, "org-roam")
@@ -306,8 +312,9 @@ function M.open()
       or "botright vertical"
     local size = (o.position == "bottom" and o.height) or o.width or 50
     vim.cmd(pos .. " " .. size .. "split")
-    state.win = vim.api.nvim_get_current_win()
-    vim.api.nvim_win_set_buf(state.win, buf)
+    local win = vim.api.nvim_get_current_win()
+    state.win = win
+    vim.api.nvim_win_set_buf(win, buf)
     -- local to the window's buffer (:setlocal): a file opened in this
     -- window later gets the usual options back (but for winfix*, which
     -- belong to the window)

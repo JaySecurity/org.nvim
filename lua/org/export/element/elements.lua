@@ -55,6 +55,7 @@ function P:headline(L, i, e)
     node.pre_blank = cb - i - 1
     node.post_blank = 0
     self.prev_is_headline = cb == i + 1
+    ---@type string|nil
     local first_mode = "section"
     self.current_headline = node
     local children = {}

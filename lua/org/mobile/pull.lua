@@ -85,7 +85,7 @@ end
 ---@param first? integer
 ---@return { new: integer, edits: integer, flags: integer, errors: integer, flagged_files: string[] }
 function M.apply(bufnr, first)
-  bufnr = (bufnr == nil or bufnr == 0) and vim.api.nvim_get_current_buf() or bufnr
+  bufnr = (bufnr ~= nil and bufnr ~= 0) and bufnr or vim.api.nvim_get_current_buf()
   first = first or 1
   local counts = { new = 0, edits = 0, flags = 0, errors = 0, flagged_files = {} }
   local function get_lines()

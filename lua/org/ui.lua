@@ -425,18 +425,29 @@ local HELP_KEYS_MAX = 34
 ---@param title string
 ---@param rows org.HelpRow[]
 function M.help(title, rows)
+  --- The keys of a row, as a list.
+  ---@param r org.HelpRow
+  ---@return string[]
+  local function keys_of(r)
+    local k = r[1]
+    if type(k) == "table" then
+      return k
+    end
+    return { k }
+  end
   local keycol = 0
   for _, r in ipairs(rows) do
     if not r.heading then
-      for _, k in ipairs(type(r[1]) == "table" and r[1] or { r[1] }) do
+      for _, k in ipairs(keys_of(r)) do
         keycol = math.max(keycol, utils.width(k))
       end
     end
   end
   -- widest single key, or a few short keys side by side
   for _, r in ipairs(rows) do
-    if not r.heading and type(r[1]) == "table" then
-      keycol = math.max(keycol, math.min(HELP_KEYS_MAX, utils.width(table.concat(r[1], "  "))))
+    local k = r[1]
+    if not r.heading and type(k) == "table" then
+      keycol = math.max(keycol, math.min(HELP_KEYS_MAX, utils.width(table.concat(k, "  "))))
     end
   end
   local lines, hls = {}, {}
@@ -455,7 +466,7 @@ function M.help(title, rows)
     else
       -- pack keys into lines no wider than the key column
       local packed, cur = {}, {}
-      for _, k in ipairs(type(r[1]) == "table" and r[1] or { r[1] }) do
+      for _, k in ipairs(keys_of(r)) do
         local joined = table.concat(cur, "  ")
         if #cur > 0 and utils.width(joined) + 2 + utils.width(k) > keycol then
           packed[#packed + 1] = cur
@@ -516,7 +527,9 @@ end
 ---@param bufnr? integer
 ---@return table
 function M.conceal_opts(bufnr)
-  bufnr = (bufnr == nil or bufnr == 0) and vim.api.nvim_get_current_buf() or bufnr
+  if bufnr == nil or bufnr == 0 then
+    bufnr = vim.api.nvim_get_current_buf()
+  end
   local ui = require("org.config").opts.ui or {}
   local valid = vim.api.nvim_buf_is_valid(bufnr)
   local b = valid and vim.b[bufnr] or {}
@@ -700,18 +713,18 @@ end
 ---@param s string
 ---@return integer[][]
 function M.verbatim_ranges(s)
-  local out, i = {}, 1
+  local out, from = {}, 1
   while true do
-    i = s:find("[=~]", i)
+    local i = s:find("[=~]", from)
     if not i then
       return out
     end
     local close = emphasis_close(s, i)
     if close then
       out[#out + 1] = { i, close }
-      i = close + 1
+      from = close + 1
     else
-      i = i + 1
+      from = i + 1
     end
   end
 end

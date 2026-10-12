@@ -132,9 +132,11 @@ function M.info(path_or_buf)
   if root then
     out.branch = M.branch(root)
     out.commit = M.commit(root)
-    local path = path_or_buf
-    if path == nil or type(path) == "number" then
-      path = vim.api.nvim_buf_get_name(path or 0)
+    local path
+    if type(path_or_buf) == "string" then
+      path = path_or_buf
+    else
+      path = vim.api.nvim_buf_get_name(path_or_buf or 0)
     end
     if path ~= "" then
       out.relpath = M.relpath(root, path)

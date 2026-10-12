@@ -184,6 +184,7 @@ function M.open_target(hl, flags)
   if not target then
     fail("the heading moved: " .. headline_line(hl), "failed")
   end
+  ---@cast target -nil
   return bufnr, target.line
 end
 

@@ -316,6 +316,9 @@ function M.run(file)
         -- everything shown, as in Emacs (difftest.el)
         vim.cmd("silent! normal! zR")
         vim.api.nvim_win_set_cursor(0, t)
+        -- a command of its own, as in Emacs (`last-command` is another
+        -- one): a shift after a removal starts again from the default
+        require("org.priority").forget_cycle()
         local ctx = {
           buf = buf,
           dest = step.k2 and M.refile_dest(lines, t[1], step.k2) or nil,

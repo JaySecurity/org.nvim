@@ -8,6 +8,13 @@ pull request, by its [Conventional Commits](https://www.conventionalcommits.org/
 This file is generated from the git history by `make changelog`
 (`scripts/changelog.lua`); edit the pull request titles, not this file.
 
+## [v2.11.0] - 2026-10-11
+
+### Fixes
+
+- Empty Emacs known-differences list, nvim-orgmode migration, reload on change, strict types for most of the code ([#248](https://github.com/xheisenbugx/org.nvim/pull/248))
+- Priority wrap-around, references in quoted formula strings, {{{n}}} in export keywords ([#249](https://github.com/xheisenbugx/org.nvim/pull/249))
+
 ## [v2.10.0] - 2026-10-11
 
 ### Fixes
@@ -434,6 +441,7 @@ This file is generated from the git history by `make changelog`
 
 </details>
 
+[v2.11.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.10.0...v2.11.0
 [v2.10.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.9.1...v2.10.0
 [v2.9.1]: https://github.com/xheisenbugx/org.nvim/compare/v2.9.0...v2.9.1
 [v2.9.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.8.0...v2.9.0

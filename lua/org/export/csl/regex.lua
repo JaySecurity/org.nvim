@@ -678,7 +678,7 @@ end
 --- s-match: list of group strings (index 0 is the whole match) or nil.
 function R.match(re, s, opts)
   local b, md = R.search(re, s, 0, opts)
-  if not b then
+  if not b or not md then
     return nil
   end
   local out = {}
@@ -715,7 +715,7 @@ function R.replace(re, rep, s, opts)
   local n = #cps
   while start < n do
     local b, md = R.search(re, cps, start, opts)
-    if not b then
+    if not b or not md then
       break
     end
     local e = md:e(0)
@@ -760,7 +760,7 @@ function R.split(s, re, omit_nulls, opts)
       from = start + 1
     end
     local b, md = R.search(re, cps, from, opts)
-    if not b or not (start < n) then
+    if not b or not md or not (start < n) then
       break
     end
     notfirst = true
@@ -778,7 +778,7 @@ function R.slice_by_matches(s, re, start, annot)
   start = start or 0
   local cps = U.codepoints(s)
   local b, md = R.search(re, cps, start)
-  if not b then
+  if not b or not md then
     return { annot and { s, true } or s }
   end
   local e = md:e(0)

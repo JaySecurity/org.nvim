@@ -675,6 +675,13 @@ return function(K)
   end, function(m, n)
     return m[n]
   end)
+  -- `v_n` (calcFunc-subscr): the n-th element of a vector, symbolic
+  -- otherwise (`a_b`, `[a, b]_3`)
+  def("subscr", function(m, n)
+    return is_vec(m) and fixnum(n) and n >= 1 and n <= #m
+  end, function(m, n)
+    return m[n]
+  end)
   def("mcol", function(m, n)
     return is_matrix(m) and fixnum(n) and n >= 1 and n <= #m[1]
   end, function(m, n)

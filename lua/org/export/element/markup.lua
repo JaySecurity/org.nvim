@@ -208,17 +208,23 @@ function P:parse_timestamp(s, p)
   })
   if inner2 then
     local y2, mo2, d2, h2, mi2 = parse_date(inner2)
-    node.year_end, node.month_end, node.day_end, node.hour_end, node.minute_end = y2, mo2, d2, h2, mi2
+    -- an end without a time takes the start's (org-element-timestamp-parser)
+    node.year_end, node.month_end, node.day_end = y2, mo2, d2
+    node.hour_end, node.minute_end = h2 or h1, mi2 or mi1
   else
     node.year_end, node.month_end, node.day_end = y1, mo1, d1
     node.hour_end = tonumber(th) or h1
     node.minute_end = tonumber(tm) or mi1
   end
-  local rtype, rval, runit = raw:match("([%.%+]?%+)(%d+)([hdwmy])")
+  local rtype, rval, runit, rest = raw:match("([%.%+]?%+)(%d+)([hdwmy])(.*)$")
   if rtype then
     node.repeater_type = rtype == "++" and "catch-up" or (rtype == ".+" and "restart" or "cumulate")
     node.repeater_value = tonumber(rval)
     node.repeater_unit = runit
+    -- a habit's repeater deadline, as in .+2d/4d
+    local dval, dunit = rest:match("^/(%d+)([hdwmy])")
+    node.repeater_deadline_value = tonumber(dval)
+    node.repeater_deadline_unit = dunit
   end
   local wfirst, wval, wunit = raw:match("(%-?)%-(%d+)([hdwmy])")
   if wval and raw:match("%s%-%-?%d+[hdwmy]") then

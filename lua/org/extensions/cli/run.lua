@@ -340,18 +340,20 @@ function M.main(argv, opts)
     state.note = flags.note
     if state.session then
       -- a Neovim's own stdout may be its UI's channel: never write there
-      io.write = function(...)
+      local function session_write(...)
         local put = state.machine and M.stderr or M.stdout
         for i = 1, select("#", ...) do
           put(tostring((select(i, ...))))
         end
         return io.stdout
       end
+      io.write = session_write
     elseif state.machine then
       -- nothing but the JSON on stdout
-      io.write = function(...)
+      local function stderr_write(...)
         return io.stderr:write(...)
       end
+      io.write = stderr_write
     end
     if flags.version and #words == 0 then
       words = { "version" }
