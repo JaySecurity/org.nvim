@@ -84,6 +84,15 @@ local function with_properties(lines, props)
   return lines
 end
 
+--- The modes a capture key is mapped in: Normal, and Insert too for a
+--- Ctrl key (<C-c><C-k>), which works while typing as in Emacs; a
+--- printable one (<prefix>k) would get in the way of the text.
+---@param lhs string
+---@return string[]
+local function capture_modes(lhs)
+  return lhs:match("^<[Cc]%-") and { "n", "i" } or { "n" }
+end
+
 --- Call the mapping `m` (a maparg() dict) an unnarrowed capture replaced,
 --- or the keys themselves when there was none.
 local function call_mapping(m, lhs)
@@ -135,15 +144,18 @@ local function map_unnarrowed(s)
       for _, lhs in ipairs(config.lhs_list(a[1])) do
         if not seen[lhs] then
           seen[lhs] = true
-          local prev = vim.fn.maparg(lhs, "n", false, true)
-          s.maps[#s.maps + 1] = { lhs = lhs, prev = not vim.tbl_isempty(prev) and prev.buffer == 1 and prev or nil }
-          vim.keymap.set("n", lhs, function()
-            if M.sessions[bufnr] == s and vim.api.nvim_get_current_win() == s.win then
-              a[2]()
-            else
-              call_mapping(prev, lhs)
-            end
-          end, { buffer = bufnr, desc = a[3] })
+          for _, mode in ipairs(capture_modes(lhs)) do
+            local found = vim.fn.maparg(lhs, mode, false, true)
+            local prev = not vim.tbl_isempty(found) and found.buffer == 1 and found or nil
+            s.maps[#s.maps + 1] = { lhs = lhs, mode = mode, prev = prev }
+            vim.keymap.set(mode, lhs, function()
+              if M.sessions[bufnr] == s and vim.api.nvim_get_current_win() == s.win then
+                a[2]()
+              else
+                call_mapping(prev, lhs)
+              end
+            end, { buffer = bufnr, desc = a[3] })
+          end
         end
       end
     end
@@ -303,18 +315,18 @@ local function open_buffer(tpl, text, ctx)
 
   local maps = config.opts.mappings.capture or {}
   for _, lhs in ipairs(config.lhs_list(maps.finalize)) do
-    vim.keymap.set({ "n" }, lhs, function()
+    vim.keymap.set(capture_modes(lhs), lhs, function()
       local jump = vim.v.count > 0
       utils.run(M.finalize, buf, { jump = jump })
     end, { buffer = buf, desc = "org: finalize capture (count: and jump to it)" })
   end
   for _, lhs in ipairs(config.lhs_list(maps.kill)) do
-    vim.keymap.set({ "n" }, lhs, function()
+    vim.keymap.set(capture_modes(lhs), lhs, function()
       M.kill(buf)
     end, { buffer = buf, desc = "org: abort capture" })
   end
   for _, lhs in ipairs(config.lhs_list(maps.refile)) do
-    vim.keymap.set({ "n" }, lhs, function()
+    vim.keymap.set(capture_modes(lhs), lhs, function()
       utils.run(M.refile, buf)
     end, { buffer = buf, desc = "org: refile capture" })
   end
