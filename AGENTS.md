@@ -76,6 +76,7 @@ make extensions-report                     # each extension against the promotio
 | `lua/org/export/element.lua`, `export/element/` | the export parser (port of org-element): node and text helpers in the facade; line classification, parser state, blocks, element parsers, lists, markup, links, objects, document and tree helpers in the parts |
 | `lua/org/export/odt.lua`, `export/odt/` | ODT export: constants, per-export state and encoding in the facade; headlines, labels, media, LaTeX, source code, timestamps, transcoders, tables, template, back-end, packaging, conversion in the parts |
 | `lua/org/table/calc_alg.lua`, `table/calc_alg/` | the table Calc's symbolic algebra: Calc's internals and the shared helpers (normalize, subst, angle conversions) in the facade; simplify, expand, polynomials and collect, deriv, integ and solve in the parts |
+| `lua/org/export/csl/render.lua`, `export/csl/render/` | CSL rendering elements (port of citeproc-el): the context, text casing, joining, generic elements, conditions, labels and compilation in the facade; names, dates, numbers and page ranges, sort keys in the parts |
 | `lua/org/api/` | the public Lua API (`:h org-api`); everything else is internal |
 | `lua/org/pickers/` | picker sources and the snacks / fzf-lua / telescope / mini.pick / `vim.ui.select` adapters |
 | `lua/org/extensions/` | optional extensions, each enabled under `extensions` in `setup()` |
