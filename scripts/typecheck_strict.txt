@@ -28,3 +28,4 @@ lua/org/mobile
 lua/org/capture.lua
 lua/org/capture
 lua/org/babel
+lua/org/extensions/init.lua
