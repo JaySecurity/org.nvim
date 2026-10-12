@@ -28,7 +28,13 @@ local M = {}
 ---@param defs table<string, table>|fun(): table<string, table>
 function M.highlights(augroup, defs)
   local function apply()
-    local t = type(defs) == "function" and defs() or defs
+    ---@type table<string, table>
+    local t
+    if type(defs) == "function" then
+      t = defs()
+    else
+      t = defs
+    end
     for name, def in pairs(t) do
       def = vim.deepcopy(def)
       if def.default == nil then
@@ -105,7 +111,7 @@ end
 ---------------------------------------------------------------------------
 
 ---@class org.views.Canvas
----@field lines { text: string[], hls: table[] }[]
+---@field lines { text: string[], hls: table[], bytes: integer }[]
 local Canvas = {}
 Canvas.__index = Canvas
 M.Canvas = Canvas
@@ -457,7 +463,7 @@ end
 --- Buffer and line of a headline reference, loading its file when needed.
 --- When the line moved, the headline is looked up by its text.
 ---@param ref { filename?: string, bufnr?: integer, lnum: integer, raw: string }
----@return org.Target|nil
+---@return { bufnr: integer, lnum: integer }|nil
 function M.target(ref)
   local bufnr
   if ref.filename then
@@ -469,8 +475,9 @@ function M.target(ref)
     utils.error("Cannot find the file of this entry")
     return nil
   end
+  ---@type integer|nil
   local lnum = ref.lnum
-  local line = vim.api.nvim_buf_get_lines(bufnr, lnum - 1, lnum, false)[1]
+  local line = vim.api.nvim_buf_get_lines(bufnr, ref.lnum - 1, ref.lnum, false)[1]
   if line ~= ref.raw then
     -- the copy nearest the old line (headlines can share their text; on a
     -- tie the later one, as lines are more often added above)
@@ -671,7 +678,7 @@ function M.jump(ref, how)
   utils.set_current_buf(target.bufnr)
   vim.api.nvim_win_set_cursor(0, { target.lnum, 0 })
   -- unfold it and show it with its entry in the middle of the window
-  pcall(vim.cmd, "normal! zvzz")
+  pcall(vim.api.nvim_command, "normal! zvzz")
 end
 
 ---------------------------------------------------------------------------

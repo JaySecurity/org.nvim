@@ -29,3 +29,4 @@ lua/org/capture.lua
 lua/org/capture
 lua/org/babel
 lua/org/extensions/init.lua
+lua/org/extensions/views_util.lua
