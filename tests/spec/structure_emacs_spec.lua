@@ -468,6 +468,28 @@ describe("refile and archive sibling change levels like org-paste-subtree (make 
   end)
 end)
 
+describe("sort the children of a headline whose text holds an inline task (make difftest)", function()
+  with_config({ inlinetask_min_level = 15 })
+
+  -- org-sort-entries takes the inline task for the first child and sorts
+  -- the entries of its level by org-get-heading, which goes back past
+  -- inline tasks to the parent: every key is the same, nothing moves
+  it("leaves the children as they are, as Emacs does", function()
+    local lines = {
+      "* P",
+      "*************** zeta",
+      "text z",
+      "*************** END",
+      "** b",
+      "** a",
+      "* Q",
+    }
+    local buf = org_buffer(lines, { 1, 0 })
+    require("org.structure").sort("a")
+    eq(lines, buf_lines(buf))
+  end)
+end)
+
 describe("archive to the Archive sibling, as org-archive-to-archive-sibling finds it (make difftest)", function()
   local function archive(lines, lnum)
     local buf = org_buffer(lines, { lnum, 0 })

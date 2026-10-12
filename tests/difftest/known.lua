@@ -79,27 +79,4 @@ return {
       end)
     end,
   },
-  {
-    oracle = "commands",
-    reason = [[Sorting the children of a headline whose text holds an inline
-      task: Emacs (org-sort-entries) takes the inline task for the first
-      child and sorts the entries of its level, so nothing moves; org.nvim
-      sorts the children.]],
-    input = function(lines)
-      for _, l in ipairs(lines) do
-        if l:match(INLINETASK) then
-          return true
-        end
-      end
-      return false
-    end,
-    either = "^%*+ ",
-    same = function(s)
-      local t = vim.split(s, "\n", { plain = true })
-      table.sort(t)
-      return table.concat(t, "\n")
-    end,
-    broad = true,
-    moves = true,
-  },
 }

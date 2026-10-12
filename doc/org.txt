@@ -524,7 +524,9 @@ p / P           Put (org-yank). When the register holds whole subtrees
                 reverses; a count (C-u) makes it case-sensitive. For `f`,
                 give a name from `sort_functions` or a Lua expression
                 returning a function(entry, lines), then optionally a
-                compare function.
+                compare function. Children under a headline whose text
+                holds an inline task stay as they are, as in Emacs (it
+                takes the inline task for the first child).
 
                                                                *org-narrow*
 <prefix>hn      Narrow to subtree: edit it in a separate buffer. `:w` writes
