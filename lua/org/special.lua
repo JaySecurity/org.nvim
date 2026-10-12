@@ -310,6 +310,14 @@ function M.open(opts)
   end
 
   local function close()
+    -- the cursor goes back to the same place in the element, whether the
+    -- edit is saved or aborted (org-edit-src-exit, which abort calls too)
+    local back, r, er
+    if coord and vim.api.nvim_get_current_buf() == buf then
+      local cur = vim.api.nvim_win_get_cursor(0)
+      back = coordinates(buf, cur[1] - 1, cur[2], 0, vim.api.nvim_buf_line_count(buf))
+      r, _, er = mark_range(src, mark)
+    end
     cleanup()
     local w = state.win
     if w and vim.api.nvim_win_is_valid(w) then
@@ -327,6 +335,9 @@ function M.open(opts)
     end
     if prev_win and vim.api.nvim_win_is_valid(prev_win) then
       pcall(vim.api.nvim_set_current_win, prev_win)
+    end
+    if back and r and er and vim.api.nvim_get_current_buf() == src then
+      goto_coordinates(0, back, r, er)
     end
   end
   state.close = close
@@ -409,16 +420,7 @@ function M.open(opts)
           return
         end
       end
-      local back
-      if coord and vim.api.nvim_get_current_buf() == buf then
-        local cur = vim.api.nvim_win_get_cursor(0)
-        back = coordinates(buf, cur[1] - 1, cur[2], 0, vim.api.nvim_buf_line_count(buf))
-      end
-      local r, _, er = mark_range(src, mark)
       close()
-      if back and r and vim.api.nvim_get_current_buf() == src then
-        goto_coordinates(0, back, r, er)
-      end
     end, { buffer = buf, desc = "org: save and exit edit buffer" })
   end
   for _, lhs in ipairs(config.lhs_list(maps.abort)) do

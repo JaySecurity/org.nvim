@@ -339,6 +339,33 @@ describe("org-src edit buffers", function()
     eq({ 2, 2 }, vim.api.nvim_win_get_cursor(0))
   end)
 
+  it("keeps the cursor's place in the code, going in and coming back", function()
+    -- Emacs (org-src--goto-coordinates): point at "World" (line 4, column
+    -- 12) is at line 2, column 10 of the edit buffer; after moving to the
+    -- end of its first line, org-edit-src-exit leaves point on line 3 at
+    -- column 9, two past the indentation (column 8 is the last character
+    -- here, as Normal mode can't go past it)
+    local src = org_buffer({
+      "* H",
+      "#+begin_src emacs-lisp",
+      "  (list 1",
+      '    "Hello, World")',
+      "#+end_src",
+    }, { 4, 12 })
+    local ebuf = babel.edit_special()
+    eq(ebuf, vim.api.nvim_get_current_buf())
+    eq({ 2, 10 }, vim.api.nvim_win_get_cursor(0))
+    vim.api.nvim_win_set_cursor(0, { 1, 6 })
+    special.edits[ebuf].close()
+    eq(src, vim.api.nvim_get_current_buf())
+    eq({ 3, 8 }, vim.api.nvim_win_get_cursor(0))
+    -- on the #+begin_src line: the start of the code
+    vim.api.nvim_win_set_cursor(0, { 2, 5 })
+    ebuf = babel.edit_special()
+    eq({ 1, 0 }, vim.api.nvim_win_get_cursor(0))
+    special.edits[ebuf].close()
+  end)
+
   it("edit_src_persistent_message = false shows nothing", function()
     config.opts.edit_src_persistent_message = false
     org_buffer(block, { 3, 0 })
