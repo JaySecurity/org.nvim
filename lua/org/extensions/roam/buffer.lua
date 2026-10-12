@@ -236,10 +236,11 @@ local function jump()
       or o.position == "left" and "rightbelow vsplit"
       or "aboveleft vsplit"
     vim.cmd(split)
+    -- (nvim_win_set_width/height are deprecated; set_config resizes splits)
     if o.position == "bottom" then
-      vim.api.nvim_win_set_height(state.win, math.min(o.height or 15, math.floor(height / 2)))
+      vim.api.nvim_win_set_config(state.win, { height = math.max(1, math.min(o.height or 15, math.floor(height / 2))) })
     else
-      vim.api.nvim_win_set_width(state.win, math.min(o.width or 50, math.floor(width / 2)))
+      vim.api.nvim_win_set_config(state.win, { width = math.max(1, math.min(o.width or 50, math.floor(width / 2))) })
     end
   end
   require("org.extensions.roam.node").open(t.file, t.lnum, { col = t.col and math.max(0, t.col - 1) or 0 })

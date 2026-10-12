@@ -523,7 +523,8 @@ local function edit_window(st)
   vim.cmd(st.opts.position == "left" and "rightbelow vsplit" or "leftabove vsplit")
   local win = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(win, vim.api.nvim_create_buf(true, false))
-  pcall(vim.api.nvim_win_set_width, st.win, st.width or st.opts.width)
+  -- (nvim_win_set_width is deprecated; set_config resizes splits since 0.10)
+  pcall(vim.api.nvim_win_set_config, st.win, { width = st.width or st.opts.width })
   return win
 end
 
