@@ -12,17 +12,29 @@ local html = require("site.html")
 
 local M = {}
 
---- Lesson names: basics first (the tutor's default), then the others.
+--- The lessons' metadata (`#+TUTOR_ORDER:`, `#+TUTOR_LEVEL:`,
+--- `#+TUTOR_TOPICS:`, see org.tutor's `file_meta`), by name.
+---@param root string
+---@return table<string, org.tutor.Meta>
+function M.metas(root)
+  local out = {}
+  for _, f in ipairs(vim.fn.glob(root .. "/tutor/org/*.org", false, true)) do
+    local meta = require("org.tutor").file_meta(f)
+    out[meta.name] = meta
+  end
+  return out
+end
+
+--- Lesson names in course order (`#+TUTOR_ORDER:`, then by name).
 ---@param root string
 ---@return string[]
 function M.lessons(root)
-  local out = {}
-  for _, f in ipairs(vim.fn.glob(root .. "/tutor/org/*.org", false, true)) do
-    out[#out + 1] = vim.fn.fnamemodify(f, ":t:r")
-  end
+  local metas = M.metas(root)
+  local out = vim.tbl_keys(metas)
   table.sort(out, function(a, b)
-    if (a == "basics") ~= (b == "basics") then
-      return a == "basics"
+    local oa, ob = metas[a].order or math.huge, metas[b].order or math.huge
+    if oa ~= ob then
+      return oa < ob
     end
     return a < b
   end)
@@ -185,22 +197,44 @@ function M.markers(cast)
   return out
 end
 
---- The cast's markers with their times, and its length in seconds.
+--- Label prefixes of the captions' and step markers' "m" events
+--- (scripts/playground/record.lua); an exercise's marker has none.
+M.CAPTION = "say: "
+M.STEP = "step: "
+
+---@class site.playground.Timeline
+---@field markers { label: string, t: number }[] the exercises
+---@field captions { text: string, t: number, exercise?: string }[] the captions, with the exercise they are in
+---@field steps { label: string, t: number }[] the step markers
+---@field duration number seconds
+
+--- The cast's exercise markers, captions and step markers with their
+--- times, and its length in seconds.
 ---@param cast string
----@return { markers: { label: string, t: number }[], duration: number }
+---@return site.playground.Timeline
 function M.timeline(cast)
-  local out, last = {}, 0
+  local out = { markers = {}, captions = {}, steps = {} }
+  local last, exercise = 0, nil
   for line in cast:gmatch("[^\n]+") do
     if line:sub(1, 1) == "[" then
       local ev = vim.json.decode(line)
       last = ev[1]
       if ev[2] == "m" then
-        out[#out + 1] = { label = ev[3], t = ev[1] }
+        local label = ev[3]
+        if vim.startswith(label, M.CAPTION) then
+          out.captions[#out.captions + 1] = { text = label:sub(#M.CAPTION + 1), t = ev[1], exercise = exercise }
+        elseif vim.startswith(label, M.STEP) then
+          out.steps[#out.steps + 1] = { label = label:sub(#M.STEP + 1), t = ev[1] }
+        else
+          out.markers[#out.markers + 1] = { label = label, t = ev[1] }
+          exercise = label
+        end
       end
     end
   end
   -- the player holds the last frame for 2 s (assets/playground.js)
-  return { markers = out, duration = last + 2 }
+  out.duration = last + 2
+  return out
 end
 
 --- Seconds as m:ss, rounded down as the player shows them.

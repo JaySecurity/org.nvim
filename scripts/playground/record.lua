@@ -38,6 +38,21 @@
 --          ({{org.cycle}}), shown as one key
 --   type = text typed a character at a time
 --   wait = minutes the clock moves on
+--   say  = a caption (at most 80 characters, tutor placeholders resolved)
+--          shown under the terminal from here to the next caption or the
+--          end of the exercise; the recording pauses PACE.say after it, and
+--          the exercise lasts until the caption has been readable for
+--          PACE.read_min + PACE.read_char per character
+--   mark = a step marker: a finer tick on the player's timeline, no time
+--
+-- Captions and step markers are asciicast "m" markers too, their labels
+-- prefixed with M.CAPTION ("say: ") and M.STEP ("step: "); an exercise's
+-- marker has no prefix. Any asciicast player shows them as markers; the
+-- site's player (scripts/site/assets/playground.js) shows captions as
+-- subtitles and step markers as small ticks.
+--
+-- A lesson's recording must stay within M.budget seconds
+-- (tests/spec/playground_spec.lua).
 --
 -- After each exercise the tutor's check of it (lua/org/tutor/lessons/)
 -- must pass, or the recording fails. ORG_PLAYGROUND_EXERCISES=intro,1.2
@@ -57,7 +72,30 @@ M.now = { year = 2026, month = 10, day = 12, hour = 9, min = 0 }
 
 -- Milliseconds between events of the recording (event times are kept in
 -- whole milliseconds, so they add up exactly).
-local PACE = { key = 900, char = 90, after_type = 500, at = 700, exercise = 1600, settle = 50 }
+local PACE = {
+  key = 900,
+  char = 90,
+  after_type = 500,
+  at = 700,
+  exercise = 1600,
+  settle = 50,
+  -- a caption: the pause after it, and how long it stays readable
+  say = 1200,
+  read_min = 1800,
+  read_char = 45,
+}
+M.pace = PACE
+
+--- The longest a lesson's recording may last, in seconds (the player adds
+--- 2 s at the end; see `M.duration`).
+M.budget = 150
+
+--- The longest caption, in characters.
+M.caption_max = 80
+
+--- Label prefixes of the "m" markers of captions and of step markers.
+M.CAPTION = "say: "
+M.STEP = "step: "
 
 -- Child setup on top of tests/screen.lua's: a status line with the file
 -- name, the mode shown, quick tutor marks, and a clock moved by `wait`.
@@ -69,6 +107,8 @@ vim.o.showcmd = true
 vim.o.cmdheight = 2
 vim.o.wrap = false
 vim.o.timeout = false
+-- CursorHold soon: checks of the view (folding) run on it
+vim.o.updatetime = 20
 require("org.tutor").debounce_ms = 1
 -- messages show the data directory as on a default install, not where
 -- the recording ran: every way a message can spell it (the resolved path,
@@ -402,8 +442,41 @@ function Rec:debug(label, level)
   io.stderr:write(("-- %s\n%s\n"):format(label, table.concat(lines, "\n")))
 end
 
+--- The time a caption needs on screen to be read, in milliseconds.
+---@param text string
+---@return integer
+function M.read_ms(text)
+  return PACE.read_min + PACE.read_char * vim.fn.strchars(text)
+end
+
+--- Wait until the caption shown has been readable long enough.
+function Rec:read_caption()
+  local c = self.caption
+  if c then
+    self.t = math.max(self.t, c.t + M.read_ms(c.text))
+    self.caption = nil
+  end
+end
+
+--- A caption (a `say` step): placeholders resolved, at most M.caption_max
+--- characters, one line.
+function Rec:say(lesson, id, text)
+  text = self:render(text)
+  if text:find("\n", 1, true) or vim.fn.strchars(text) > M.caption_max then
+    error(
+      ("playground: %s %s: a caption is one line of at most %d characters: %q"):format(lesson, id, M.caption_max, text),
+      0
+    )
+  end
+  self:read_caption()
+  self:event("m", M.CAPTION .. text)
+  self.caption = { t = self.t, text = text }
+  self.t = self.t + PACE.say
+end
+
 --- Play one exercise.
 function Rec:exercise(lesson, ex, title)
+  self.caption = nil
   self:event("m", title)
   if not self.screen:lua(GOTO_EXERCISE, ex.id) then
     error(("playground: %s: no exercise %s in the lesson"):format(lesson, ex.id), 0)
@@ -424,9 +497,16 @@ function Rec:exercise(lesson, ex, title)
     elseif step.wait then
       self.screen:lua("_G.__pg_offset = _G.__pg_offset + ...", step.wait * 60)
       self.t = self.t + PACE.key
+    elseif step.say then
+      self:say(lesson, ex.id, step.say)
+    elseif step.mark then
+      self:event("m", M.STEP .. step.mark)
+    else
+      error(("playground: %s %s: unknown step %s"):format(lesson, ex.id, vim.inspect(step)), 0)
     end
     self:debug(lesson .. " " .. ex.id .. " " .. vim.inspect(step), 2)
   end
+  self:read_caption()
   self.t = self.t + PACE.exercise
   self:debug(lesson .. " " .. ex.id)
   -- the recording must show the exercise done: its check passes
@@ -501,8 +581,8 @@ function M.record(name, only)
     -- "fast" requests
     for _, ex in ipairs(M.steps(name)) do
       for _, step in ipairs(ex.steps or {}) do
-        if step.key then
-          self:render(step.key)
+        if step.key or step.say then
+          self:render(step.key or step.say)
         end
       end
     end
