@@ -8,6 +8,12 @@ pull request, by its [Conventional Commits](https://www.conventionalcommits.org/
 This file is generated from the git history by `make changelog`
 (`scripts/changelog.lua`); edit the pull request titles, not this file.
 
+## [v2.12.2] - 2026-10-12
+
+### Fixes
+
+- **capture:** C-c C-k, C-c C-c and C-c C-w work from Insert mode ([#258](https://github.com/xheisenbugx/org.nvim/pull/258))
+
 ## [v2.12.1] - 2026-10-12
 
 <details><summary>Tests, CI and chores (1)</summary>
@@ -459,6 +465,7 @@ This file is generated from the git history by `make changelog`
 
 </details>
 
+[v2.12.2]: https://github.com/xheisenbugx/org.nvim/compare/v2.12.1...v2.12.2
 [v2.12.1]: https://github.com/xheisenbugx/org.nvim/compare/v2.12.0...v2.12.1
 [v2.12.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.11.0...v2.12.0
 [v2.11.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.10.0...v2.11.0

@@ -289,9 +289,9 @@ local function end_unnarrowed(s)
   end
   vim.api.nvim_buf_call(bufnr, function()
     for _, m in ipairs(s.maps or {}) do
-      pcall(vim.keymap.del, "n", m.lhs, { buffer = bufnr })
+      pcall(vim.keymap.del, m.mode or "n", m.lhs, { buffer = bufnr })
       if m.prev then
-        pcall(vim.fn.mapset, "n", false, m.prev)
+        pcall(vim.fn.mapset, m.mode or "n", false, m.prev)
       end
     end
   end)
