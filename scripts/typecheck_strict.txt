@@ -37,3 +37,4 @@ lua/org/extensions/drill
 lua/org/extensions/heatmap
 lua/org/extensions/hugo
 lua/org/extensions/ics
+lua/org/extensions/journal

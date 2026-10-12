@@ -811,7 +811,7 @@ function M.show_day(buf, d)
   local day = M.find_day(buf, d)
   if day and vim.wo.foldmethod == "expr" then
     require("org.fold").refresh(buf)
-    pcall(vim.cmd, string.format("silent! %d,%dfoldopen!", day.line, day.end_line))
+    pcall(vim.api.nvim_command, string.format("silent! %d,%dfoldopen!", day.line, day.end_line))
   end
 end
 
