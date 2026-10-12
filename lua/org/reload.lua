@@ -245,7 +245,7 @@ local function restore_folds(win, folds)
         end
       end
       if at and vim.fn.foldlevel(at) > 0 and vim.fn.foldclosed(at) == -1 then
-        pcall(vim.cmd, at .. "foldclose")
+        pcall(vim.api.nvim_command, at .. "foldclose")
       end
     end
   end)
@@ -327,7 +327,9 @@ local function reload(buf)
     end,
   })
   -- (the FileChangedShellPost autocommand below puts the folds back)
-  local ok, err = pcall(vim.cmd, "checktime " .. buf)
+  local ok, err = pcall(function()
+    vim.cmd("checktime " .. buf)
+  end)
   pcall(vim.api.nvim_del_augroup_by_id, group)
   return ok, err
 end
@@ -402,7 +404,7 @@ end
 ---@param buf integer
 ---@param tries? integer
 function schedule_check(buf, tries)
-  local t = timers[buf]
+  local t = timers[buf] ---@type uv.uv_timer_t?
   if not t then
     t = uv.new_timer()
     if not t then
