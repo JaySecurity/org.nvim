@@ -195,9 +195,8 @@ function M.increment_field(value, previous, step)
     return p1 .. num_str(v1 + (same and (v1 - v2) or step))
   elseif kind == "timestamp" then
     -- analyze's timestamps: { date, start_col, end_col } (date.parse_all)
-    local t1, t2 =
-      v1, --[[@as table]]
-      v2 --[[@as table]]
+    local t1 = v1 --[[@as { date: org.Date, start_col: integer, end_col: integer }]]
+    local t2 = v2 --[[@as { date: org.Date }]]
     local days = same and (t1.date:days() - t2.date:days()) or step
     local shifted = t1.date:add_with_range(days, "d")
     return value:sub(1, t1.start_col - 1) .. shifted:to_string() .. value:sub(t1.end_col + 1)

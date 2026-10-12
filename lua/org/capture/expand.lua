@@ -538,6 +538,7 @@ function M.expand(text, ctx)
       if answer == nil then
         utils.abort()
       end
+      ---@cast answer string
       local tags = {}
       for t in answer:gmatch("[^:%s]+") do
         tags[#tags + 1] = t
