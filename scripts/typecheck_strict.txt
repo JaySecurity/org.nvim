@@ -36,3 +36,5 @@ lua/org/export/cite.lua
 lua/org/export/cite
 lua/org/export/ox.lua
 lua/org/export/ox
+lua/org/export/element.lua
+lua/org/export/element

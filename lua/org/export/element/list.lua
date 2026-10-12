@@ -117,7 +117,8 @@ function P:list_struct(L, i, e)
         it.last = j - 1
         struct[#struct + 1] = it
       end
-      local fi = full_item(l)
+      -- item_match matched, and full_item accepts every bullet it does
+      local fi = assert(full_item(l))
       items[#items + 1] = {
         line = j,
         ind = ind,

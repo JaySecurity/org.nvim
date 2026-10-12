@@ -657,6 +657,7 @@ function P:parse_objects(s, R, parent, depth, replaced)
       node, e = self:radio_at(s, p, lows)
     end
     if node then
+      ---@cast e -nil
       flush(p - 1)
       node.parent = parent
       if node.inner then
