@@ -70,3 +70,4 @@ lua/org/export/text.lua
 lua/org/export/ast.lua
 lua/org/export/dictionary.lua
 lua/org/export/entities.lua
+lua/org/export/cite_csl.lua
