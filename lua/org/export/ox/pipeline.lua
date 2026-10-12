@@ -37,6 +37,9 @@ local function subtree_region(lines, line, todo)
     return nil
   end
   local parts = parser.parse_headline_line(lines[s], todo)
+  if not parts then
+    return nil
+  end
   local level = parts.level
   local e = s + 1
   while e <= #lines do

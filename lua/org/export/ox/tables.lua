@@ -131,6 +131,7 @@ function M.table_cell_width(cell, info)
   local cache = info.table_cell_width_cache
   cache[tbl] = cache[tbl] or {}
   if cache[tbl][col] == nil then
+    ---@type number|false|nil
     local w = false
     for _, r in ipairs(tbl.contents) do
       if M.table_row_is_special_p(r, info) then

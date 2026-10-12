@@ -34,3 +34,5 @@ lua/org/table
 lua/org/export/csl
 lua/org/export/cite.lua
 lua/org/export/cite
+lua/org/export/ox.lua
+lua/org/export/ox

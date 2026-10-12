@@ -462,10 +462,10 @@ function M.get_ordinal(el, info, types, predicate)
     return M.get_footnote_number(el, info)
   end
   local want = { [t] = true }
-  local key = { t }
+  local key_parts = { t }
   for _, x in ipairs(types or {}) do
     want[x] = true
-    key[#key + 1] = x
+    key_parts[#key_parts + 1] = x
   end
   -- one walk numbers every element of these types for this predicate:
   -- mapping the tree for each table or figure is quadratic
@@ -476,7 +476,7 @@ function M.get_ordinal(el, info, types, predicate)
     info.ordinal_cache = cache
   end
   local pkey = predicate or cache
-  key = table.concat(key, "\0")
+  local key = table.concat(key_parts, "\0")
   local by_key = cache.by_pred[pkey]
   if not by_key then
     -- a predicate seen once may be a closure made for this call: walk

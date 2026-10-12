@@ -91,12 +91,12 @@ function M.macro_expander(ctx)
     for d in t:gmatch("%$(%d+)") do
       max = math.max(max, tonumber(d))
     end
-    local bindings, key = {}, { body }
+    local bindings, parts = {}, { body }
     for i = 1, max do
       bindings[i] = { "$" .. i, args[i] }
-      key[#key + 1] = args[i] or "\1"
+      parts[#parts + 1] = args[i] or "\1"
     end
-    key = table.concat(key, "\0")
+    local key = table.concat(parts, "\0")
     if evaluated[key] == nil then
       local v, err = require("org.babel.elisp").eval(body, {
         bindings = bindings,
@@ -123,7 +123,7 @@ function M.macro_expander(ctx)
         counters[name] = (counters[name] or 0) + 1
       elseif action == "-" then
         counters[name] = counters[name] or 1
-      elseif action:match("^%d+$") then
+      elseif action and action:match("^%d+$") then
         counters[name] = tonumber(action)
       else
         counters[name] = 1
@@ -181,7 +181,7 @@ function M.macro_expander(ctx)
       end
       -- org-macro-expand takes (nth (1- N) args): $0 is the first argument
       return (t:gsub("%$(%d+)", function(d)
-        return args[math.max(tonumber(d), 1)] or ""
+        return args[math.max(tonumber(d) or 0, 1)] or ""
       end))
     end
     local b = builtin[key]
