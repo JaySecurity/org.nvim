@@ -391,7 +391,11 @@ end
 -- Association lists
 ---------------------------------------------------------------------------
 
---- alist-get
+--- alist-get: the value of the first pair whose key is `k` (any Lisp
+--- value, so any Lua type), or nil.
+---@param al table? list of { key, value } pairs
+---@param k any
+---@return any
 function U.aget(al, k)
   if not al then
     return nil

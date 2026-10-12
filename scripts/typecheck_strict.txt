@@ -31,3 +31,6 @@ lua/org/babel
 lua/org/extensions
 lua/org/table.lua
 lua/org/table
+lua/org/export/csl
+lua/org/export/cite.lua
+lua/org/export/cite

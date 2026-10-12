@@ -599,7 +599,7 @@ function E.layout(attrs, ctx, body)
   local wo_suffix = U.aremove(attrs, "suffix")
   local rendered = cars(spliced)
   if aget(ctx.opts, "second-field-align") and rendered.n > 1 then
-    local rest = { { { "display", "right-inline" } } }
+    local rest = { { { "display", "right-inline" } } } ---@type any[]
     for i = 2, rendered.n do
       rest[#rest + 1] = nf(rendered[i])
     end
@@ -650,7 +650,7 @@ local URL_PREFIX_RE = "https?://\\S *\\'"
 
 function E.text(attrs, ctx)
   local content
-  local ty = "text-only"
+  local ty = "text-only" ---@type string?
   local value = aget(attrs, "value")
   local variable = aget(attrs, "variable")
   local term = aget(attrs, "term")

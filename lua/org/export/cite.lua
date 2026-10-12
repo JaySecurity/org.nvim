@@ -32,6 +32,10 @@ local function ccfg()
   return (require("org.config").opts.export or {}).cite or {}
 end
 
+--- The `export.cite` option `name`, or `default` when unset.
+---@param name string
+---@param default any
+---@return any
 local function opt(name, default)
   local v = ccfg()[name]
   if v == nil then

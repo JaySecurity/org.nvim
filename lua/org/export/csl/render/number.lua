@@ -277,7 +277,7 @@ function M.prange_render(p, format, sep)
   local pos = 0
   while true do
     local b, md = R.search(PRANGE_RE, cps, pos)
-    if not b then
+    if not b or not md then
       break
     end
     local start_pref, start_num = md:str(1), md:str(2)
