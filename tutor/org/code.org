@@ -1,0 +1,200 @@
+#+TITLE: org.nvim tutor 8: code and export
+#+TUTOR_ORDER: 8
+#+TUTOR_LEVEL: Power user
+#+TUTOR_TOPICS: source blocks, results, variables, named blocks, tangling, export, export options
+#+STARTUP: showall nologdone
+#+TODO: TODO | DONE
+
+An org file can hold code that runs, with its results written right
+under it, and any part of the file exports to Markdown, plain text,
+HTML and more. The code here is Lua: it needs nothing installed, as Lua
+blocks run inside Neovim.
+
+- As before, a {{done}} at the end of an exercise's headline means it is
+  done, and {{todo}} that it is not yet. Keys are shown as mapped in your
+  config; =<leader>= is ={{leader}}=.
+- This is a working copy: =:w= saves your progress and =:Org tutor code
+  reset= starts over. Exports here go to a buffer, not to a file; only
+  3.1 writes a file, =hello.lua=, next to this copy.
+- Before a block runs you are asked "Evaluate this lua code block on
+  your system?": =y= runs it, =n= (or =<Esc>=) doesn't. Run only code
+  you trust; the option =babel.confirm_evaluate = false= stops asking.
+- Stuck? =:Org tutor_hint= shows the keys that solve the exercise at
+  the cursor, and =:Org tutor= lists every lesson.
+
+* Lesson 1: run code
+A source block is code between =#+begin_src LANGUAGE= and =#+end_src=.
+={{org.context_action}}= on it runs it and writes its result below,
+under =#+RESULTS:=. Running it again replaces the result.
+
+** 1.1 Run a block
+Put the cursor on the =#+begin_src= line below, press
+={{org.context_action}}= and answer =y=: the value the code returns
+appears under it.
+
+*** The answer
+#+begin_src lua
+  return 6 * 7
+#+end_src
+
+** 1.2 Print instead of return
+The result is the value the code returns (=:results value=, the
+default). With =:results output= it is what the code prints. Run this
+block.
+
+*** Greetings
+#+begin_src lua :results output
+  print("Hello from Lua")
+  print("and hello again")
+#+end_src
+
+** 1.3 Get a table back
+A list of rows comes back as an org table, which you can edit, sort or
+use in a formula. Run this block.
+
+*** Shopping
+#+begin_src lua
+  return { { "bread", 2 }, { "cheese", 1 }, { "apples", 6 } }
+#+end_src
+
+** 1.4 Write a block
+On the empty line under =Your block=, press
+={{org.insert_structure_template}}= and =s=: an empty source block
+appears, with the cursor where its language goes. Type =lua=, press
+=<Esc>=, open a line with =o=, write =return 1 + 2=, =<Esc>=, and run
+it.
+
+*** Your block
+
+
+** 1.5 Edit a block in its own window
+={{org.edit_special}}= in a block opens its code in a window of its
+own, as a Lua buffer: indenting, completion and your Lua tools work
+there. Change =World= to your name, then press ={{edit_src.save_exit}}=
+to write it back into the block.
+
+*** Who
+#+begin_src lua
+  return "Hello, World"
+#+end_src
+
+* Lesson 2: blocks that work together
+The header argument =:var name=value= gives a block a variable. The
+value can be a number, a string, a table of this file or the result of
+another block, both found by their =#+NAME:=.
+
+** 2.1 Read a table
+The block below adds up the =price= column of the table named =prices=
+(=:var data=prices=: its rows, without the header). Run it.
+
+*** Prices
+#+NAME: prices
+| item   | price |
+|--------+-------|
+| bread  |     3 |
+| cheese |     5 |
+| apples |     4 |
+
+#+begin_src lua :var data=prices
+  local total = 0
+  for _, row in ipairs(data) do
+    total = total + row[2]
+  end
+  return total
+#+end_src
+
+** 2.2 Call a named block
+=greet= is a named block, with ="you"= as the default =name=. A
+=#+CALL:= line runs it with other values: run the =#+CALL:= line.
+
+*** Greeter
+#+NAME: greet
+#+begin_src lua :var name="you"
+  return "Hello, " .. name
+#+end_src
+
+#+CALL: greet(name="Neovim")
+
+** 2.3 Use another block's result
+=:var n=dice()= runs the block named =dice= and hands its value over.
+Run the second block: you are asked for each of the two, =y= twice.
+
+*** Dice
+#+NAME: dice
+#+begin_src lua
+  return 4
+#+end_src
+
+#+begin_src lua :var n=dice()
+  return "Double: " .. n * 2
+#+end_src
+
+* Lesson 3: tangle
+Tangling writes the code of blocks to the file their =:tangle= header
+names: a config kept in org next to its notes, a script, a module.
+
+** 3.1 Tangle a block to a file
+Press ={{org.babel_tangle}}= anywhere in this file: the block below is
+written to =hello.lua=, next to this copy (in Neovim's data directory).
+Then press ={{org.open_at_point}}= on the link to see the file, and =:q=
+to close it.
+
+*** Script
+#+begin_src lua :tangle hello.lua
+  print("Hello from a tangled file")
+#+end_src
+
+[[file:hello.lua]]
+
+* Lesson 4: export
+={{org.export}}= opens the export menu: =m= Markdown, =h= HTML, =t= plain
+text, =l= LaTeX and more. In each, the upper-case key exports to a
+buffer you can read or copy, the lower-case one to a file next to this
+one. =s= in the menu exports only the subtree at the cursor.
+
+** 4.1 Export to Markdown
+Put the cursor on =Trip notes=, press ={{org.export}}=, =s=, =m= and =M=:
+its Markdown opens in a new window. =:q= closes it.
+
+*** Trip notes
+Pack *light* and bring a /good/ book.
+**** Monday
+Train to the coast.
+**** Tuesday
+Walk to the lighthouse.
+
+** 4.2 Export options
+Plain text (=t= =A=) starts with the title and author, then a table of
+contents, and numbers the sections. On the empty line below, write
+=#+OPTIONS: toc:nil num:nil author:nil= to turn off the contents, the
+numbers and the author: the line holds for the whole file, wherever it
+is. Then export =Packing=: ={{org.export}}=, =s=, =t=, =A=.
+
+
+*** Packing
+**** Clothes
+A coat and two shirts.
+**** Books
+One novel.
+
+** 4.3 Keep a subtree out
+A headline tagged =noexport= is left out of exports, with its subtree.
+Tag =Private= with ={{org.set_tags}}= (type =noexport=, =<CR>=), then
+export =Diary= to Markdown: =Private= is not in it.
+
+*** Diary
+**** Morning
+Coffee by the sea.
+**** Private
+Not for the blog.
+
+* What next
+That's it for code and export. From here:
+
+- ={{org.help}}= lists every key, and ={{org.babel_describe_bindings}}=
+  the keys of source blocks. =:h org-babel= is the manual for code,
+  with every header argument, and =:h org-export= the one for export.
+- Other languages (shell, Python, ...) run the same way, once their
+  program is installed: =:h org-babel-languages=.
+- {{examples}} links to one file per feature, source
+  blocks and export among them.
