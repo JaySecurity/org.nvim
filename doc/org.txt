@@ -4541,9 +4541,11 @@ same results in both editors.
 <prefix>bk         Remove the result. With a count (C-u), remove every
                    result in the buffer.
 <prefix>bn / bp    Next / previous block.
-<prefix>'          Edit the block in a buffer with the language's filetype.
-                   With a count (C-u) on a block with a `:session`, show
-                   the session instead. See |org-babel-edit-special|.
+<prefix>'          Edit the block in a buffer with the language's filetype,
+                   the cursor at the same place in the code (and back in
+                   the block where it was in the code on leaving). With a
+                   count (C-u) on a block with a `:session`, show the
+                   session instead. See |org-babel-edit-special|.
 <prefix>bt         Tangle the file (`:Org tangle`). With a count of 1
                    (C-u) only the block at the cursor; with 2 or more
                    (C-u C-u) the blocks with the same `:tangle` value.

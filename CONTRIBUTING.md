@@ -577,19 +577,18 @@ before writing one: they are the reference for everything below.
 
 ### The course
 
-Lessons are numbered in the order they are meant to be taken. The numbers
-and names below are reserved:
+Lessons are numbered in the order they are meant to be taken:
 
 | Order | Name | Title (`#+TITLE: org.nvim tutor N: ...`) | Level |
 | --- | --- | --- | --- |
 | 1 | `basics` | the basics | Beginner |
 | 2 | `workflow` | capture, agenda and clocking | Daily workflow |
-| 3 | `writing` | writing: markup, lists, links, footnotes, blocks | Beginner |
-| 4 | `dates` | dates, times and repeating tasks | Daily workflow |
-| 5 | `tables` | tables and the spreadsheet | Power user |
+| 3 | `writing` | writing in org | Beginner |
+| 4 | `dates` | dates in depth | Daily workflow |
+| 5 | `tables` | tables as a spreadsheet | Power user |
 | 6 | `properties` | properties and column view | Power user |
-| 7 | `organize` | organize and find: refile, archive, search | Daily workflow |
-| 8 | `code` | source code and export | Power user |
+| 7 | `organize` | organize and find | Daily workflow |
+| 8 | `code` | code and export | Power user |
 
 The level is one of `Beginner`, `Daily workflow` and `Power user`
 (`require("org.tutor").levels`). `:Org tutor` lists the lessons in this
