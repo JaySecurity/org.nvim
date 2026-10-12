@@ -54,3 +54,6 @@ lua/org/export/markdown.lua
 lua/org/export/gfm.lua
 lua/org/export/ascii.lua
 lua/org/export/ascii
+lua/org/export/odt.lua
+lua/org/export/odt
+lua/org/export/zip.lua
