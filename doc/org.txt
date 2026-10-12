@@ -3163,7 +3163,10 @@ headings with user-added content) and `<C-c><C-w>` finalizes and
 refiles the entry (entry templates only; also `<prefix>w`, `<prefix>k`,
 `<prefix>r`). As in Emacs, the Ctrl keys work while typing too: they are
 mapped in Insert mode as well as Normal mode (a capture starts in Insert
-mode at `%?`); the `<prefix>` keys only in Normal mode. The window splits the screen like Emacs (`capture.window`:
+mode at `%?`); the `<prefix>` keys only in Normal mode. In Insert mode
+`<C-c>` waits for the next key however long 'timeoutlen' is, and a key
+that completes no capture key is given back (`<C-c>` then leaves Insert
+mode as usual). The window splits the screen like Emacs (`capture.window`:
 "split", "float", "vsplit", "tab" or "current").
 If saving the target fails, the capture stays open and can be retried
 without inserting a duplicate entry. Clock/bookmark finalization waits

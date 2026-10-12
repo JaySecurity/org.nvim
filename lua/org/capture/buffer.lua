@@ -93,6 +93,56 @@ local function capture_modes(lhs)
   return lhs:match("^<[Cc]%-") and { "n", "i" } or { "n" }
 end
 
+--- Insert mode waits only 'timeoutlen' (LazyVim: 300ms) for the rest of
+--- <C-c><C-k>, then runs <C-c> alone, which leaves Insert mode, and <C-k>
+--- as a Normal-mode key. Like Emacs, a capture's Ctrl prefix waits for
+--- the next key instead: the prefix is mapped on its own too, and reads
+--- the rest of the key. Keys that are no capture key are given back.
+---@param prefix string the first key, as in "<C-c>"
+---@param entries {[1]: string, [2]: fun()}[] the capture keys starting with it and their actions
+local function read_after_prefix(prefix, entries)
+  local start = vim.keycode(prefix)
+  local typed = start
+  while true do
+    vim.api.nvim_echo({ { vim.fn.keytrans(typed) .. "-" } }, false, {})
+    local ok, ch = pcall(vim.fn.getcharstr)
+    vim.api.nvim_echo({ { "" } }, false, {})
+    if not ok then
+      return
+    end
+    typed = typed .. ch
+    local longer = false
+    for _, e in ipairs(entries) do
+      local k = vim.keycode(e[1])
+      if k == typed then
+        return e[2]()
+      end
+      longer = longer or vim.startswith(k, typed)
+    end
+    if not longer then
+      -- the prefix as Vim's own key, then the rest as typed
+      vim.api.nvim_feedkeys(typed:sub(#start + 1), "mit", false)
+      vim.api.nvim_feedkeys(start, "nit", false)
+      return
+    end
+  end
+end
+
+--- Group Insert-mode capture keys by their first key.
+---@param entries {[1]: string, [2]: fun()}[]
+---@return table<string, {[1]: string, [2]: fun()}[]>
+local function by_prefix(entries)
+  local groups = {}
+  for _, e in ipairs(entries) do
+    local prefix = e[1]:match("^<[^>]+>")
+    if prefix and #prefix < #e[1] then
+      groups[prefix] = groups[prefix] or {}
+      table.insert(groups[prefix], e)
+    end
+  end
+  return groups
+end
+
 --- Call the mapping `m` (a maparg() dict) an unnarrowed capture replaced,
 --- or the keys themselves when there was none.
 local function call_mapping(m, lhs)
@@ -139,25 +189,41 @@ local function map_unnarrowed(s)
   }
   s.maps = {}
   local seen = {}
+  local insert = {}
+  local function active()
+    return M.sessions[bufnr] == s and vim.api.nvim_get_current_win() == s.win
+  end
+  --- Map `lhs` in `mode`, keeping the buffer's own mapping for other windows.
+  local function set(mode, lhs, fn, desc)
+    local found = vim.fn.maparg(lhs, mode, false, true)
+    local prev = not vim.tbl_isempty(found) and found.buffer == 1 and found or nil
+    s.maps[#s.maps + 1] = { lhs = lhs, mode = mode, prev = prev }
+    vim.keymap.set(mode, lhs, function()
+      if active() then
+        fn()
+      else
+        call_mapping(prev, lhs)
+      end
+    end, { buffer = bufnr, desc = desc })
+  end
   vim.api.nvim_buf_call(bufnr, function()
     for _, a in ipairs(actions) do
       for _, lhs in ipairs(config.lhs_list(a[1])) do
         if not seen[lhs] then
           seen[lhs] = true
           for _, mode in ipairs(capture_modes(lhs)) do
-            local found = vim.fn.maparg(lhs, mode, false, true)
-            local prev = not vim.tbl_isempty(found) and found.buffer == 1 and found or nil
-            s.maps[#s.maps + 1] = { lhs = lhs, mode = mode, prev = prev }
-            vim.keymap.set(mode, lhs, function()
-              if M.sessions[bufnr] == s and vim.api.nvim_get_current_win() == s.win then
-                a[2]()
-              else
-                call_mapping(prev, lhs)
-              end
-            end, { buffer = bufnr, desc = a[3] })
+            set(mode, lhs, a[2], a[3])
+            if mode == "i" then
+              insert[#insert + 1] = { lhs, a[2] }
+            end
           end
         end
       end
+    end
+    for prefix, entries in pairs(by_prefix(insert)) do
+      set("i", prefix, function()
+        read_after_prefix(prefix, entries)
+      end, "org: capture keys")
     end
   end)
 end
@@ -314,21 +380,34 @@ local function open_buffer(tpl, text, ctx)
   vim.wo[win].winbar = hint()
 
   local maps = config.opts.mappings.capture or {}
+  local insert = {}
+  local function set(lhs, fn, desc)
+    local modes = capture_modes(lhs)
+    vim.keymap.set(modes, lhs, fn, { buffer = buf, desc = desc })
+    if vim.tbl_contains(modes, "i") then
+      insert[#insert + 1] = { lhs, fn }
+    end
+  end
   for _, lhs in ipairs(config.lhs_list(maps.finalize)) do
-    vim.keymap.set(capture_modes(lhs), lhs, function()
+    set(lhs, function()
       local jump = vim.v.count > 0
       utils.run(M.finalize, buf, { jump = jump })
-    end, { buffer = buf, desc = "org: finalize capture (count: and jump to it)" })
+    end, "org: finalize capture (count: and jump to it)")
   end
   for _, lhs in ipairs(config.lhs_list(maps.kill)) do
-    vim.keymap.set(capture_modes(lhs), lhs, function()
+    set(lhs, function()
       M.kill(buf)
-    end, { buffer = buf, desc = "org: abort capture" })
+    end, "org: abort capture")
   end
   for _, lhs in ipairs(config.lhs_list(maps.refile)) do
-    vim.keymap.set(capture_modes(lhs), lhs, function()
+    set(lhs, function()
       utils.run(M.refile, buf)
-    end, { buffer = buf, desc = "org: refile capture" })
+    end, "org: refile capture")
+  end
+  for prefix, entries in pairs(by_prefix(insert)) do
+    vim.keymap.set("i", prefix, function()
+      read_after_prefix(prefix, entries)
+    end, { buffer = buf, desc = "org: capture keys" })
   end
   vim.api.nvim_create_autocmd("BufWriteCmd", {
     buffer = buf,
