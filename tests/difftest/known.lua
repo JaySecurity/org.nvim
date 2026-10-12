@@ -81,14 +81,6 @@ return {
   },
   {
     oracle = "commands",
-    reason = [[Archiving the Archive sibling itself (C-c C-x A on "** Archive
-      :ARCHIVE:"): Emacs finds that headline as its own Archive sibling,
-      cuts it and pastes it one level deeper, under the previous sibling;
-      org.nvim leaves it alone.]],
-    emacs = "Archive%s+:ARCHIVE:\n:PROPERTIES:\n:ARCHIVE_TIME:",
-  },
-  {
-    oracle = "commands",
     reason = [[Sorting the children of a headline whose text holds an inline
       task: Emacs (org-sort-entries) takes the inline task for the first
       child and sorts the entries of its level, so nothing moves; org.nvim

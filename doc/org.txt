@@ -3487,6 +3487,9 @@ shown by their heading (Emacs's org-refile-targets nil). Refile options:
 <C-c><C-x>A     Move the subtree under its "Archive" sibling
                 (`archive_sibling_heading`), which is created with the
                 ARCHIVE tag when missing (org-archive-to-archive-sibling).
+                The sibling is the first one whose ARCHIVE tag comes
+                first; on that sibling itself, it moves one level deeper,
+                under the sibling before it, as in Emacs.
 <C-c><C-x><C-a> Archive with `archive_default_command`
                 (org-archive-subtree-default): "archive_subtree" (the
                 default), "archive_to_sibling", "set_tag" (add the ARCHIVE

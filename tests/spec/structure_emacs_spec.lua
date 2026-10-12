@@ -467,3 +467,48 @@ describe("refile and archive sibling change levels like org-paste-subtree (make 
     }, lines)
   end)
 end)
+
+describe("archive to the Archive sibling, as org-archive-to-archive-sibling finds it (make difftest)", function()
+  local function archive(lines, lnum)
+    local buf = org_buffer(lines, { lnum, 0 })
+    require("org.archive").archive_to_sibling()
+    local out = buf_lines(buf)
+    for i, l in ipairs(out) do
+      out[i] = l:gsub("^(:ARCHIVE_TIME:) .*", "%1 TIME")
+    end
+    return out
+  end
+
+  it("the Archive sibling itself moves one level deeper, under the sibling before it", function()
+    eq({
+      "* P [0/1]",
+      "** TODO A",
+      "*** Archive" .. string.rep(" ", 57) .. ":ARCHIVE:",
+      ":PROPERTIES:",
+      ":ARCHIVE_TIME: TIME",
+      ":END:",
+      "**** old",
+      "** B",
+    }, archive({ "* P [/]", "** TODO A", "** Archive  :ARCHIVE:", "*** old", "** B" }, 3))
+    eq({
+      "* P",
+      "*** Archive" .. string.rep(" ", 57) .. ":ARCHIVE:",
+      ":PROPERTIES:",
+      ":ARCHIVE_TIME: TIME",
+      ":END:",
+      "** B",
+    }, archive({ "* P", "** Archive :ARCHIVE:", "** B" }, 2))
+  end)
+
+  it("needs the ARCHIVE tag first: another Archive sibling is created", function()
+    eq({
+      "* P",
+      "** Archive :foo:ARCHIVE:",
+      "** Archive" .. string.rep(" ", 58) .. ":ARCHIVE:",
+      "*** X",
+      ":PROPERTIES:",
+      ":ARCHIVE_TIME: TIME",
+      ":END:",
+    }, archive({ "* P", "** X", "** Archive :foo:ARCHIVE:" }, 2))
+  end)
+end)

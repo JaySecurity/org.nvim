@@ -466,20 +466,46 @@ function M.archive_to_sibling(target)
     return
   end
   local name = config.opts.archive_sibling_heading or "Archive"
-  if hl:plain_title() == name and hl:is_archived() then
-    utils.warn("This is the archive sibling")
-    return
-  end
+  -- the first sibling whose line starts with the stars, the name and the
+  -- ARCHIVE tag, as org-archive-to-archive-sibling searches the parent's
+  -- subtree for it ("^** *Archive *:ARCHIVE:", the ARCHIVE tag first)
   local siblings = hl.parent and hl.parent.children or file.children
+  local pat = "^" .. string.rep("%*", hl.level) .. " [ \t]*" .. vim.pesc(name) .. "[ \t]*:ARCHIVE:"
   local sib
   for _, c in ipairs(siblings) do
-    if c ~= hl and c.level == hl.level and c.title == name and c:is_archived() then
+    if c.level == hl.level and c.raw:match(pat) then
       sib = c
       break
     end
   end
   local s, e = hl.line, hl.end_line
   local lines = vim.api.nvim_buf_get_lines(bufnr, s - 1, e, false)
+  if sib == hl then
+    -- the archive sibling itself: Emacs goes to its end, cuts it and
+    -- pastes it there one level deeper, so it moves under the sibling
+    -- before it (under the parent when it is the first child)
+    vim.api.nvim_buf_set_lines(
+      bufnr,
+      s - 1,
+      e,
+      false,
+      edit.paste_relevel(lines, hl.level + 1, files.get_buffer(bufnr).settings.todo)
+    )
+    edit.set_property(bufnr, s, "ARCHIVE_TIME", archive_time())
+    local up = files.get_buffer(bufnr):headline_at(s)
+    up = up and up.parent
+    if up then
+      pcall(require("org.lists").update_parent_todo_statistics, bufnr, up.line)
+    end
+    if bufnr == vim.api.nvim_get_current_buf() then
+      pcall(vim.api.nvim_win_set_cursor, 0, { s, 0 })
+      if up then
+        pcall(vim.cmd, up.line .. "foldclose")
+      end
+    end
+    utils.notify(string.format('Subtree "%s" moved to archive sibling', hl:plain_title()))
+    return up and up.line or s
+  end
   local source = assert(marks.range(bufnr, s, e))
   local parent = hl.parent and marks.set(bufnr, hl.parent.line)
   local sib_line
