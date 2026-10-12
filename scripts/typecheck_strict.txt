@@ -35,3 +35,4 @@ lua/org/extensions/code
 lua/org/extensions/diagrams
 lua/org/extensions/drill
 lua/org/extensions/heatmap
+lua/org/extensions/hugo
