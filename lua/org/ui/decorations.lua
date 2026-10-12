@@ -146,7 +146,7 @@ function M.ui_options(bufnr, file)
   if not ok then
     ok, file = pcall(require("org.files").get_buffer, bufnr)
   end
-  local st = ok and file.settings.startup or {}
+  local st = ok and file and file.settings.startup or {}
   local function flag(key, on, off)
     if st[on] then
       ui[key] = true
@@ -366,8 +366,8 @@ local function numbering(lines, ui)
   local footnote_section = cfg.footnote_section
   for i, line in ipairs(lines) do
     local level = parser.outline_level(line)
-    if level then
-      local p = parser.parse_headline_line(line)
+    local p = level and parser.parse_headline_line(line)
+    if level and p then
       local skip = false
       if ui.num_skip_footnotes and footnote_section and p.title == footnote_section then
         skip = true
@@ -514,7 +514,7 @@ local function src_face_groups(ui)
   return groups
 end
 
-local num_cache = {} ---@type table<integer, { tick: integer, nums: table }>
+local num_cache = {} ---@type table<integer, { tick: integer, ui: table, nums: table }>
 
 --- Decorations of a buffer, per 0-based row: `{ [row] = { { col, opts }, ... } }`.
 --- With `first` and `last` (0-based, inclusive), only rows in that range.
@@ -831,7 +831,7 @@ end
 -- replacements and showed up in odd places until the next render.)
 -- Results are cached per changedtick.
 local attached = {} ---@type table<integer, boolean>
-local cache = {} ---@type table<integer, { tick: integer, rows: table<integer, table[]> }>
+local cache = {} ---@type table<integer, { tick: integer, ui: table, rows: table<integer, table[]>, done: table<integer, boolean> }>
 
 --- The `ui` options the provider draws with. Reading `#+STARTUP` needs a
 --- parse of the buffer, too slow for every redraw of a large file: they
