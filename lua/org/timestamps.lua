@@ -539,19 +539,20 @@ function M.increment(n, unit)
     end
     replace_text(0, item.lnum, part_start, part_end, text)
   else
-    local first = d:clone({ range_end = vim.NIL })
-    local second = d.range_end
+    -- only the part changed is written again: the other one keeps its
+    -- text (a wrong weekday stays, as org-timestamp-change leaves it)
     if on_second then
-      second = shift_component(second, comp, n)
+      replace_text(
+        0,
+        item.lnum,
+        part_start,
+        part_end,
+        shift_component(d.range_end, comp, n):to_string({ range = false })
+      )
     else
-      first = shift_component(first, comp, n)
+      local first = shift_component(d:clone({ range_end = vim.NIL }), comp, n)
+      replace_text(0, item.lnum, part_start, part_end, first:to_string({ range = false }))
     end
-    text = first:to_string({ range = false })
-    if second then
-      text = text .. "--" .. second:to_string({ range = false })
-    end
-    replace_text(0, item.lnum, item.start_col, item.end_col, text)
-    text = nil
   end
   local new_line = vim.api.nvim_get_current_line()
   local new_item = date.at_col(new_line, math.min(col, #new_line))

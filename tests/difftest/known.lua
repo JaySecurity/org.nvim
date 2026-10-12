@@ -81,17 +81,6 @@ return {
   },
   {
     oracle = "commands",
-    reason = [[A timestamp with the wrong weekday (<2026-10-12 Fri>) on a
-      planning line or next to a timestamp org.nvim changes: org.nvim
-      writes it again with the right weekday, Emacs leaves its text
-      alone.]],
-    either = "%d%d%d%d%-%d%d%-%d%d %a%a%a",
-    same = function(s)
-      return (s:gsub("(%d%d%d%d%-%d%d%-%d%d) %a%a%a", "%1"))
-    end,
-  },
-  {
-    oracle = "commands",
     reason = [[Archiving the Archive sibling itself (C-c C-x A on "** Archive
       :ARCHIVE:"): Emacs finds that headline as its own Archive sibling,
       cuts it and pastes it one level deeper, under the previous sibling;

@@ -235,21 +235,52 @@ local PLANNING_WORD = { closed = "CLOSED", deadline = "DEADLINE", scheduled = "S
 
 --- Build a planning line from { scheduled, deadline, closed } dates, in
 --- the order of `order` (kinds; default closed, deadline, scheduled).
+--- `raw` gives the text to write for some kinds (their timestamp as it was
+--- written).
 ---@param order? string[]
-function M.build_planning(planning, indent, order)
+---@param raw? table<string, string>
+function M.build_planning(planning, indent, order, raw)
   local parts = {}
   local seen = {}
   local all = vim.list_extend(vim.deepcopy(order or {}), { "closed", "deadline", "scheduled" })
   for _, kind in ipairs(all) do
     if planning[kind] and not seen[kind] then
       seen[kind] = true
-      parts[#parts + 1] = PLANNING_WORD[kind] .. ": " .. planning[kind]:to_string()
+      parts[#parts + 1] = PLANNING_WORD[kind] .. ": " .. (raw and raw[kind] or planning[kind]:to_string())
     end
   end
   if #parts == 0 then
     return nil
   end
   return (indent or "") .. table.concat(parts, " ")
+end
+
+--- The timestamp after `word:` on planning line `line`, as written (a
+--- range "<a>--<b>" whole), nil when there is none.
+---@param line string
+---@param word string
+---@return string|nil
+local function planning_stamp(line, word)
+  local at = line:match("%f[%w]" .. word .. ":%s*()")
+  if not at then
+    return nil
+  end
+  local open = line:sub(at, at)
+  local close = open == "<" and ">" or open == "[" and "]" or nil
+  if not close then
+    return nil
+  end
+  local stop = line:find(close, at + 1, true)
+  if not stop then
+    return nil
+  end
+  if line:sub(stop + 1, stop + 3) == "--" .. open then
+    local stop2 = line:find(close, stop + 4, true)
+    if stop2 then
+      stop = stop2
+    end
+  end
+  return line:sub(at, stop)
 end
 
 --- Set (or remove with nil) a planning entry for the headline at `lnum`.
@@ -302,7 +333,18 @@ function M.set_planning(bufnr, lnum, kind, value, opts)
     end, order)
     table.insert(order, 1, kind)
   end
-  local line = M.build_planning(planning, indent, order)
+  -- the other entries keep their text, as org-add-planning-info only
+  -- replaces the one it sets (a wrong weekday stays wrong)
+  local raw = {}
+  if hl.planning_line then
+    local pline = file.lines[hl.planning_line]
+    for k, word in pairs(PLANNING_WORD) do
+      if k ~= kind then
+        raw[k] = planning_stamp(pline, word)
+      end
+    end
+  end
+  local line = M.build_planning(planning, indent, order, raw)
   if hl.planning_line then
     if line then
       vim.api.nvim_buf_set_lines(bufnr, hl.planning_line - 1, hl.planning_line, false, { line })
