@@ -356,6 +356,7 @@ function M.load(name)
   if c ~= nil then
     return c or nil
   end
+  ---@type table|false
   local z = false
   for _, dir in ipairs(M.dirs()) do
     local fh = io.open(dir .. "/" .. name, "rb")
