@@ -81,7 +81,7 @@ To try your checkout in your own config, point lazy.nvim at it:
 | `lua/org/{capture,refile,archive,links,id,attach,footnotes}.lua`, `lua/org/capture/`, `lua/org/links/` | capture and navigation (links.lua is the facade; links/ holds parsing, search, opening, storing, inserting) |
 | `lua/org/table.lua`, `lua/org/table/` | tables and formulas (`table.lua` parses and aligns and loads the commands from `table/`; `table/calc_alg.lua`, the Calc's symbolic algebra, loads its parts from `table/calc_alg/`) |
 | `lua/org/babel/` | source blocks |
-| `lua/org/export/`, `lua/org/export/{ox,odt,element}/` | exporters (`ox.lua`, `odt.lua` and `element.lua`, the export parser, are facades that load their parts from `ox/`, `odt/` and `element/`) |
+| `lua/org/export/`, `lua/org/export/{ox,odt,latex,html,ascii,element}/` | exporters (`ox.lua`, `odt.lua`, `latex.lua`, `html.lua`, `ascii.lua` and `element.lua`, the export parser, are facades that load their parts from `ox/`, `odt/`, `latex/`, `html/`, `ascii/` and `element/`) |
 | `syntax/`, `lua/org/{syntax,highlights}.lua`, `lua/org/ui/` | highlighting and decorations (`ui/images.lua` loads its parts from `ui/images/`) |
 | `tests/` | headless test runner and specs |
 
