@@ -338,7 +338,28 @@ function M.replace_all_macros(lines, expander, popts)
           return x:match(endp) ~= nil
         end)
       end
-      if e and ((btype and VERBATIM_BLOCKS[btype:lower()]) or env) then
+      local caption = l:match("^[ \t]*#%+[Cc][Aa][Pp][Tt][Ii][Oo][Nn][%[:]")
+      if caption then
+        -- a caption is parsed: its macros are objects (org-element-context)
+        local head, short, colon, value = l:match("^([ \t]*#%+%a+)(%b[])(:)(.*)$")
+        if not head then
+          head, colon, value = l:match("^([ \t]*#%+%a+)(:)(.*)$")
+          short = ""
+        end
+        flush()
+        if head then
+          local function rep(s)
+            return s:find("{{{", 1, true) and pp:replace_macros(s, R) or s
+          end
+          if short ~= "" then
+            short = "[" .. rep(short:sub(2, -2)) .. "]"
+          end
+          vim.list_extend(out, vim.split(head .. short .. colon .. rep(value), "\n", { plain = true }))
+        else
+          out[#out + 1] = l
+        end
+        i = i + 1
+      elseif e and ((btype and VERBATIM_BLOCKS[btype:lower()]) or env) then
         -- no objects inside
         keep(i, e)
         i = e + 1

@@ -802,6 +802,21 @@ describe("export: Emacs parity (difftest known differences)", function()
     )
   end)
 
+  it("macros of a caption or a title are replaced before the value is trimmed", function()
+    -- difftest seed 20231
+    local out = ox.export_as("org", {
+      "#+CAPTION: A alpha {{{title}}}",
+      ",*",
+      "",
+      "#+CAPTION[{{{title}}} short]: {{{title}}} Long =v {{{title}}}=",
+      "| a |",
+    }, { body_only = true })
+    has(out, "#+caption: A alpha\n")
+    has(out, "#+caption[ short]: Long =v {{{title}}}=\n")
+    local full = html({ "#+TITLE: Doc {{{author}}}", "x" }, { body_only = false })
+    has(full, "<title>Doc</title>")
+  end)
+
   it("a macro's value is parsed with the text around it", function()
     local out = html({ "#+MACRO: item - $1", "{{{item(one)}}}", "{{{item(two)}}}" })
     has(out, '<ul class="org-ul">\n<li>one</li>\n<li>two</li>\n</ul>')

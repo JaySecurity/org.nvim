@@ -313,6 +313,12 @@ function export_as(backend, lines, opts)
   }
   local parser = element.new(popts)
   local function parse_secondary(s)
+    if expander and s:find("{{{", 1, true) then
+      -- the keyword's macros are replaced in the buffer first, and its
+      -- value read again, trimmed (org-macro-replace-all)
+      s = trim(parser:replace_macros(s, element.RESTRICTIONS.keyword))
+      return parser:parse_objects(s, element.RESTRICTIONS.keyword, nil, nil, true)
+    end
     return parser:parse_objects(s, element.RESTRICTIONS.keyword)
   end
   local info = M.environment({
