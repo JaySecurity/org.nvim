@@ -5,9 +5,10 @@
 ;; "LIBRARY<TAB>SYMBOL" line each, sorted.  Obsolete aliases are skipped.
 ;;
 ;;   emacs -Q --batch -l docs/parity/inventory.el \
-;;     --eval '(org-parity-inventory "/path/to/org-9.8.10/" "out/")'
+;;     --eval '(org-parity-inventory "/path/to/org-9.8.11/" "out/")'
 ;;
-;; The inventory in inventory.tsv was made from Org 9.8.10.
+;; The inventory in inventory.tsv was made from Org 9.8.10 and checked
+;; against Org 9.8.11 (the same commands and options).
 
 (defun org-parity-inventory (org-dir out-dir)
   "Write commands.tsv and options.tsv for the Org sources in ORG-DIR to OUT-DIR."

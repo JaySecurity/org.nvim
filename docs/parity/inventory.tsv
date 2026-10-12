@@ -226,6 +226,7 @@ org	org-update-statistics-cookies	cmd	done	action update_statistics (lists.lua:9
 org	org-version	cmd	done	-	action version; message + count inserts at point; spec	S
 org	org-yank	cmd	vim	stock p; action paste_subtree for level adjustment	no auto-fold of yanked subtree	-
 org-compat	org-newline-and-indent	cmd	na	-	compat alias of newline-and-indent	-
+org-compat	org-replace-buffer-contents	cmd	na	-	compat alias of replace-buffer-contents, a command only before Emacs 31 (the release watch runs Emacs 30.1)	-
 org-compat	org-speedbar-set-agenda-restriction	cmd	emacs-only	-	Emacs speedbar	-
 org-keys	org-babel-describe-bindings	cmd	done	action babel_describe_bindings	-	-
 org-keys	org-speed-command-help	cmd	done	speed.lua:161 (speed key ?)	-	-

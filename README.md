@@ -354,14 +354,15 @@ by topic, with each command's Vim and Emacs keys on one row.
 ## 📊 Parity with Emacs Org
 
 How much of Emacs Org 9.8 works the same way in org.nvim, **measured**
-against **Org 9.8.10** (September 2026). Every interactive command and
-every user option of Org 9.8.10 (877 commands and 1,055 options, listed by
+against **Org 9.8.11** (October 2026). Every interactive command and
+every user option of Org 9.8.11 (877 commands and 1,055 options, listed by
 Emacs itself, plus the `org-overriding-columns-format` variable that the
-manual tells users to set) was checked against org.nvim:
+manual tells users to set, and `org-replace-buffer-contents`, a command
+only before Emacs 31) was checked against org.nvim:
 
 | Lens | Parity | What it counts |
 | --- | --- | --- |
-| **Overall** | `▰▰▰▰▰▰▰▰▰▰` **99.9%** | The 1,806 commands and options (of 1,933) that can exist outside Emacs; Emacs internals are left out |
+| **Overall** | `▰▰▰▰▰▰▰▰▰▰` **99.9%** | The 1,806 commands and options (of 1,934) that can exist outside Emacs; Emacs internals are left out |
 | **Strict** | `▰▰▰▰▰▰▰▰▰▰` **98.6%** | Also counts the 24 that need Emacs itself (Gnus, BBDB, eww, TRAMP, CDLaTeX...) |
 
 Before this round, the same measurement gave 76.6% overall and 74.3%
@@ -390,7 +391,7 @@ By area:
 
 > [!NOTE]
 > **How this is measured.** [`docs/parity/inventory.el`](docs/parity/inventory.el)
-> makes Emacs list every command and option of Org 9.8.10, and
+> makes Emacs list every command and option of Org 9.8.11, and
 > [`docs/parity/inventory.tsv`](docs/parity/inventory.tsv) records, for each
 > one, whether org.nvim does the same thing (with the code that does it), or
 > why not. A command or option counts as done only when org.nvim behaves

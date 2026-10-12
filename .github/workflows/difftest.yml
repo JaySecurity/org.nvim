@@ -1,6 +1,6 @@
 name: Difftest
 
-# org.nvim against Emacs Org 9.8.10 on generated documents, nightly and on
+# org.nvim against Emacs Org 9.8.11 on generated documents, nightly and on
 # demand: `make difftest` (tests/difftest/, scripts/emacs-parity/difftest.el)
 # from a random first seed. A difference that isn't a known one
 # (tests/difftest/known.lua) fails the run (exit 1), uploads the shrunk
@@ -33,7 +33,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  ORG_VERSION: "9.8.10"
+  ORG_VERSION: "9.8.11"
 
 jobs:
   difftest:
@@ -57,7 +57,8 @@ jobs:
       - uses: purcell/setup-emacs@bdc64dc730ae1fcba200bfd52cb1b4cf6159cbe5 # v8.0
         with:
           version: "30.1"
-      # Org 9.8.10 from GNU ELPA, byte-compiled once and cached
+      # Org from GNU ELPA (else its release_ git tag, before ELPA has the
+      # tarball), byte-compiled once and cached
       - uses: actions/cache@v4
         id: org-cache
         with:
@@ -67,9 +68,7 @@ jobs:
         if: steps.org-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          mkdir -p ~/org-lisp
-          curl -fsSL "https://elpa.gnu.org/packages/org-$ORG_VERSION.tar" | tar -x -C ~/org-lisp
-          dir=~/org-lisp/org-$ORG_VERSION
+          dir=$(scripts/emacs-parity/release-watch.sh fetch "$ORG_VERSION" ~/org-lisp)
           emacs -Q --batch -L "$dir" -f batch-byte-compile "$dir"/*.el 2>&1 | grep -v '^Warning\|^In \|^$' | tail -n 20 || true
       - name: Difftest
         id: difftest

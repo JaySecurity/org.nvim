@@ -811,18 +811,25 @@ describe("health: sections", function()
     it("reads the Org release of ORG_LISP_DIR without starting Emacs", function()
       vim.fn.writefile({
         "(defun org-release ()",
-        '   (let ((org-release "9.8.10"))',
+        '   (let ((org-release "9.8.11"))',
         "     org-release))",
       }, dir .. "/org-version.el")
-      eq("9.8.10", health.org_lisp_version(dir))
+      eq("9.8.11", health.org_lisp_version(dir))
       eq(nil, health.org_lisp_version(dir .. "/notes"))
       vim.env.ORG_EMACS, vim.env.ORG_LISP_DIR = "org-test-no-such-emacs", dir
       local out = capture(health.check_emacs)
       eq("start: org.nvim development (Emacs parity)", out[1])
       ok(find_msg(out, "^info: org%-test%-no%-such%-emacs not found"), vim.inspect(out))
-      eq("info: Org 9.8.10 in " .. dir, out[3])
+      eq("info: Org 9.8.11 in " .. dir, out[3])
       vim.env.ORG_LISP_DIR = dir .. "/notes"
-      ok(find_msg(capture(health.check_emacs), "holds Org %(no org%-version%.el%), the parity scripts need 9%.8%.10"))
+      ok(find_msg(capture(health.check_emacs), "holds Org %(no org%-version%.el%), the parity scripts need 9%.8%.11"))
+    end)
+
+    it("expects the Org release the difftest workflow pins", function()
+      local yml = table.concat(vim.fn.readfile(".github/workflows/difftest.yml"), "\n")
+      eq(yml:match('ORG_VERSION: "([%d.]+)"'), health.ORG_VERSION)
+      local common = table.concat(vim.fn.readfile("scripts/emacs-parity/common.el"), "\n")
+      ok(common:find('(string-prefix-p "' .. health.ORG_VERSION .. '" (org-version))', 1, true))
     end)
   end)
 

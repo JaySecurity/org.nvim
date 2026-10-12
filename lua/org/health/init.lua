@@ -562,7 +562,11 @@ function M.org_lisp_version(dir)
   end
 end
 
---- Emacs and Org 9.8.10, for the maintainers' `make difftest` and
+--- The Org release the parity scripts measure against (ORG_VERSION in
+--- .github/workflows/difftest.yml).
+M.ORG_VERSION = "9.8.11"
+
+--- Emacs and Org 9.8.11, for the maintainers' `make difftest` and
 --- `make parity-fixtures` (shown only when Emacs is around). Emacs isn't
 --- started: that takes seconds.
 function M.check_emacs(h)
@@ -579,14 +583,20 @@ function M.check_emacs(h)
     h.info(emacs .. " not found (ORG_EMACS): make difftest and make parity-fixtures need Emacs")
   end
   if not lisp then
-    h.info("ORG_LISP_DIR is not set: Emacs's bundled Org is used, and the parity scripts need Org 9.8.10")
+    h.info("ORG_LISP_DIR is not set: Emacs's bundled Org is used, and the parity scripts need Org " .. M.ORG_VERSION)
     return
   end
   local v = M.org_lisp_version(lisp)
-  if v == "9.8.10" then
-    h.info("Org 9.8.10 in " .. lisp)
+  if v == M.ORG_VERSION then
+    h.info("Org " .. v .. " in " .. lisp)
   else
-    h.info(("ORG_LISP_DIR %s holds Org %s, the parity scripts need 9.8.10"):format(lisp, v or "(no org-version.el)"))
+    h.info(
+      ("ORG_LISP_DIR %s holds Org %s, the parity scripts need %s"):format(
+        lisp,
+        v or "(no org-version.el)",
+        M.ORG_VERSION
+      )
+    )
   end
 end
 
