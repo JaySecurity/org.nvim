@@ -77,11 +77,11 @@ function M.inline(text, base)
       end
       if not e then
         s, e = rest:find("^%[%d%d%d%d%-%d%d%-%d%d[^%]]-%]")
-        if e then
+        if s and e then
           push(rest:sub(s, e), "OrgTimestampInactive")
         else
           s, e = rest:find("^%[[ Xx%-]%]")
-          if e then
+          if s and e then
             push(rest:sub(s, e), "OrgCheckbox")
           end
         end
@@ -92,7 +92,7 @@ function M.inline(text, base)
       end
     elseif c == "<" then
       local s, e = rest:find("^<%d%d%d%d%-%d%d%-%d%d[^>]->")
-      if e then
+      if s and e then
         push(rest:sub(s, e), "OrgTimestamp")
         i = i + e
         done = true
@@ -145,6 +145,9 @@ local function headline(line, level, todo_cfg)
   local parts = require("org.parser").parse_headline_line(line, todo_cfg)
   local hl = "OrgHeadlineLevel" .. (((level - 1) % 8) + 1)
   local pos = line:match("^%*+ +()")
+  if not parts or not pos then
+    return { { line, hl } }
+  end
   local out = { { line:sub(1, pos - 1), hl } }
   local stop = #line + 1
   if #parts.tags > 0 then

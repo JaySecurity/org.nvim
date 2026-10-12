@@ -349,19 +349,25 @@ local function range_marks(buf)
   end
 end
 
+--- After an edit buffer was written: refresh what transcludes `path`, or
+--- render source buffer `sb` again.
+---@param path? string
+---@param sb? integer
+local function on_written(path, sb)
+  if path then
+    M.refresh_dependents(path)
+  elseif sb then
+    M.render(sb, true)
+  end
+end
+
 function M.setup()
   define_highlights()
   source.opts = opts()
   source.buffer_lines = M.clean_lines
   source.clear_cache()
   reported = {}
-  edit.on_written = function(path, sb)
-    if path then
-      M.refresh_dependents(path)
-    elseif sb then
-      M.render(sb, true)
-    end
-  end
+  edit.on_written = on_written
   edit.later = later
   require("org.lazy").on_load("org.export.hooks", "transclusion", function(hooks)
     hooks.preprocessors.transclusion = M.export_preprocess
@@ -471,6 +477,13 @@ function M.setup()
   end
 end
 
+--- The lines of buffer `buf` as they are, inserted text included.
+---@param buf integer
+---@return string[] lines, nil
+local function raw_lines(buf)
+  return api.nvim_buf_get_lines(buf, 0, -1, false), nil
+end
+
 --- Undo `setup`: inserted text is removed, virtual lines cleared and the
 --- edit key given back.
 function M.teardown()
@@ -492,9 +505,7 @@ function M.teardown()
   require("org.lazy").if_loaded("org.export.hooks", "transclusion", function(hooks)
     hooks.preprocessors.transclusion = nil
   end)
-  source.buffer_lines = function(buf)
-    return api.nvim_buf_get_lines(buf, 0, -1, false), nil
-  end
+  source.buffer_lines = raw_lines
   source.clear_cache()
 end
 

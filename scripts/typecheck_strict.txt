@@ -51,3 +51,4 @@ lua/org/extensions/roam
 lua/org/extensions/sidebar
 lua/org/extensions/super_agenda
 lua/org/extensions/timeline
+lua/org/extensions/transclusion
