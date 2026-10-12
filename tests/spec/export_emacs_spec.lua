@@ -817,6 +817,12 @@ describe("export: Emacs parity (difftest known differences)", function()
     has(full, "<title>Doc</title>")
   end)
 
+  it("a paragraph's indentation ignores unindented lines starting with an object", function()
+    -- org-element-normalize-contents (difftest seed 120106)
+    local out = ox.export_as("org", { " plain gamma", "src_python{1+1}", "", " plain", "next" }, { body_only = true })
+    eq("plain gamma\nsrc_python{1+1}\n\n plain\nnext\n", out)
+  end)
+
   it("a macro's value is parsed with the text around it", function()
     local out = html({ "#+MACRO: item - $1", "{{{item(one)}}}", "{{{item(two)}}}" })
     has(out, '<ul class="org-ul">\n<li>one</li>\n<li>two</li>\n</ul>')
