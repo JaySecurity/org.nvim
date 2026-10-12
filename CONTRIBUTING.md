@@ -701,10 +701,11 @@ the parse of the exercise's subtree (the `org.tutor.Condition` class in
 | `contains` | the exercise's text contains this (plain) |
 | `folded` | it is folded in a window (view) |
 | `cursor` | a window has the cursor on the headline with this plain title, anywhere in the file (view) |
+| `buffer` | a buffer whose name contains this text exists: an export, a file opened from the lesson (view) |
 | `fn` | `fn(ctx)` returns true; `ctx` has `buf`, `file` (`org.File`), `exercise` (`org.Headline`), `lines` (the subtree's) |
 
 Prefer the fields over `fn`, and test the result, not the keys used. The
-view conditions (`folded`, `cursor`) are for exercises that change no
+view conditions (`folded`, `cursor`, `buffer`) are for exercises that change no
 text: such an exercise stays done once it has passed. Give every
 exercise a check when the result can be seen; `tests/spec/tutor_spec.lua`
 fails when a check names no exercise of the lesson.

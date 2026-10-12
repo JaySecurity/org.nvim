@@ -486,6 +486,22 @@ describe("tutor course", function()
     eq(TODO, mark(buf, "1.1"))
   end)
 
+  it("checks that a buffer was opened (an export), and remembers it", function()
+    local buf = assert(tutor.open("basics", true))
+    tutor.attach(buf, { ["2.1"] = { buffer = "Org MD Export" } }, "basics")
+    eq(TODO, mark(buf, "2.1"))
+    local export = vim.api.nvim_create_buf(true, true)
+    vim.api.nvim_buf_set_name(export, "Org MD Export #" .. export)
+    tutor.refresh(buf)
+    eq(DONE, mark(buf, "2.1"))
+    -- the buffer gone: still done
+    vim.cmd("bwipeout! " .. export)
+    tutor.refresh(buf)
+    eq(DONE, mark(buf, "2.1"))
+    eq({ ["2.1"] = true }, tutor.seen("basics"))
+    tutor.open("basics", true)
+  end)
+
   it("gives the keys of the exercise at the cursor as a hint", function()
     local buf = assert(tutor.open("basics"))
     local msgs = {}

@@ -60,9 +60,10 @@ M.default_lesson = "basics"
 ---@field contains? string text (plain) found in the exercise
 ---@field folded? boolean its subtree is folded in a window (view: see below)
 ---@field cursor? string a window has the cursor on the headline with this plain title, anywhere in the file (view: see below)
+---@field buffer? string a buffer whose name has this text exists, such as an export or a file opened from the lesson (view: see below)
 ---@field fn? fun(ctx: org.tutor.Context): boolean
 ---
---- `folded` and `cursor` test what a window shows, not the text: once an
+--- `folded`, `cursor` and `buffer` test the view, not the text: once an
 --- exercise with such a condition has passed it stays done (remembered
 --- in `M.seen_path()`, until the lesson is reset), as there is nothing in
 --- the file to show it.
@@ -425,6 +426,15 @@ local function check_one(ctx, c)
   if c.contains ~= nil and not table.concat(ctx.lines, "\n"):find(c.contains, 1, true) then
     return false
   end
+  if c.buffer ~= nil then
+    local found = false
+    for _, b in ipairs(vim.api.nvim_list_bufs()) do
+      found = found or (vim.fn.buflisted(b) == 1 and vim.api.nvim_buf_get_name(b):find(c.buffer, 1, true) ~= nil)
+    end
+    if not found then
+      return false
+    end
+  end
   if c.folded ~= nil or c.cursor ~= nil then
     local wins = vim.api.nvim_buf_is_valid(ctx.buf) and vim.fn.win_findbuf(ctx.buf) or {}
     if c.folded ~= nil then
@@ -490,7 +500,7 @@ local state = {}
 -- Exercises done in a window's view
 ---------------------------------------------------------------------------
 
---- Where the exercises passed by a view condition (`folded`, `cursor`)
+--- Where the exercises passed by a view condition (`folded`, `cursor`, `buffer`)
 --- are remembered: { [lesson] = { [exercise] = true } }.
 ---@return string
 function M.seen_path()
@@ -548,12 +558,12 @@ local function forget(name)
   end
 end
 
---- Whether conditions test the view (`folded`, `cursor`) rather than the text.
+--- Whether conditions test the view (`folded`, `cursor`, `buffer`) rather than the text.
 ---@param conds org.tutor.Condition|org.tutor.Condition[]
 ---@return boolean
 local function is_view(conds)
   for _, c in ipairs(vim.islist(conds) and conds or { conds }) do
-    if c.folded ~= nil or c.cursor ~= nil then
+    if c.folded ~= nil or c.cursor ~= nil or c.buffer ~= nil then
       return true
     end
   end
