@@ -251,16 +251,66 @@ function export_as(backend, lines, opts)
     end
     return file0.settings.properties[name]
   end
-  if cfg().replace_macros ~= false and M.has_macro(work) then
+  -- an exported subtree: the text before it, its headline, planning and
+  -- properties, and the text after it (without the commented subtrees,
+  -- whose macros org-macro-replace-all skips)
+  local outside = subtree
+    and {
+      M.delete_comment_trees(vim.list_slice(lines, 1, subtree.line - 1), todo),
+      vim.list_slice(lines, subtree.line, subtree.first - 1),
+      M.delete_comment_trees(vim.list_slice(lines, subtree.last + 1), todo),
+    }
+  if cfg().replace_macros ~= false and (M.has_macro(work) or (outside and M.has_macro(lines))) then
     -- org-macro-replace-all, before Babel: macros are replaced in the
     -- text, so what they expand to is parsed (an empty value can end a
-    -- paragraph or a list item, or empty a description tag)
-    work = M.replace_all_macros(work, expander, {
+    -- paragraph or a list item, or empty a description tag). It goes
+    -- over the widened buffer in order, the parsed keywords (#+TITLE,
+    -- #+AUTHOR, ... of the back-end) where they are: {{{n}}} counters
+    -- follow the document, also around an exported subtree.
+    local parsed = {}
+    for _, o in ipairs(vim.list_extend(vim.deepcopy(M.all_options(backend)), M.global_options())) do
+      if o[5] == "parse" and o[2] then
+        parsed[o[2]] = true
+      end
+    end
+    local mopts = {
       todo = todo,
       inlinetask_min_level = c.inlinetask_min_level or 15,
       alpha = require("org.lists").opt("allow_alphabetical"),
       term = ({ ["."] = "%.", [")"] = "%)" })[require("org.lists").opt("ordered_item_terminator")],
-    })
+      parsed_keywords = parsed,
+    }
+    local changed, ch = false, false
+    if outside then
+      -- before the subtree, then its headline, planning and properties
+      -- (the title and EXPORT_ properties are read from them again)
+      outside[1], ch = M.replace_all_macros(outside[1], expander, mopts)
+      changed = changed or ch
+      outside[2], ch = M.replace_all_macros(outside[2], expander, mopts)
+      changed = changed or ch
+      local head = subtree_region(outside[2], 1, todo)
+      if head then
+        subtree.title, subtree.props = head.title, head.props
+      end
+    end
+    work, ch = M.replace_all_macros(work, expander, mopts)
+    changed = changed or ch
+    if outside then
+      outside[3], ch = M.replace_all_macros(outside[3], expander, mopts)
+      changed = changed or ch
+    end
+    if changed then
+      -- the export options are read after the replacement
+      local full = work
+      if outside then
+        full = vim.list_extend(vim.list_extend(vim.list_extend({}, outside[1]), outside[2]), work)
+        vim.list_extend(full, outside[3])
+      end
+      local again = M.collect_keywords(full, dir, nil, nil, filename)
+      for key in pairs(parsed) do
+        keywords[key] = again[key]
+      end
+    end
   end
   -- Babel
   if babel_cfg.evaluate_on_export and not opts.no_babel then

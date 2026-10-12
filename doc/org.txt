@@ -5421,7 +5421,11 @@ functions) and the built-ins `{{{title}}}`, `{{{author}}}`, `{{{email}}}`,
 commit (Emacs asks any VC back-end). As in Emacs, macros are replaced in
 the text before it is parsed: a macro that expands to nothing on a line
 of its own ends the paragraph, and one whose value starts with `- ` at
-the start of a line makes a list item.
+the start of a line makes a list item. The whole file is gone through in
+order, also for a subtree export, and the macros of `#+TITLE`,
+`#+AUTHOR`, `#+DATE`, `#+SUBTITLE` (and the other keywords the back-end
+parses, such as LaTeX's `#+DESCRIPTION`) and of their `EXPORT_` properties
+are replaced where they are: `{{{n}}}` counters follow the document.
 
 `#+MACRO: name (eval FORM)` macros evaluate the Emacs Lisp FORM like
 org-macro: `$1`...`$N` are variables bound to the arguments (strings, nil

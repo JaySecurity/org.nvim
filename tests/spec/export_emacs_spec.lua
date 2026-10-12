@@ -860,3 +860,138 @@ describe("export: Emacs parity (difftest known differences)", function()
     eq("<2026-10-01 Thu 17:30>--<2026-10-03 Sat 17:30>  <2026-10-01 Thu>--<2026-10-03 Sat 10:00>\n", out)
   end)
 end)
+
+describe("export: {{{n}}} counters in keywords follow the document (Emacs 9.8.10)", function()
+  -- org-macro-replace-all walks the widened buffer in order and replaces
+  -- the macros of the back-end's parsed keywords (TITLE, AUTHOR, DATE,
+  -- SUBTITLE, and DESCRIPTION / KEYWORDS in LaTeX) where they are
+  local doc = {
+    "#+TITLE: T{{{n}}}",
+    "#+SUBTITLE: S{{{n}}}",
+    "#+AUTHOR: A{{{n}}}",
+    "#+OPTIONS: toc:nil num:nil",
+    "",
+    "Intro {{{n}}} {{{n(fig)}}}",
+    "",
+    "* H{{{n}}}",
+    "Body {{{n}}} {{{n(fig)}}} title is {{{title}}}",
+    "",
+    "#+DATE: D{{{n}}} {{{n(fig,-)}}}",
+    "#+DESCRIPTION: X{{{n}}}",
+    "#+KEYWORDS: K{{{n}}}",
+    "",
+    "After {{{n}}} {{{n(fig,10)}}} {{{n(fig)}}}",
+  }
+
+  local function has(s, sub)
+    ok(s:find(sub, 1, true), "missing: " .. sub .. "\n---\n" .. s)
+  end
+
+  it("ascii: the title block numbered before the body", function()
+    local out = ox.export_as("ascii", doc, {})
+    for _, s in ipairs({ " T1\n", " S2\n", " A3\n", " D8 2\n", "Intro 4 1\n", "H5\n" }) do
+      has(out, s)
+    end
+    -- {{{title}}} is the raw #+TITLE value, whose {{{n}}} is replaced there
+    has(out, "Body 6 2 title is T7\n")
+    has(out, "After 9 10 11\n")
+  end)
+
+  it("html: DESCRIPTION and KEYWORDS are not parsed, their macros stay", function()
+    local out = ox.export_as("html", doc, {})
+    has(out, "<title>T1</title>")
+    has(out, '<meta name="author" content="A3" />')
+    has(out, '<meta name="description" content="X{{{n}}}" />')
+    has(out, '<span class="subtitle">S2</span>')
+    has(out, "After 9 10 11")
+  end)
+
+  it("latex: DESCRIPTION and KEYWORDS are parsed and counted", function()
+    local out = ox.export_as("latex", doc, {})
+    has(out, "\\author{A3}")
+    has(out, "\\date{D8 2}")
+    has(out, "\\title{T1\\\\\\medskip\n\\large S2}")
+    has(out, "pdfkeywords={K10}")
+    has(out, "pdfsubject={X9}")
+    has(out, "After 11 10 11")
+  end)
+
+  it("org: no SUBTITLE, its macro stays", function()
+    local out = ox.export_as("org", doc, {})
+    has(out, "#+title: T1\n#+date: D7 2\n#+author: A2\n#+subtitle: S{{{n}}}\n")
+    has(out, "Intro 3 1\n* H4\nBody 5 2 title is T6\n")
+    has(out, "After 8 10 11")
+  end)
+
+  it("md (body only): the counters the keywords took are skipped", function()
+    has(
+      (ox.export_as("md", doc, { body_only = true })),
+      "Intro 4 1\n\n\n# H5\n\nBody 6 2 title is T7\n\nAfter 9 10 11\n"
+    )
+  end)
+
+  it("a subtree export counts the text around it, and its EXPORT_ properties", function()
+    local lines = {
+      "#+TITLE: T{{{n}}}",
+      "#+OPTIONS: toc:nil num:nil",
+      "",
+      "Intro {{{n}}}",
+      "",
+      "* First {{{n}}}",
+      "One {{{n}}}",
+      "",
+      "* Second {{{n}}}",
+      ":PROPERTIES:",
+      ":EXPORT_AUTHOR: PA{{{n}}}",
+      ":END:",
+      "Two {{{n}}}",
+      "",
+      "#+SUBTITLE: S{{{n}}}",
+      "",
+      "* Third {{{n}}}",
+      "#+DATE: D{{{n}}}",
+      "Three {{{n}}}",
+    }
+    local out = ox.export_as("latex", lines, { subtree_line = 9 })
+    has(out, "\\author{PA6}")
+    has(out, "\\date{D10}")
+    has(out, "\\title{Second 5\\\\\\medskip\n\\large S8}")
+    has(out, "Two 7\n")
+    out = ox.export_as("ascii", lines, {})
+    for _, s in ipairs({ " T1\n", " S8\n", " D10\n", "Intro 2\n", "First 3\n", "One 4\n", "Two 7\n", "Three 11\n" }) do
+      has(out, s)
+    end
+  end)
+
+  it("macros in a keyword's macro, commented trees and example blocks", function()
+    local out = ox.export_as("ascii", {
+      "#+OPTIONS: toc:nil num:nil",
+      "#+MACRO: two {{{n(x)}}}-{{{n(x)}}}",
+      "",
+      "First {{{n(x)}}} kw {{{keyword(TITLE)}}}",
+      "",
+      "#+TITLE: Title {{{two}}} {{{n}}}",
+      "#+AUTHOR: {{{n(x,-)}}} and {{{n(x,5)}}}",
+      "",
+      "* COMMENT Hidden",
+      "#+DATE: hidden {{{n}}}",
+      "Hidden {{{n}}}",
+      "",
+      "* Visible",
+      "After {{{n(x)}}} {{{n}}} title {{{title}}}",
+      "",
+      "#+begin_quote",
+      "#+SUBTITLE: Sub {{{n}}}",
+      "#+end_quote",
+      "",
+      "#+begin_example",
+      "#+DATE: Ex {{{n}}}",
+      "#+end_example",
+    }, {})
+    for _, s in ipairs({ " TITLE 4-5 2\n", " Sub 5\n", " 5 and 5\n", "First 1 kw Title 2-3 1\n" }) do
+      has(out, s)
+    end
+    has(out, "After 6 3 title Title 7-8 4\n")
+    has(out, "| #+DATE: Ex {{{n}}}\n")
+  end)
+end)
