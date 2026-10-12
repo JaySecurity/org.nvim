@@ -14,6 +14,9 @@
 #                                            git tag) and run inventory.el of
 #                                            docs/parity/ on it, into
 #                                            OUTDIR/{commands,options}.tsv
+#   release-watch.sh fetch VER DIR           fetch Org VER (GNU ELPA, else the
+#                                            git tag) into DIR and print its
+#                                            Lisp directory, DIR/org-VER
 #   release-watch.sh report OLDDIR NEWDIR OLD NEW
 #                                            the Markdown report: what changed
 #                                            between two inventories, and what
@@ -95,6 +98,19 @@ fetch_org() {
     echo "Org $ver: the release_$ver git tag" >&2
     echo "$tmp/org-mode/lisp"
   fi
+}
+
+# Org VER's Lisp directory at DIR/org-VER: the tarball's directory, or a
+# link to the git checkout's lisp/ (its etc/ stays beside it, where ox-odt
+# looks for its styles).
+fetch() {
+  local ver=$1 out=$2 dir
+  mkdir -p "$out"
+  out=$(cd "$out" && pwd)
+  dir=$(fetch_org "$out" "$ver")
+  rm -f "$out/org.tar"
+  [ "$dir" = "$out/org-$ver" ] || ln -sfn "${dir#"$out"/}" "$out/org-$ver"
+  echo "$out/org-$ver"
 }
 
 inventory() {
@@ -212,8 +228,9 @@ case "$cmd" in
   pinned) pinned ;;
   latest) latest ;;
   newer) [ $# -eq 2 ] || die "usage: newer OLD NEW"; newer "$1" "$2" ;;
+  fetch) [ $# -eq 2 ] || die "usage: fetch VERSION DIR"; fetch "$1" "$2" ;;
   inventory) [ $# -eq 2 ] || die "usage: inventory VERSION OUTDIR"; inventory "$1" "$2" ;;
   report) [ $# -eq 4 ] || die "usage: report OLDDIR NEWDIR OLD NEW"; report "$1" "$2" "$3" "$4" ;;
   issue) [ $# -eq 3 ] || die "usage: issue NEW PINNED REPORT"; issue "$1" "$2" "$3" ;;
-  *) sed -n '2,27p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2 ;;
+  *) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2 ;;
 esac

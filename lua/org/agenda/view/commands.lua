@@ -40,7 +40,7 @@ local function check_agenda_type()
     return true
   end
   local names = { tags_todo = "tags", stuck = "tags" }
-  utils.error(string.format("Not allowed in ’%s’-type agenda buffer or component", names[t] or t or "nil"))
+  utils.error(string.format("Not allowed in ‘%s’-type agenda buffer or component", names[t] or t or "nil"))
   return false
 end
 

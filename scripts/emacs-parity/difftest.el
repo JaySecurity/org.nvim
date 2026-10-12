@@ -1,6 +1,6 @@
 ;;; difftest.el --- Emacs side of the differential test (make difftest)  -*- lexical-binding: t; -*-
 
-;; Loaded after common.el (fixed "now", Org 9.8.10 check) by
+;; Loaded after common.el (fixed "now", Org 9.8.11 check) by
 ;; tests/difftest/emacs.lua, which keeps this Emacs running and talks to
 ;; it over stdin/stdout, one request per line:
 ;;
