@@ -197,8 +197,9 @@ usually the annotation, instead of silencing it.
 #### Strict paths
 
 The files and directories listed in `scripts/typecheck_strict.txt`
-(`lua/org/api/`, the parser and the core modules around it, and the
-extensions so far) are held to those hint
+(`lua/org/api/`, the parser and the core modules around it, structure,
+lists, clock, agenda, table, babel, capture, links, columns, mobile,
+export, pickers, health and every extension) are held to those hint
 checks too: in them, a `need-check-nil` or a `param-type-mismatch` fails
 `make typecheck` like any other warning, so code that is already clean
 can't slip back. `make typecheck` runs `scripts/typecheck.lua`, which does
