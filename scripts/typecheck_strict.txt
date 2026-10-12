@@ -45,3 +45,10 @@ lua/org/export/beamer.lua
 lua/org/export/beamer_mode.lua
 lua/org/export/koma.lua
 lua/org/export/engrave.lua
+lua/org/export/html.lua
+lua/org/export/html
+lua/org/export/html_data.lua
+lua/org/export/html_indent.lua
+lua/org/export/fontify.lua
+lua/org/export/markdown.lua
+lua/org/export/gfm.lua

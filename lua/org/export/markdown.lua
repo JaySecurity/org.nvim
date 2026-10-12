@@ -351,7 +351,7 @@ T["latex-environment"] = function(el, _, info)
   local lines = element.remove_indentation(vim.split((el.value:gsub("\n$", "")), "\n", { plain = true }))
   local frag = table.concat(lines, "\n") .. "\n"
   local label = html.reference(el, info, true)
-  if nw(label) then
+  if label and nw(label) then
     frag = frag:gsub("^([^\n]*)", "%1\n\\label{" .. require("org.utils").gsub_escape(label) .. "}", 1)
   end
   return frag

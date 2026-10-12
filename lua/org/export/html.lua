@@ -25,6 +25,10 @@ local function hcfg()
   return (require("org.config").opts.export or {}).html or {}
 end
 
+--- The html option `name`, or `default` when it is unset.
+---@param name string
+---@param default any
+---@return any
 local function opt(name, default)
   local v = hcfg()[name]
   if v == nil then
