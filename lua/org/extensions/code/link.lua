@@ -40,7 +40,12 @@ function M.resolve(file, from)
     return vim.fs.normalize(expanded)
   end
   local bases = {}
-  local name = type(from) == "string" and from or vim.api.nvim_buf_get_name(from)
+  local name
+  if type(from) == "string" then
+    name = from
+  else
+    name = vim.api.nvim_buf_get_name(from)
+  end
   local org_dir = name ~= "" and vim.fs.dirname(vim.fn.fnamemodify(name, ":p")) or nil
   bases[#bases + 1] = (type(from) == "number" or name ~= "") and git.root(from) or nil
   bases[#bases + 1] = git.root(vim.fn.getcwd())
@@ -87,7 +92,7 @@ function M.follow(path)
   end
   local last = vim.api.nvim_buf_line_count(buf)
   pcall(vim.api.nvim_win_set_cursor, 0, { math.max(1, math.min(pos.lnum, last)), pos.col or 0 })
-  pcall(vim.cmd, "normal! zv")
+  pcall(vim.api.nvim_command, "normal! zv")
   return true
 end
 

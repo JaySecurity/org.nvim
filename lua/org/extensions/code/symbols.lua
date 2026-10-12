@@ -99,7 +99,8 @@ local function client_expected(buf)
   end
   local ft = vim.bo[buf].filetype
   for _, c in ipairs(vim.lsp.get_clients()) do
-    local fts = c.config and c.config.filetypes
+    local config = c.config --[[@as vim.lsp.Config?]]
+    local fts = config and config.filetypes
     if fts and vim.tbl_contains(fts, ft) then
       return true
     end
@@ -265,6 +266,7 @@ local function def_kind(node)
     end
     return nil
   end
+  ---@type integer|boolean|nil
   local decl = t:find("definition", 1, true) or t:find("declaration", 1, true) or t:find("item", 1, true)
   if not decl and t:find("spec", 1, true) then
     -- C/C++ struct_specifier...: a definition only with a body
@@ -417,6 +419,7 @@ local function ts_search(root, source, sym, lines)
   return best, def
 end
 
+---@return org.code.SymbolPos|nil
 local function ts_find(buf, sym, lines)
   local root = ts_root(buf)
   if not root then
@@ -450,9 +453,17 @@ local TEXT_KEYWORDS = {
 --- Position of `sym` by searching the text: a definition line first
 --- (`function sym`, `def sym`, `class sym`, `sym = ...`), then any
 --- whole-word occurrence.
+---@class org.code.SymbolPos
+---@field lnum integer
+---@field col integer 0-based
+---@field via? string "lsp", "treesitter" or "text"
+---@field len? integer length of the name
+---@field first? integer first line of the whole definition
+---@field last? integer last line of the whole definition
+
 ---@param lines string[]
 ---@param sym string
----@return { lnum: integer, col: integer }|nil
+---@return org.code.SymbolPos|nil
 function M.text_find(lines, sym)
   local last = last_segment(sym)
   if last == "" then
@@ -622,7 +633,7 @@ function M.find_in_file(path, sym)
   end
   if root then
     local pos, def = ts_search(root, source, sym, lines)
-    if pos then
+    if pos and def then
       return { lnum = pos.lnum, col = pos.col, len = def.len, first = def.first, last = def.last }
     end
   end

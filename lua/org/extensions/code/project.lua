@@ -98,7 +98,7 @@ end
 --- `project_open`: visit the project file of the current repository.
 function M.open()
   local pf, root = file_or_warn()
-  if not pf then
+  if not pf or not root then
     return
   end
   require("org.extensions.code").remember_root(root)
@@ -110,7 +110,7 @@ end
 --- `project_template`.
 function M.capture()
   local pf, root = file_or_warn()
-  if not pf then
+  if not pf or not root then
     return
   end
   require("org.extensions.code").remember_root(root)
@@ -150,7 +150,7 @@ end
 --- and its code TODOs.
 function M.agenda()
   local pf, root = file_or_warn()
-  if not pf then
+  if not pf or not root then
     return
   end
   require("org.extensions.code").remember_root(root)
