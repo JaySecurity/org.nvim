@@ -294,14 +294,60 @@ describe("playground", function()
           return "https://example.invalid/" .. path
         end,
       })
+      local tutor = require("org.tutor")
+      local last_level, positions = 0, {}
       for _, name in ipairs(playground.lessons(root)) do
+        local meta = assert(tutor.meta(name))
         local tab = page.body:match('<button type="button" role="tab" id="tab%-' .. name .. '".-</button>')
         ok(tab, "no tab for " .. name)
-        ok(tab:find('<span class="pg%-tab%-num">Lesson %d+</span>'), tab)
-        ok(tab:find('<span class="pg%-tab%-meta">%d+ exercises? · %d+:%d%d</span>'), tab)
+        ok(tab:find('<span class="pg-tab-num">Lesson ' .. meta.order .. '<span class="pg-tab-progress"', 1, true), tab)
+        ok(
+          tab:find(
+            '<span class="pg%-tab%-meta"><span class="pg%-tab%-level">'
+              .. meta.level
+              .. "</span> · %d+ exercises? · %d+:%d%d</span>"
+          ),
+          tab
+        )
+        ok(tab:find(meta.topics[1], 1, true), tab)
+        positions[name] = page.body:find('id="tab-' .. name .. '"', 1, true)
+        -- each lesson's transcript and "try it" command
+        ok(page.body:find('<details class="pg-transcript" id="' .. name .. '-transcript">', 1, true))
+        ok(page.body:find('data-copy=":Org tutor ' .. name .. '"', 1, true))
+        local level = 0
+        for i, l in ipairs(tutor.levels) do
+          level = l == meta.level and i or level
+        end
+        ok(level >= last_level, name .. ": the cards are grouped by level, easiest first")
+        last_level = level
       end
+      -- grouped by level: a heading per level that has lessons
+      ok(page.body:find('<h2 class="pg-level-head" id="level-beginner">Beginner</h2>', 1, true))
+      ok(positions.basics < positions.workflow)
       ok(page.body:find('<span class="pg-step-time">0:00</span>', 1, true))
       ok(page.body:find('class="pg-install"', 1, true))
+      -- the transcript has the captions and the screen at the end of an exercise
+      local tr = page.body:match('<details class="pg%-transcript" id="basics%-transcript">.-</details>')
+      ok(tr:find("<li>&lt;M-CR&gt; opens a new headline below, in Insert mode.</li>", 1, true), "caption")
+      ok(tr:find('aria-label="The screen at the end of 1.2 Insert a headline">', 1, true))
+      ok(tr:find("**** Pears", 1, true))
+      -- the syntax box's examples
+      for _, p in ipairs(playground.presets) do
+        ok(page.body:find('data-preset="' .. p[1] .. '"', 1, true), p[1])
+      end
+    end)
+
+    it("plays a cast's screens to the end of each exercise, as text", function()
+      local cast = table.concat({
+        '{"version":2,"width":10,"height":3}',
+        '[0,"o","\\u001b[2J\\u001b[H"]',
+        '[0,"m","Welcome"]',
+        '[0.1,"o","\\u001b[1;1H\\u001b[0;1mHello\\u001b[0m\\u001b[K\\u001b[2;1Hworld\\u001b[K"]',
+        '[1,"m","1.1 First"]',
+        '[1.1,"m","say: a caption"]',
+        '[1.2,"o","\\u001b[2;1Hthere\\u001b[K\\u001b[3;3H✓\\u001b[K"]',
+      }, "\n")
+      eq({ Welcome = "Hello\nworld", ["1.1 First"] = "Hello\nthere\n  ✓" }, playground.screens(cast))
     end)
   end)
 end)

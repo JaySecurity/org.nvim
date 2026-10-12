@@ -434,6 +434,10 @@ describe("site", function()
         '<div class="pg-player" role="region" tabindex="0" aria-label="Recording of the basics lesson" data-title="basics.org">'
       )
       has(pg, '<script src="assets/playground.js" defer></script>')
+      -- the lesson path, a transcript per lesson, the syntax box's examples
+      has(pg, '<nav class="pg-path" aria-label="Lessons">')
+      has(pg, '<details class="pg-transcript" id="workflow-transcript">')
+      has(pg, '<template class="pg-preset-text" data-preset="table">')
       has(index, 'href="playground.html"')
       ok(vim.uv.fs_stat(out .. "/playground/workflow.cast"))
       -- the extensions status: a row per built-in extension, in the nav
