@@ -32,3 +32,4 @@ lua/org/extensions/init.lua
 lua/org/extensions/views_util.lua
 lua/org/extensions/cli
 lua/org/extensions/code
+lua/org/extensions/diagrams
