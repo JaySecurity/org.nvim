@@ -8522,6 +8522,10 @@ Differences from Emacs:
   tables); here the field shows #ERROR (the last definition wins) and the
   other fields are still computed. Left sides Emacs rejects are accepted:
   `$name=` for a named column, `$2..$3=` and `@I$2..@>$2=` ranges.
+  An `@` that starts no reference (`"a@b"` in a formula, or a field
+  holding an e-mail address) is left as written and the references after
+  it are still replaced; Emacs stops replacing the `@` references that
+  come after it.
 - Footnote sorting and renumbering leave src, example, export and comment
   blocks alone: a line starting with `[fn:N]` inside one is code, not a
   definition. Emacs renumbers such lines too.
