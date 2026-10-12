@@ -742,7 +742,8 @@ describe("migrate: :Org migrate_config", function()
 
   it("completes file names", function()
     local items = require("org.commands").complete(root .. "/README", "Org migrate_config " .. root .. "/README")
-    ok(vim.tbl_contains(items, root .. "/README.md"))
+    -- on Windows the completed paths use backslashes
+    ok(vim.tbl_contains(vim.tbl_map(vim.fs.normalize, items), vim.fs.normalize(root .. "/README.md")))
   end)
 end)
 
