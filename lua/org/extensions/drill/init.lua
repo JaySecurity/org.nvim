@@ -170,7 +170,7 @@ end
 
 --- Every drill card of a scope, due or not.
 ---@param scope any see `scope_files`
----@return { file: org.File, hl: org.Headline, card: org.drill.Card }[]
+---@return { file: org.File, hl: org.Headline, card: org.drill.Card, status?: string, due?: integer }[]
 function M.cards(scope)
   local tag = opts().tag
   local fs, range, extra = M.scope_files(scope)
@@ -929,6 +929,7 @@ function M.reschedule(bufnr, lnum, card, quality)
   local weight = card.weight
   local data, days, failed, new_matrix, unschedule =
     schedule.answer(algorithm, card.data, quality, matrix, sopts, weight)
+  ---@type org.Date|false
   local scheduled = false
   if not unschedule then
     scheduled = date.today():add(days, "d")
@@ -985,7 +986,7 @@ function M.grade(quality)
   end
   local entry = s.queue[s.index]
   local c, bufnr, lnum = reload(entry)
-  if c then
+  if c and bufnr and lnum then
     local data, failed, days
     if s.cram then
       failed = quality <= (tonumber(opts().failure_quality) or 2)
@@ -1068,7 +1069,7 @@ function M.edit()
     vim.api.nvim_set_current_buf(bufnr)
   end
   vim.api.nvim_win_set_cursor(0, { lnum, 0 })
-  pcall(vim.cmd, "normal! zv")
+  pcall(vim.api.nvim_command, "normal! zv")
   utils.notify("Drill paused; :Org drill_resume goes on")
 end
 
