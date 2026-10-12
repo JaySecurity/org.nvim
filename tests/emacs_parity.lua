@@ -91,6 +91,7 @@ end
 -- case as known in its spec instead.
 --   emacs = { { pattern, replacement }, ... }  gsub on each Emacs line
 --   both = { { pattern, replacement }, ... }  gsub on the lines of both sides
+--     (a replacement is a string or a function, as for gsub)
 --   drop = { pattern, ... }  lines dropped on both sides
 --   ids = pattern  generated ids, renamed on each side to ID1, ID2, ... in
 --     order of first appearance (links between them still have to agree)
@@ -106,6 +107,21 @@ M.NORMALISE = {
       -- escapes both (:h org-export-unsupported). Each pair of escaped
       -- backslashes is written the Emacs way on both sides.
       { "%$\\backslash%$%$\\backslash%$", "$\\backslash$\\" },
+      -- Org export: org-list-repair re-indents list lines with
+      -- indent-line-to, which writes tabs from column 8 on
+      -- (indent-tabs-mode is on by default); org.nvim writes spaces (:h
+      -- org-export-unsupported). Tabs in the indentation as spaces, tab
+      -- stops every 8 columns.
+      {
+        "^[ \t]*\t[ \t]*",
+        function(ws)
+          local col = 0
+          for c in ws:gmatch(".") do
+            col = c == "\t" and (math.floor(col / 8) + 1) * 8 or col + 1
+          end
+          return string.rep(" ", col)
+        end,
+      },
     },
   },
   agenda = {

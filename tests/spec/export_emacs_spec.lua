@@ -688,6 +688,20 @@ describe("export: Emacs parity (difftest known differences)", function()
     )
   end)
 
+  it("Org export indents repaired lists with spaces (an intentional difference)", function()
+    -- Emacs writes a tab from column 8 on (indent-tabs-mode); the export
+    -- NORMALISE rule expands tabs in the indentation (difftest seed 5129)
+    local out = ox.export_as("org", { "1.", "-", " 3.", "  -", "   (paren) Review" }, { body_only = true })
+    has(out, "\n        (paren) Review")
+    local parity = require("tests.emacs_parity")
+    local e, o = parity.normalise(
+      "export",
+      { "\t(paren) Review", "   \t x" },
+      { "        (paren) Review", "         x" }
+    )
+    eq(e, o)
+  end)
+
   it("Org export keeps a sub-list under an item with only a checkbox", function()
     -- the item's pre-blank counts lines from the bullet line
     -- (org-element-item-parser), so the contents start on a new line

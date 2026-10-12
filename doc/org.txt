@@ -5915,6 +5915,9 @@ These need Emacs Lisp or Emacs itself:
   `$\backslash$$\backslash$`. Emacs escapes the first and copies the
   second as it is (`\\ x` becomes `$\backslash$\ x`, and `\\$` a line
   break followed by a stray `$`), which can leave broken LaTeX.
+- Org: plain lists are repaired (renumbered, sub-lists aligned) with
+  spaces. Emacs re-indents their lines with tabs from column 8 on when
+  `indent-tabs-mode` is on, its default.
 
 ==============================================================================
 22. TIMERS AND NOTIFICATIONS                    *org-timers* *org-notifications*
