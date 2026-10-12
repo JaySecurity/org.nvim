@@ -8,6 +8,16 @@ pull request, by its [Conventional Commits](https://www.conventionalcommits.org/
 This file is generated from the git history by `make changelog`
 (`scripts/changelog.lua`); edit the pull request titles, not this file.
 
+## [v2.12.0] - 2026-10-12
+
+### Features
+
+- **tutor:** Six new lessons and a playground with captions, progress and follow-along ([#252](https://github.com/xheisenbugx/org.nvim/pull/252))
+
+### Fixes
+
+- Difftest differences from Emacs ([#251](https://github.com/xheisenbugx/org.nvim/pull/251)) ([#254](https://github.com/xheisenbugx/org.nvim/pull/254))
+
 ## [v2.11.0] - 2026-10-11
 
 ### Fixes
@@ -441,6 +451,7 @@ This file is generated from the git history by `make changelog`
 
 </details>
 
+[v2.12.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.11.0...v2.12.0
 [v2.11.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.10.0...v2.11.0
 [v2.10.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.9.1...v2.10.0
 [v2.9.1]: https://github.com/xheisenbugx/org.nvim/compare/v2.9.0...v2.9.1
