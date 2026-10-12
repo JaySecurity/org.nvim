@@ -98,8 +98,13 @@ M.CAPTION = "say: "
 M.STEP = "step: "
 
 -- Child setup on top of tests/screen.lua's: a status line with the file
--- name, the mode shown, quick tutor marks, and a clock moved by `wait`.
+-- name, the mode shown, quick tutor marks, a clock moved by `wait`, and
+-- the tree-sitter parsers Neovim ships (a reader's Neovim has them; the
+-- lua filetype plugin fails without its parser, in a src edit buffer).
 local SETUP = [[
+for _, dir in ipairs(... or {}) do
+  vim.opt.rtp:append(dir)
+end
 vim.o.laststatus = 2
 vim.o.statusline = "%#StatusLine# %t%=%l:%c "
 vim.o.showmode = true
@@ -216,6 +221,20 @@ end
 return res
 ]]
 
+--- The directories of the tree-sitter parsers that come with Neovim (not
+--- ones installed in a site directory), for the child's 'runtimepath'.
+---@return string[]
+function M.parser_dirs()
+  local dirs = {}
+  for _, dir in ipairs(vim.api.nvim_get_runtime_file("parser/", true)) do
+    dir = vim.fs.normalize(dir)
+    if not dir:find("/site/", 1, true) then
+      dirs[#dirs + 1] = vim.fs.dirname(dir)
+    end
+  end
+  return dirs
+end
+
 --- A recorder: the child Neovim, the screen it last drew and the events.
 local Rec = {}
 Rec.__index = Rec
@@ -245,7 +264,7 @@ function M.new()
   local screen = Screen.new({ width = M.width, height = M.height, now = M.now, handlers = handlers })
   local self = setmetatable({ screen = screen, t = 0, events = {}, drawn = {}, cursor = { 0, 0 } }, Rec)
   screen.default_fg, screen.default_bg = screen.default_fg or 0xe0e2ea, screen.default_bg or 0x14161b
-  screen:lua(SETUP)
+  screen:lua(SETUP, M.parser_dirs())
   return self
 end
 
