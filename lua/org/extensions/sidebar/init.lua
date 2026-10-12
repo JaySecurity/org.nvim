@@ -530,7 +530,7 @@ end
 --- Open the entry on the cursor line in the window next to the sidebar.
 function M.jump()
   local st = M.state
-  if not is_open(st) then
+  if not st or not is_open(st) then
     return
   end
   local ref = st.refs[vim.api.nvim_win_get_cursor(st.win)[1]]
@@ -557,13 +557,13 @@ function M.jump()
   vim.api.nvim_set_current_win(win)
   utils.set_current_buf(target.bufnr)
   vim.api.nvim_win_set_cursor(win, { target.lnum, 0 })
-  pcall(vim.cmd, "normal! zv")
+  pcall(vim.api.nvim_command, "normal! zv")
 end
 
 --- Open the sidebar in the current tab (closing it in another tab).
 function M.open()
   local st = M.state
-  if is_open(st) then
+  if st and is_open(st) then
     if vim.api.nvim_win_get_tabpage(st.win) == vim.api.nvim_get_current_tabpage() then
       return st
     end
@@ -574,7 +574,7 @@ function M.open()
   -- leave the other windows some room in a narrow editor
   local width = math.max(1, math.min(tonumber(o.width) or 40, vim.o.columns - math.max(vim.o.winminwidth, 1) - 2))
   local cmd = (o.position == "left" and "topleft " or "botright ") .. tostring(width) .. "vsplit"
-  local split_ok, split_err = pcall(vim.cmd, cmd)
+  local split_ok, split_err = pcall(vim.api.nvim_command, cmd)
   if not split_ok then
     utils.error("sidebar: " .. tostring(split_err))
     return nil
@@ -642,7 +642,7 @@ function M.open()
     end,
   })
   local interval = math.max(1, tonumber(o.interval) or 30) * 1000
-  st.timer = vim.uv.new_timer()
+  st.timer = assert(vim.uv.new_timer())
   st.timer:start(
     interval,
     interval,
@@ -679,7 +679,7 @@ end
 
 function M.toggle()
   local st = M.state
-  if is_open(st) and vim.api.nvim_win_get_tabpage(st.win) == vim.api.nvim_get_current_tabpage() then
+  if st and is_open(st) and vim.api.nvim_win_get_tabpage(st.win) == vim.api.nvim_get_current_tabpage() then
     M.close()
   else
     M.open()

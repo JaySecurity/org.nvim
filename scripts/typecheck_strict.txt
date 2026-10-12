@@ -48,3 +48,4 @@ lua/org/extensions/ql
 lua/org/extensions/quickadd
 lua/org/extensions/review
 lua/org/extensions/roam
+lua/org/extensions/sidebar
