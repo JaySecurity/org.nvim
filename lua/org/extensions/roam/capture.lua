@@ -277,8 +277,9 @@ function M.target_parts(tpl, node)
   if type(parts.file) ~= "string" or parts.file == "" then
     return nil, "capture template needs a file `target`"
   end
-  if type(parts.head) == "table" then
-    parts.head = table.concat(parts.head, "\n")
+  local head = parts.head
+  if type(head) == "table" then
+    parts.head = table.concat(head, "\n")
   end
   return parts
 end
@@ -454,7 +455,7 @@ function M.capture(opts)
     elseif fin == "insert_link" then
       local row, col = M.insert_link_at(opts, node.id)
       -- the capture window is closed: back where the link went
-      if row and vim.api.nvim_get_current_buf() == opts.call_location.bufnr then
+      if row and col and vim.api.nvim_get_current_buf() == opts.call_location.bufnr then
         require("org.extensions.roam.node").cursor_after_link(row, col)
       end
     elseif fin == "find_file" then
@@ -557,7 +558,7 @@ function M.insert_link_at(opts, id)
   local srow, scol = pos[1], pos[2]
   local erow, ecol = srow, scol
   if pos[3] and pos[3].end_row then
-    erow, ecol = pos[3].end_row, pos[3].end_col
+    erow, ecol = pos[3].end_row or srow, pos[3].end_col or scol
   end
   vim.api.nvim_buf_set_text(loc.bufnr, srow, scol, erow, ecol, { text })
   pcall(vim.api.nvim_buf_del_extmark, loc.bufnr, loc.ns, loc.mark)
