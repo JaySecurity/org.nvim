@@ -93,11 +93,12 @@ Neovim **0.11+** on Linux, macOS or Windows is all it needs; pandoc, LaTeX
 and Babel's interpreters are optional ([requirements](docs/guide.md#requirements)).
 
 Restart Neovim and run `:checkhealth org`. New to Org? Run `:Org tutor`:
-a guided lesson, like `vimtutor`, in a copy of its own where every org key
-works and each exercise gets a ✓ once you have done it (`:Org tutor
-workflow` continues with capture, the agenda and clocking; `:h org-tutor`).
+it lists the lessons of a guided course, like `vimtutor`, each in a copy
+of its own where every org key works and each exercise gets a ✓ once you
+have done it (`:Org tutor basics` starts with the first; `:h org-tutor`).
 Not installed yet? [Try it in your browser](https://org-nvim.com/playground.html):
-the playground plays both lessons in a real Neovim, exercise by exercise.
+the playground plays every lesson in a real Neovim, exercise by exercise,
+with captions and a follow-along mode where you press the keys.
 
 For a longer tour, [`examples/tutorial.org`](examples/tutorial.org) has
 exercises for every feature and [`examples/00-index.org`](examples/00-index.org)

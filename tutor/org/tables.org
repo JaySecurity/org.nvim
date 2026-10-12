@@ -1,0 +1,190 @@
+#+TITLE: org.nvim tutor 5: tables as a spreadsheet
+#+TUTOR_ORDER: 5
+#+TUTOR_LEVEL: Power user
+#+TUTOR_TOPICS: fields, rows and columns, sorting, formulas, recalculation, number formats, csv
+#+STARTUP: showall nologdone
+#+TODO: TODO | DONE
+
+An org table is more than lined-up text: you move around it like a
+form, reshape it with a key, and give it formulas that compute
+columns and totals, like a small spreadsheet. The first lesson showed
+how to align a table and add a row; this one goes further.
+
+- As before, a {{done}} at the end of an exercise's headline means it is
+  done, and {{todo}} that it is not yet. Keys are shown as mapped in your
+  config; =<leader>= is ={{leader}}=.
+- This is a working copy: =:w= saves your progress and =:Org tutor
+  tables reset= starts over.
+- Stuck? =:Org tutor_hint= shows the keys that solve the exercise at
+  the cursor, and =:Org tutor= lists every lesson.
+
+* Lesson 1: moving around
+In Insert mode a table works like a form. Every move lines the table
+up again, and the first character you type after a move replaces the
+field's text.
+
+** 1.1 Next and previous field
+={{org_insert.insert_tab}}= goes to the next field,
+={{org_insert.table_prev_field}}= to the previous one. On =Milk= press
+=i=, then ={{org_insert.insert_tab}}= twice to reach its price, type
+=1.20= and press =<Esc>=.
+
+| Item  | Qty | Price |
+|-------+-----+-------|
+| Bread |   1 |  2.50 |
+| Milk  |   2 |       |
+
+** 1.2 Down a column
+=<CR>= goes to the same field of the next row. On =Eggs= press =i= and
+={{org_insert.insert_tab}}=, type =12=, press =<CR>=, type =3= and press
+=<Esc>=.
+
+| Item  | Qty |
+|-------+-----|
+| Eggs  |     |
+| Flour |     |
+
+* Lesson 2: reshaping
+In Normal mode the keys that move headlines move table columns and
+rows, and their Shift versions delete and insert them.
+
+** 2.1 Move a column
+={{org.meta_left}}= and ={{org.meta_right}}= move the column at the
+cursor. Put the =Qty= column first: on =Qty= press ={{org.meta_left}}=.
+
+| Item   | Qty |
+|--------+-----|
+| Apples |   4 |
+| Pears  |   2 |
+
+** 2.2 Move a row
+={{org.meta_up}}= and ={{org.meta_down}}= move the row. Put =Coffee= at
+the top: on its row press ={{org.meta_up}}=.
+
+| Drink  | Cups |
+|--------+------|
+| Tea    |    2 |
+| Coffee |    3 |
+
+** 2.3 Delete a column
+={{org.shift_meta_left}}= deletes the column at the cursor,
+={{org.shift_meta_right}}= inserts an empty one. Delete the =Notes=
+column: on =Notes= press ={{org.shift_meta_left}}=.
+
+| Item  | Notes | Qty |
+|-------+-------+-----|
+| Rice  | dry   |   1 |
+| Beans | dry   |   2 |
+
+** 2.4 Delete a row
+={{org.shift_meta_up}}= deletes the row at the cursor,
+={{org.shift_meta_down}}= inserts an empty one above it. Delete the
+=Old= row: on =Old= press ={{org.shift_meta_up}}=.
+
+| Task  | Hours |
+|-------+-------|
+| Write |     3 |
+| Old   |     9 |
+| Read  |     1 |
+
+** 2.5 Add a separator line
+={{org.table_insert_hline}}= puts a line under the current row. Separate
+the header: on =Day= press ={{org.table_insert_hline}}=.
+
+| Day | Steps |
+| Mon |  4200 |
+| Tue |  6100 |
+
+** 2.6 Sort the rows
+={{org.table_sort}}= sorts the rows by the column at the cursor. It asks
+how: =a= alphabetically, =n= by number (=A= and =N= in reverse). On a
+number of =Score= press ={{org.table_sort}}= and =N=.
+
+| Name | Score |
+|------+-------|
+| Ana  |    12 |
+| Ben  |    31 |
+| Cleo |    25 |
+
+* Lesson 3: formulas
+Formulas live in a =#+TBLFM:= line under the table. =$2= is column 2 of
+the same row, =@3= row 3 (separator lines don't count), =@>= the last
+row and =@-1= the row above.
+
+** 3.1 A column formula
+Text typed in a field that starts with an equals sign becomes the
+formula of its column. On =Apples= press =i= and
+={{org_insert.insert_tab}}= three times, type ~=$2*$3~ (Qty times
+Price) and press ={{org_insert.insert_tab}}=. A =#+TBLFM:= line appears.
+
+| Item   | Qty | Price | Total |
+|--------+-----+-------+-------|
+| Apples |   3 |   0.5 |       |
+| Lemons |   4 |  0.25 |       |
+
+** 3.2 Ask for a formula
+={{emacs.table_formula}}= asks for the formula of the column at the
+cursor and computes that one field. On the =0= next to =10= press
+={{emacs.table_formula}}=, type =$1*0.62= (km to miles) and press =<CR>=.
+
+| Km | Miles |
+|----+-------|
+| 10 |     0 |
+| 42 |     0 |
+
+** 3.3 Recalculate
+A new formula fills only the field you typed it in. To compute every
+field again, press ={{org.table_recalc}}= in the table. On a =#+TBLFM:=
+line ={{org.context_action}}= does the same.
+
+| Item   | Qty | Price | Total |
+|--------+-----+-------+-------|
+| Apples |   3 |   0.5 |       |
+| Lemons |   4 |  0.25 |       |
+#+TBLFM: $4=$2*$3
+
+** 3.4 A field formula
+Starting with ~:=~ instead makes a formula for that one field. On =Sum=
+press =i= and ={{org_insert.insert_tab}}=, type ~:=vsum(@2..@-1)~, then
+=<Esc>= and ={{org.context_action}}=: it sums row 2 to the row above.
+
+| Item | Cost |
+|------+------|
+| Rent |  800 |
+| Food |  250 |
+|------+------|
+| Sum  |      |
+
+** 3.5 A number format
+A format after =;= shapes a formula's results: =%.2f= shows two
+decimals, so =1.= becomes =1.00=. Press =A= on the =#+TBLFM:= line, type
+=;%.2f=, then =<Esc>= and ={{org.context_action}}= to recalculate.
+
+| Item   | Qty | Price | Total |
+|--------+-----+-------+-------|
+| Apples |   3 |   0.5 |   1.5 |
+| Lemons |   4 |  0.25 |    1. |
+#+TBLFM: $4=$2*$3
+
+* Lesson 4: from text to a table
+Data copied from elsewhere often comes as lines of text.
+
+** 4.1 Convert comma-separated lines
+={{org.table_create}}= in Visual mode turns lines of text into a table:
+comma-separated (CSV) when every line has a comma, else split at tabs
+or spaces. Select the three lines with =V= and =jj=, then press
+={{org.table_create}}=.
+
+city,people
+Lima,10
+Oslo,7
+
+* What next
+That's the spreadsheet tour. From here:
+
+- ={{org.help}}= lists every table key; ={{org.edit_special}}= in a table
+  opens its formulas in an editor, and ={{emacs.table_formula}}= asks
+  for the formula of the current column.
+- =:h org-tables= and =:h org-table-calc= are the manual: references,
+  ranges, functions and formats.
+- {{examples}} links to one file per feature, the spreadsheet included.

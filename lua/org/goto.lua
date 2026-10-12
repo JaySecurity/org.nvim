@@ -105,12 +105,19 @@ function M.outline()
   reveal(start_line, "lineage")
   utils.notify("Select location and press RET")
 
+  -- the auto-isearch is a `/` search: the reader's last search and its
+  -- highlighting come back afterwards, and its pattern leaves the
+  -- command line (Emacs's isearch here touches neither)
+  local last_search, hlsearch = vim.fn.getreg("/"), vim.v.hlsearch
   local done = false
   local function finish(lnum, col)
     if done then
       return
     end
     done = true
+    vim.fn.setreg("/", last_search)
+    vim.v.hlsearch = hlsearch
+    vim.api.nvim_echo({ { "" } }, false, {})
     if vim.api.nvim_win_is_valid(win) then
       pcall(vim.api.nvim_win_close, win, true)
     end

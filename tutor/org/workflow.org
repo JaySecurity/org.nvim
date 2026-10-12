@@ -1,4 +1,7 @@
 #+TITLE: org.nvim tutor 2: capture, agenda and clocking
+#+TUTOR_ORDER: 2
+#+TUTOR_LEVEL: Daily workflow
+#+TUTOR_TOPICS: capture, agenda, scheduling, clocking, clock tables
 #+STARTUP: showall nologdone
 #+TODO: TODO | DONE
 
@@ -12,6 +15,8 @@ It assumes you know the keys of the first lesson (=:Org tutor basics=).
 - This is a working copy: =:w= saves your progress and =:Org tutor
   workflow reset= starts over. Capture and the agenda only use this
   file in the exercises, so your notes stay as they are.
+- Stuck? =:Org tutor_hint= shows the keys that solve the exercise at
+  the cursor, and =:Org tutor= lists every lesson.
 
 * Lesson 1: capture
 Capture files a note without leaving what you are doing.

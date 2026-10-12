@@ -370,7 +370,9 @@ function M.action_at_point()
       end
       return
     end
-    jump(l, c or 1)
+    -- Emacs (org-footnote-goto-definition): after "[fn:label]" or the
+    -- "[fn:label:" of an inline definition
+    jump(l, (c or 1) + #("[fn:" .. fn.label .. "]"))
   elseif fn.kind == "definition" then
     local l, c = find_reference(0, fn.label)
     if not l then

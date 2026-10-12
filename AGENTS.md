@@ -13,7 +13,7 @@ make snapshots                             # rewrite the screen snapshot golden 
 make lint                                  # stylua --check, then scripts/lint_sources.lua over lua/
 make format                                # stylua over the same paths
 make site                                  # docs website into site/ (scripts/site/build.lua)
-make playground                            # re-record the tutor lessons for the site's playground (docs/playground/)
+make playground                            # re-record the tutor lessons for the site's playground (docs/playground/); LESSON=name for one
 make typecheck                             # lua-language-server --check with .luarc.json
 make coverage                              # specs with line coverage; report in coverage/report.md
 make fuzz                                  # fuzz specs with 40x the seeds, random start
@@ -93,7 +93,7 @@ make extensions-report                     # each extension against the promotio
 | `plugin/`, `ftplugin/`, `syntax/` | Vim runtime files |
 | `doc/org.txt` | the user manual (`:h org`); `doc/tags` is its helptags |
 | `examples/` | per-feature tutorial `.org` files |
-| `tutor/org/`, `lua/org/tutor/` | `:Org tutor` lessons (`.org` text with `{{org.action}}` key placeholders) and their exercise checks (`lessons/<name>.lua`) |
+| `tutor/org/`, `lua/org/tutor/`, `scripts/playground/lessons/` | `:Org tutor` lessons (`.org` text with `{{org.action}}` key placeholders and `#+TUTOR_ORDER/LEVEL/TOPICS:`), their checks and hints (`lessons/<name>.lua`) and recorded steps; a new lesson follows CONTRIBUTING.md, "Writing a tutor lesson" |
 | `tests/run.lua`, `tests/minimal_init.lua` | the test runner and headless init |
 | `tests/spec/*_spec.lua`, `tests/fixtures/` | specs and the fixture org files |
 | `tests/screen.lua`, `tests/fixtures/screen/` | screen snapshot helper and its golden files |

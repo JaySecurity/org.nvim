@@ -391,6 +391,7 @@
 ---| "toggle_timestamp_type" # Toggle timestamp active/inactive
 ---| "transpose_element" # Swap element with the previous one
 ---| "tutor" # Interactive tutorial (:Org tutor [lesson] [reset])
+---| "tutor_hint" # Show the keys that solve the tutor exercise at the cursor
 ---| "unescape_code_in_region" # Remove comma escapes of the selection
 ---| "unindent_buffer" # Remove the common indentation of elements
 ---| "up_element" # Parent element

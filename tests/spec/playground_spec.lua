@@ -29,11 +29,17 @@ local function parse_cast(text)
   return header, events
 end
 
-local function markers(events)
+--- The exercise markers (not the captions' and step markers', whose
+--- labels have a prefix), or with `prefix` the labels of those, without it.
+local function markers(events, prefix)
   local out = {}
   for _, e in ipairs(events) do
     if e[2] == "m" then
-      out[#out + 1] = e[3]
+      if prefix and vim.startswith(e[3], prefix) then
+        out[#out + 1] = e[3]:sub(#prefix + 1)
+      elseif not prefix and not vim.startswith(e[3], record.CAPTION) and not vim.startswith(e[3], record.STEP) then
+        out[#out + 1] = e[3]
+      end
     end
   end
   return out
@@ -94,6 +100,33 @@ describe("playground", function()
     end
   end)
 
+  it("keeps every recording within the time budget, with short captions", function()
+    for _, name in ipairs(record.lessons()) do
+      local cast = read(root .. "/docs/playground/" .. name .. ".cast") or ""
+      local tl = playground.timeline(cast)
+      ok(
+        tl.duration <= record.budget,
+        ("%s.cast lasts %.1f s, over the budget of %d s: shorten its steps or split the lesson"):format(
+          name,
+          tl.duration,
+          record.budget
+        )
+      )
+      -- every exercise explains its key moment
+      local captioned = {}
+      for _, c in ipairs(tl.captions) do
+        ok(vim.fn.strchars(c.text) <= record.caption_max, name .. ": caption too long: " .. c.text)
+        captioned[c.exercise or ""] = true
+      end
+      for _, m in ipairs(tl.markers) do
+        ok(captioned[m.label], ("%s: exercise %q has no caption (a `say` step)"):format(name, m.label))
+      end
+    end
+    -- the page and the recorder agree on the markers' prefixes
+    eq(record.CAPTION, playground.CAPTION)
+    eq(record.STEP, playground.STEP)
+  end)
+
   it("has recordings without a path of the machine they were made on", function()
     local temp = vim.fn.tempname():match("^(.*)[/\\]")
     for _, name in ipairs(record.lessons()) do
@@ -126,6 +159,7 @@ describe("playground", function()
       ok(cast)
       local _, events = parse_cast(cast)
       eq({ "Welcome", "1.2 Insert a headline" }, markers(events))
+      eq(2, #markers(events, record.CAPTION))
       local typed, screen = {}, {}
       for _, e in ipairs(events) do
         if e[2] == "i" then
@@ -139,6 +173,40 @@ describe("playground", function()
       ok(screen:find("Pears", 1, true))
       -- no path of the machine it ran on
       ok(not screen:find(vim.fn.tempname():match("^(.*)[/\\]"), 1, true))
+    end)
+
+    it("records captions and step markers, each caption readable long enough", function()
+      local dir = vim.fn.tempname()
+      vim.fn.mkdir(dir, "p")
+      vim.fn.writefile({
+        "return {",
+        '  { id = "1.2", steps = { { at = "Apples", col = "Apples" }, { say = "{{org.meta_return}} opens a headline" },',
+        '    { mark = "Typing" }, { key = "{{org.meta_return}}" }, { type = "Pears" }, { key = "<Esc>" } } },',
+        '  { id = "2.1", steps = { { at = "Buy milk" }, { say = "Done" }, { key = "{{org.todo_next}}" } } },',
+        "}",
+      }, dir .. "/basics.lua")
+      local res, out = run_recorder("basics", { ORG_PLAYGROUND_STEPS = dir })
+      ok(res.code == 0, (res.stdout or "") .. (res.stderr or ""))
+      local cast = read(out .. "/basics.cast")
+      vim.fn.delete(out, "rf")
+      local _, events = parse_cast(cast)
+      eq({ "1.2 Insert a headline", "2.1 Finish a task" }, markers(events))
+      eq({ "<M-CR> opens a headline", "Done" }, markers(events, record.CAPTION))
+      eq({ "Typing" }, markers(events, record.STEP))
+      -- the caption stays up long enough to be read before the next exercise
+      local tl = playground.timeline(cast)
+      ok(tl.markers[2].t * 1000 >= tl.captions[1].t * 1000 + record.read_ms(tl.captions[1].text))
+      eq("1.2 Insert a headline", tl.captions[1].exercise)
+      eq("2.1 Finish a task", tl.captions[2].exercise)
+
+      -- a caption of more than one line or 80 characters, or an unknown step, fails
+      for _, step in ipairs({ "{ say = string.rep('x', 81) }", "{ press = 'x' }" }) do
+        vim.fn.writefile({ 'return { { id = "1.2", steps = { ' .. step .. " } } }" }, dir .. "/basics.lua")
+        res = run_recorder("basics", { ORG_PLAYGROUND_STEPS = dir })
+        eq(1, res.code)
+        ok(res.stderr:find("basics 1.2: ", 1, true), res.stderr)
+      end
+      vim.fn.delete(dir, "rf")
     end)
 
     it("fails when the steps don't do an exercise", function()
@@ -226,14 +294,72 @@ describe("playground", function()
           return "https://example.invalid/" .. path
         end,
       })
-      for _, name in ipairs(playground.lessons(root)) do
+      local tutor = require("org.tutor")
+      local positions, levels = {}, {}
+      local names = playground.lessons(root)
+      for _, name in ipairs(names) do
+        local meta = assert(tutor.meta(name))
         local tab = page.body:match('<button type="button" role="tab" id="tab%-' .. name .. '".-</button>')
         ok(tab, "no tab for " .. name)
-        ok(tab:find('<span class="pg%-tab%-num">Lesson %d+</span>'), tab)
-        ok(tab:find('<span class="pg%-tab%-meta">%d+ exercises? · %d+:%d%d</span>'), tab)
+        ok(tab:find('<span class="pg-tab-num">Lesson ' .. meta.order .. '<span class="pg-tab-progress"', 1, true), tab)
+        ok(
+          tab:find(
+            '<span class="pg%-tab%-meta"><span class="pg%-tab%-level">'
+              .. meta.level
+              .. "</span> · %d+ exercises? · %d+:%d%d</span>"
+          ),
+          tab
+        )
+        ok(tab:find(meta.topics[1], 1, true), tab)
+        positions[name] = page.body:find('id="tab-' .. name .. '"', 1, true)
+        -- each lesson's transcript and "try it" command
+        ok(page.body:find('<details class="pg-transcript" id="' .. name .. '-transcript">', 1, true))
+        ok(page.body:find('data-copy=":Org tutor ' .. name .. '"', 1, true))
+        levels[name] = 0
+        for i, l in ipairs(tutor.levels) do
+          levels[name] = l == meta.level and i or levels[name]
+        end
       end
+      -- the cards are grouped by level, easiest first, and in course order
+      -- within a level (a lesson can come after one of a harder level)
+      local on_page = vim.deepcopy(names)
+      table.sort(on_page, function(a, b)
+        return positions[a] < positions[b]
+      end)
+      for i = 2, #on_page do
+        local prev, name = on_page[i - 1], on_page[i]
+        ok(levels[name] >= levels[prev], name .. ": the cards are grouped by level, easiest first")
+        if levels[name] == levels[prev] then
+          ok(tutor.meta(prev).order < tutor.meta(name).order, name .. ": in course order within a level")
+        end
+      end
+      -- grouped by level: a heading per level that has lessons
+      ok(page.body:find('<h2 class="pg-level-head" id="level-beginner">Beginner</h2>', 1, true))
+      ok(positions.basics < positions.workflow)
       ok(page.body:find('<span class="pg-step-time">0:00</span>', 1, true))
       ok(page.body:find('class="pg-install"', 1, true))
+      -- the transcript has the captions and the screen at the end of an exercise
+      local tr = page.body:match('<details class="pg%-transcript" id="basics%-transcript">.-</details>')
+      ok(tr:find("<li>&lt;M-CR&gt; opens a new headline below, in Insert mode.</li>", 1, true), "caption")
+      ok(tr:find('aria-label="The screen at the end of 1.2 Insert a headline">', 1, true))
+      ok(tr:find("**** Pears", 1, true))
+      -- the syntax box's examples
+      for _, p in ipairs(playground.presets) do
+        ok(page.body:find('data-preset="' .. p[1] .. '"', 1, true), p[1])
+      end
+    end)
+
+    it("plays a cast's screens to the end of each exercise, as text", function()
+      local cast = table.concat({
+        '{"version":2,"width":10,"height":3}',
+        '[0,"o","\\u001b[2J\\u001b[H"]',
+        '[0,"m","Welcome"]',
+        '[0.1,"o","\\u001b[1;1H\\u001b[0;1mHello\\u001b[0m\\u001b[K\\u001b[2;1Hworld\\u001b[K"]',
+        '[1,"m","1.1 First"]',
+        '[1.1,"m","say: a caption"]',
+        '[1.2,"o","\\u001b[2;1Hthere\\u001b[K\\u001b[3;3H✓\\u001b[K"]',
+      }, "\n")
+      eq({ Welcome = "Hello\nworld", ["1.1 First"] = "Hello\nthere\n  ✓" }, playground.screens(cast))
     end)
   end)
 end)

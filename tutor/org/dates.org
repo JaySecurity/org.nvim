@@ -1,0 +1,135 @@
+#+TITLE: org.nvim tutor 4: dates in depth
+#+TUTOR_ORDER: 4
+#+TUTOR_LEVEL: Daily workflow
+#+TUTOR_TOPICS: date prompt, timestamps, shifting dates, repeaters, deadlines, ranges
+#+STARTUP: showall nologdone
+#+TODO: TODO | DONE
+
+This lesson is about dates: typing them quickly at the date prompt,
+changing them with a key, tasks that repeat, deadlines that warn you
+early, and ranges. It assumes the first lesson (=:Org tutor basics=).
+
+- As before, a {{done}} at the end of an exercise's headline means it is
+  done, and {{todo}} that it is not yet. Keys are shown as mapped in your
+  config; =<leader>= is ={{leader}}=.
+- This is a working copy: =:w= saves your progress and =:Org tutor
+  dates reset= starts over. The agenda only uses this file here.
+- Stuck? =:Org tutor_hint= shows the keys that solve the exercise at
+  the cursor, and =:Org tutor= lists every lesson.
+
+* Lesson 1: the date prompt
+A date in org is a timestamp such as =<2026-10-12 Mon>=. Every key that
+asks for a date opens the same prompt: a calendar where =h= =l= move a
+day, =j= =k= a week, =.= goes to today and =<CR>= picks the date. Press
+=i= there to type the date instead.
+
+** 1.1 Insert today's date
+Put the cursor at the end of =Dentist:= below, press ={{org.timestamp}}=
+and then =<CR>=: today's date goes in at the cursor.
+
+- Dentist:
+
+** 1.2 Type a relative date
+Put the cursor on =Call the plumber=, press ={{org.schedule}}=, then =i=,
+type =+2d= and =<CR>=. Two days from today. =+1w= is a week, =+1m= a
+month, =-1d= yesterday; =.= or =+0= is today.
+
+*** TODO Call the plumber
+
+** 1.3 A weekday and a time
+At the end of =Lunch with Ana:= press ={{org.timestamp}}=, =i=, type
+=fri 12:30= and =<CR>=. A weekday name is the next such day; a time
+alone (=12:30=) is today at that time.
+
+- Lunch with Ana:
+
+** 1.4 An inactive timestamp
+At the end of =Bought the tickets:= press ={{org.timestamp_inactive}}=
+and =<CR>=. Square brackets make the date inactive: a record of when
+something happened. The agenda shows only active =<...>= dates.
+
+- Bought the tickets:
+
+* Lesson 2: changing a date
+No need to retype a date to change it: put the cursor on it and use
+Shift with the arrow keys.
+
+** 2.1 One day later
+Put the cursor on the date below and press ={{org.shift_right}}= twice:
+the day moves forward, and the weekday follows. ={{org.shift_left}}=
+goes back.
+
+- Party: <2026-10-12 Mon>
+
+** 2.2 Change one part
+={{org.shift_up}}= and ={{org.shift_down}}= change the part under the
+cursor: the year, month, day, hour or minutes (by 5). Put the cursor
+on the hour =10= below and press ={{org.shift_up}}=.
+
+- Call: <2026-10-12 Mon 10:00>
+
+* Lesson 3: repeating tasks
+A repeater after the date makes a task come back: =+1w= every week,
+=.+1d= one day after you last did it, =++1m= every month, always to a
+date in the future. Marking such a task DONE moves its date on instead.
+
+** 3.1 Add a repeater
+Put the cursor on the =>= of the date under =Water the plants=, press
+=i=, type a space and =+1w=, then =<Esc>=. The task now repeats every
+week.
+
+*** TODO Water the plants
+SCHEDULED: <2026-10-12 Mon>
+
+** 3.2 Mark a repeating task done
+Put the cursor on =Take out the bins= and press ={{org.todo_next}}=. It
+stays TODO, its date moves on a week, and a =LAST_REPEAT= property and
+a note record when you did it.
+
+*** TODO Take out the bins
+SCHEDULED: <2026-10-12 Mon +1w>
+
+** 3.3 Repeat from today
+=.+= counts from the day you finish, not from the old date. Put the
+cursor on =Stretch= and press ={{org.todo_next}}=: the date jumps from
+early October to tomorrow.
+
+*** TODO Stretch
+SCHEDULED: <2026-10-05 Mon .+1d>
+
+* Lesson 4: deadlines and ranges
+A deadline shows in the agenda as soon as it is 14 days away. A warning
+period such as =-3d= after the date makes that 3 days for one deadline.
+
+** 4.1 A warning period
+Put the cursor on the =>= of the deadline below, press =i=, type a
+space and =-3d=, then =<Esc>=.
+
+*** TODO Send the invoice
+DEADLINE: <2026-10-20 Tue>
+
+** 4.2 A date range
+At the end of =Holiday:= press ={{org.timestamp}}= and =<CR>=, then
+={{org.timestamp}}= again: pressed right after a date, it adds the end
+of a range. Press =l= twice and =<CR>=: =<a>--<b>= spans three days.
+
+- Holiday:
+
+** 4.3 A time range
+At the end of =Meeting:= press ={{org.timestamp}}=, =i=, type
+=14:00-15:30= and =<CR>=: one day, from 14:00 to 15:30.
+
+- Meeting:
+
+** 4.4 See them in the agenda
+Press ={{global.agenda}}=, then =<= and =a=: the week of this file, with
+the scheduled tasks, the deadlines and your ranges. ={{agenda.later}}=
+shows the next week; ={{agenda.quit}}= closes it.
+
+* What next
+That's dates. From here:
+
+- ={{org.help}}= lists every key, grouped by topic; =:h org-dates= is
+  the manual on dates, =:h org-repeat= on repeaters.
+- {{examples}} links to one file per feature, with examples and
+  exercises.

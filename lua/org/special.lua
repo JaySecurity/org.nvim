@@ -47,6 +47,33 @@ local function mark_range(src, mark)
   return pos[1], pos[2], pos[3].end_row, pos[3].end_col
 end
 
+--- Where the cursor `row`, `col` (0-based) is in the lines [first, last)
+--- of `buf` (org-src--coordinates): "end" past them, else the line in
+--- the region and the column from the end of the line (escaping commas or
+--- indentation in front of the line don't move it).
+---@return "end"|{ [1]: integer, [2]: integer }
+local function coordinates(buf, row, col, first, last)
+  if row >= last then
+    return "end"
+  end
+  if row < first then
+    return { 0, -math.huge }
+  end
+  local line = vim.api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
+  return { row - first, col - #line }
+end
+
+--- Put the cursor of `win` at `coord` (from `coordinates`) in the lines
+--- [first, last) of its buffer (org-src--goto-coordinates).
+local function goto_coordinates(win, coord, first, last)
+  local buf = vim.api.nvim_win_get_buf(win)
+  local row = coord == "end" and last - 1 or math.min(first + coord[1], last - 1)
+  row = math.max(row, first, 0)
+  local line = vim.api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
+  local col = coord == "end" and #line - 1 or #line + coord[2]
+  pcall(vim.api.nvim_win_set_cursor, win, { row + 1, math.max(0, math.min(col, #line - 1)) })
+end
+
 --- The open edit buffer of exactly this region of `src` (org-src--edit-buffer).
 local function edit_buffer_for(src, row, col, end_row, end_col)
   for ebuf, e in pairs(M.edits) do
@@ -182,6 +209,13 @@ function M.open(opts)
       or vim.api.nvim_buf_get_lines(src, row, end_row, false)
   end
   anchor(row0, col0, erow0, ecol0)
+  -- the cursor goes to the same place in the edit buffer, and back
+  -- (org-src--coordinates)
+  local coord
+  if not object and not opts.narrow and vim.api.nvim_get_current_buf() == src then
+    local cur = vim.api.nvim_win_get_cursor(0)
+    coord = coordinates(src, cur[1] - 1, cur[2], row0, erow0)
+  end
 
   local buf = vim.api.nvim_create_buf(false, false)
   local base = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(src), ":t")
@@ -266,6 +300,9 @@ function M.open(opts)
 
   local win = ui.open_buffer_window(buf, opts.window or config.opts.win_split_mode, { title = opts.name })
   state.win = win
+  if coord and vim.api.nvim_win_get_buf(win) == buf then
+    goto_coordinates(win, coord, 0, #opts.lines)
+  end
   local prev_win = vim.fn.win_getid(vim.fn.winnr("#"))
   local saved_winbar = vim.wo[win].winbar
   if not opts.narrow then
@@ -273,6 +310,14 @@ function M.open(opts)
   end
 
   local function close()
+    -- the cursor goes back to the same place in the element, whether the
+    -- edit is saved or aborted (org-edit-src-exit, which abort calls too)
+    local back, r, er
+    if coord and vim.api.nvim_get_current_buf() == buf then
+      local cur = vim.api.nvim_win_get_cursor(0)
+      back = coordinates(buf, cur[1] - 1, cur[2], 0, vim.api.nvim_buf_line_count(buf))
+      r, _, er = mark_range(src, mark)
+    end
     cleanup()
     local w = state.win
     if w and vim.api.nvim_win_is_valid(w) then
@@ -290,6 +335,9 @@ function M.open(opts)
     end
     if prev_win and vim.api.nvim_win_is_valid(prev_win) then
       pcall(vim.api.nvim_set_current_win, prev_win)
+    end
+    if back and r and er and vim.api.nvim_get_current_buf() == src then
+      goto_coordinates(0, back, r, er)
     end
   end
   state.close = close
