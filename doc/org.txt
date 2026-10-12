@@ -1147,8 +1147,9 @@ for one entry).
 Priorities
 <S-Up> / <S-Down>   (ctx) Raise / lower priority on a headline. Past the
                     highest or lowest priority the cookie is removed; the
-                    next shift in the same direction wraps around to the
-                    other end, like Emacs.
+                    next shift in the same direction right after it wraps
+                    around to the other end, like Emacs; after an edit or a
+                    cursor motion it starts again from the default.
 <C-a> / <C-x>       (ctx) Same, with the cursor on the `[#A]` cookie.
 <prefix>,           Set priority (press a letter, <Space> removes it). With
                     a count of 4 (C-u C-c ,), show the priority value.
