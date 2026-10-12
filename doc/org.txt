@@ -100,11 +100,10 @@ keys. `/` searches the list and `{` / `}` jump between sections.
 Tutor                                                *org-tutor* *:Org-tutor*
 :Org tutor [lesson] [reset]
     A guided lesson in the spirit of |vimtutor|, in an org buffer of its
-    own, so every org key works in it. The lessons make a course, in
-    order:
-      `basics`     1. the outline, TODO items and priorities, tags,
-                   dates, lists and checkboxes, tables, links (Beginner)
-      `workflow`   2. capture, the agenda and clocking (Daily workflow)
+    own, so every org key works in it. The lessons make a course, from
+    `basics` (1: the outline, TODO items, tags, dates, lists, tables and
+    links) and `workflow` (2: capture, the agenda and clocking) on, at
+    three levels: Beginner, Daily workflow and Power user.
     `:Org tutor` without a lesson lists them, each with its number,
     title, level and progress (exercises done in your saved copy, or
     "not started"): `j`/`k` and `<CR>` (or the key shown) open one,

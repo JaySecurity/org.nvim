@@ -335,17 +335,21 @@ describe("tutor", function()
       { "basics", "workflow" },
       vim.tbl_map(function(it)
         return it.value
-      end, picked.items)
+      end, vim.list_slice(picked.items, 1, 2))
     )
+    local want = tutor.lesson_names()
+    want[#want + 1] = "reset"
+    table.sort(want)
+    ok(vim.tbl_contains(want, "basics") and vim.tbl_contains(want, "workflow"))
     eq(
-      { "basics", "reset", "workflow" },
+      want,
       (function()
         local c = require("org.commands").complete("", "Org tutor ")
         table.sort(c)
         return c
       end)()
     )
-    eq({ "workflow" }, require("org.commands").complete("w", "Org tutor w"))
+    eq({ "workflow" }, require("org.commands").complete("wo", "Org tutor wo"))
     ok(vim.tbl_contains(require("org.commands").complete("tu", "Org tu"), "tutor"))
     local errs = {}
     local orig = utils.error
@@ -381,9 +385,9 @@ describe("tutor course", function()
     ok(vim.tbl_contains(meta.topics, "tables"))
     eq("org.nvim tutor 1: the basics", meta.title)
     eq(2, assert(tutor.meta("workflow")).order)
-    eq({ "basics", "workflow" }, tutor.lesson_names())
+    eq({ "basics", "workflow" }, vim.list_slice(tutor.lesson_names(), 1, 2))
     eq("workflow", tutor.next_lesson("basics"))
-    eq(nil, tutor.next_lesson("workflow"))
+    eq(tutor.lesson_names()[3], tutor.next_lesson("workflow"))
     eq("Capture, agenda and clocking", tutor.title("workflow"))
     -- the copy has no metadata lines
     local buf = assert(tutor.open("basics"))
@@ -433,11 +437,16 @@ describe("tutor course", function()
     ok(virt_lines(buf):find("Next lesson: 2. Capture, agenda and clocking (:Org tutor workflow)", 1, true))
     ok(msgs[1] and msgs[1]:find(":Org tutor workflow", 1, true), vim.inspect(msgs))
     -- the last lesson says so
+    local orig_next = tutor.next_lesson
+    tutor.next_lesson = function()
+      return nil
+    end
     local wbuf = assert(tutor.open("workflow"))
     tutor.attach(wbuf, { ["2.1"] = { heading = "Call the dentist", todo = "DONE" } }, "workflow")
     cursor_to(wbuf, "*** TODO Call the dentist")
     feed("cit")
     tutor.refresh(wbuf)
+    tutor.next_lesson = orig_next
     ok(virt_lines(wbuf):find("That was the last lesson", 1, true))
   end)
 
@@ -549,7 +558,7 @@ describe("tutor lessons", function()
   end)
 
   it("ships the basics and workflow lessons", function()
-    eq({ "basics", "workflow" }, tutor.lesson_names())
+    eq({ "basics", "workflow" }, vim.list_slice(tutor.lesson_names(), 1, 2))
   end)
 
   -- the guard against lessons drifting from the default keys
