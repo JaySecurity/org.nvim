@@ -149,4 +149,4 @@
 [109.095,"o","\u001b[22;1H\u001b[0;48;2;79;82;88m properties.org                                                           175:1 \u001b[0m\u001b[K\u001b[9;1H"]
 [109.795,"m","say: <C-c><C-c> on #+BEGIN: writes the table again, up to date."]
 [110.995,"i","<C-c><C-c>"]
-[111.045,"o","\u001b[1;1H\u001b[0m** 2.5 Update a columnview block \u001b[0;38;2;179;246;192m ✓\u001b[0m\u001b[K\u001b[12;1H\u001b[0m| Move           |   2:00 |\u001b[K\u001b[13;1H\u001b[0m| Pack the boxes |   2:00 |\u001b[K\u001b[23;1H\u001b[0mTutor \"properties\" done! That was the last lesson. :Org tutor lists them all    \u001b[K\u001b[9;1H"]
+[111.045,"o","\u001b[1;1H\u001b[0m** 2.5 Update a columnview block \u001b[0;38;2;179;246;192m ✓\u001b[0m\u001b[K\u001b[12;1H\u001b[0m| Move           |   2:00 |\u001b[K\u001b[13;1H\u001b[0m| Pack the boxes |   2:00 |\u001b[K\u001b[23;1H\u001b[0mTutor \"properties\" done! Next lesson: 7. Organize and find (:Org tutor organize)\u001b[K\u001b[9;1H"]
