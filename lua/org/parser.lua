@@ -1225,6 +1225,7 @@ function File:category()
   return props and props.CATEGORY or self.settings.category or "???"
 end
 
+---@return string
 function File:title()
   return self.settings.title or (self.filename and vim.fn.fnamemodify(self.filename, ":t:r")) or "untitled"
 end
@@ -1300,6 +1301,7 @@ end
 ---------------------------------------------------------------------------
 
 --- Title with links replaced by their descriptions and emphasis kept.
+---@return string
 function Headline:plain_title()
   local t = self.title:gsub("%[%[([^%]]-)%]%[([^%]]-)%]%]", "%2")
   t = t:gsub("%[%[([^%]]-)%]%]", "%1")
