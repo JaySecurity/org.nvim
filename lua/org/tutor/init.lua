@@ -891,15 +891,19 @@ function M.pick()
     else
       progress = "not started"
     end
+    local parts = {}
+    if meta.order then
+      parts[#parts + 1] = "lesson " .. meta.order
+    end
+    if meta.level then
+      parts[#parts + 1] = meta.level
+    end
+    parts[#parts + 1] = progress
+    parts[#parts + 1] = ":Org tutor " .. name
     items[#items + 1] = {
       value = name,
-      label = ("%s%s"):format(meta.order and (meta.order .. ". ") or "", M.title(name)),
-      desc = table.concat(
-        vim.tbl_filter(function(s)
-          return s ~= nil and s ~= ""
-        end, { meta.level, progress, ":Org tutor " .. name }),
-        " · "
-      ),
+      label = M.title(name),
+      desc = table.concat(parts, " · "),
     }
   end
   return require("org.ui").choose({ prompt = "Lesson: ", title = "org.nvim tutor", items = items })

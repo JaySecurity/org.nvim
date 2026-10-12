@@ -414,10 +414,10 @@ describe("tutor course", function()
     end
     eq(nil, tutor.start())
     ui.choose = orig
-    eq("1. The basics", seen.items[1].label)
-    eq(("Beginner · 1/%d · :Org tutor basics"):format(n), seen.items[1].desc)
-    eq("2. Capture, agenda and clocking", seen.items[2].label)
-    eq("Daily workflow · not started · :Org tutor workflow", seen.items[2].desc)
+    eq("The basics", seen.items[1].label)
+    eq(("lesson 1 · Beginner · 1/%d · :Org tutor basics"):format(n), seen.items[1].desc)
+    eq("Capture, agenda and clocking", seen.items[2].label)
+    eq("lesson 2 · Daily workflow · not started · :Org tutor workflow", seen.items[2].desc)
   end)
 
   it("names the next lesson once every exercise is done", function()
