@@ -167,7 +167,7 @@ local function place_entry(bufnr, loc, tpl, lines, pos_line, pos_col)
     level = hl and hl.level or 1
     at = pos_col == 0 and pos_line - 1 or pos_line
   elseif loc.target_entry_p then
-    local hl = file:headline_at(pos_line)
+    local hl = assert(file:headline_at(pos_line)) -- pos_line is the target entry's heading
     level = hl.level + 1
     at = tpl.prepend and hl.body_end or hl.end_line
   elseif tpl.prepend then
@@ -197,7 +197,7 @@ local function place_plain(bufnr, loc, tpl, lines, pos_line, pos_col)
   if loc.insert_here then
     at = pos_col == 0 and pos_line - 1 or pos_line
   elseif loc.target_entry_p then
-    local hl = file:headline_at(pos_line)
+    local hl = assert(file:headline_at(pos_line)) -- pos_line is the target entry's heading
     at = tpl.prepend and meta_end(bufnr, hl, true) or hl.body_end
   elseif loc.exact then
     at = split_at(bufnr, pos_line, pos_col)
@@ -220,7 +220,7 @@ local function place_item(bufnr, loc, tpl, lines, pos_line, pos_col)
   if loc.insert_here then
     s, e = pos_line, pos_line
   elseif loc.target_entry_p then
-    local hl = file:headline_at(pos_line)
+    local hl = assert(file:headline_at(pos_line)) -- pos_line is the target entry's heading
     s, e = hl.line + 1, hl.body_end
   elseif loc.exact then
     local hl = file:headline_at(pos_line)
@@ -292,7 +292,7 @@ local function place_table_line(bufnr, loc, tpl, lines, pos_line)
   elseif not loc.target_entry_p then
     s, e = 1, #file.lines
   else
-    local hl = file:headline_at(pos_line)
+    local hl = assert(file:headline_at(pos_line)) -- pos_line is the target entry's heading
     s, e = hl.line + 1, hl.body_end
   end
   if loc.exact and not loc.insert_here then

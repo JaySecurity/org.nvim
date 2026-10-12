@@ -132,7 +132,9 @@ end
 --- (org-transclusion-add-all).
 ---@param buf? integer
 function M.add_all(buf)
-  buf = (buf == nil or buf == 0) and api.nvim_get_current_buf() or buf
+  if buf == nil or buf == 0 then
+    buf = api.nvim_get_current_buf()
+  end
   if not valid(buf) then
     return
   end

@@ -549,3 +549,38 @@ describe("org-todo on an empty headline (make difftest, commands oracle)", funct
     eq({ "* TODO [#B] ", "* A" }, buf_lines(buf))
   end)
 end)
+
+describe("a timestamp with the wrong weekday keeps its text (make difftest)", function()
+  -- org-add-planning-info replaces the planning entry it sets only, and
+  -- org-timestamp-change the part of a range under the cursor only
+  with_config({ log_done = "time" })
+
+  it("on the planning line when CLOSED is added", function()
+    local buf = org_buffer({ "** TODO", "SCHEDULED: <2026-10-08 Sun 11:00> DEADLINE: <2026-09-28 Mon --2d>" }, { 1, 0 })
+    todo.cycle_next()
+    local lines = buf_lines(buf)
+    eq("** DONE ", lines[1])
+    eq(
+      "CLOSED: [TIME] SCHEDULED: <2026-10-08 Sun 11:00> DEADLINE: <2026-09-28 Mon --2d>",
+      (lines[2]:gsub("^CLOSED: %[[^%]]+%]", "CLOSED: [TIME]"))
+    )
+  end)
+
+  it("at the other end of a date range", function()
+    local buf = org_buffer({ "<2026-10-11 09:45>--<2026-10-14 Fri>" }, { 1, 9 })
+    require("org.timestamps").increment(-1)
+    eq({ "<2026-10-10 Sat 09:45>--<2026-10-14 Fri>" }, buf_lines(buf))
+  end)
+end)
+
+describe("C-c C-t on a COMMENT headline with tags (:h org-differences)", function()
+  -- Emacs puts COMMENT back after aligning the tags, so they end 8 columns
+  -- past org-tags-column; org.nvim aligns them there
+  it("aligns the tags at tags_column", function()
+    local buf = org_buffer({ "* [#B] COMMENT Alpha :@ctx:" }, { 1, 0 })
+    todo.cycle_next()
+    local line = buf_lines(buf)[1]
+    eq("* TODO [#B] COMMENT Alpha", (line:gsub("%s+:@ctx:$", "")))
+    eq(77, vim.fn.strdisplaywidth(line))
+  end)
+end)

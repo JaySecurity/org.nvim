@@ -83,8 +83,9 @@ local function eval(node)
     local a, b = eval(node.a), eval(node.b)
     local o = node.op
     local arith = ({ ["+"] = add, ["-"] = sub, ["*"] = mul, ["/"] = div, ["^"] = pow, ["**"] = pow })[o]
-    if arith and (tag(a) == "vec" or tag(b) == "vec") then
-      -- vectors of the wrong sizes: Calc leaves the operation alone
+    if arith and (tag(a) == "vec" or tag(b) == "vec" or tag(a) == "op" or tag(b) == "op") then
+      -- vectors of the wrong sizes: Calc leaves the operation alone (also
+      -- inside a formula: `([1, 2] + [[x]]) + 3`)
       local ok, r = pcall(arith, a, b)
       if ok then
         return r
@@ -109,6 +110,8 @@ local function eval(node)
       return F.idiv({ a, b })
     elseif o == "|" then
       return concat(a, b)
+    elseif o == "_" then
+      return F.subscr({ a, b })
     elseif o == "+/-" then
       return F.sdev({ a, b })
     elseif o == "mod" then

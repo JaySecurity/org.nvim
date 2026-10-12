@@ -360,9 +360,9 @@ function M.hugo_date(raw, info)
   end
   local hh, mm = rest:match("^[^%d]-(%d%d?):(%d%d)")
   local time = os.time({
-    year = tonumber(y),
-    month = tonumber(m),
-    day = tonumber(d),
+    year = tonumber(y) --[[@as integer]],
+    month = tonumber(m) --[[@as integer]],
+    day = tonumber(d) --[[@as integer]],
     hour = tonumber(hh) or 0,
     min = tonumber(mm) or 0,
     sec = 0,
@@ -483,6 +483,7 @@ local function menu(info, ctx, title)
 end
 
 local function resources(info)
+  ---@type { kind: string, maps: boolean, [integer]: org.hugo.FrontMatterMap }
   local list = { kind = "array", maps = true }
   local by_src = {}
   local cur
@@ -499,6 +500,7 @@ local function resources(info)
       if key == "title" or key == "name" then
         cur.entries[#cur.entries + 1] = { key, value }
       else
+        ---@type org.hugo.FrontMatterMap|nil
         local params
         for _, e in ipairs(cur.entries) do
           if e[1] == "params" then
@@ -751,8 +753,8 @@ end
 ---@return string|nil path, string|nil text
 function M.export_post(bufnr, h, o)
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  local filename = vim.api.nvim_buf_get_name(bufnr)
-  filename = filename ~= "" and filename or nil
+  local bufname = vim.api.nvim_buf_get_name(bufnr)
+  local filename = bufname ~= "" and bufname or nil
   local file = o.file or require("org.parser").parse(lines, filename)
   local ctx
   if h then
@@ -891,8 +893,8 @@ function M.export_wim(o)
   o = o or {}
   local bufnr = buffer_of(o)
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  local filename = vim.api.nvim_buf_get_name(bufnr)
-  filename = filename ~= "" and filename or nil
+  local bufname = vim.api.nvim_buf_get_name(bufnr)
+  local filename = bufname ~= "" and bufname or nil
   local file = require("org.parser").parse(lines, filename)
   local posts = M.posts(file)
   if #posts == 0 then
@@ -983,8 +985,8 @@ function M.export_to_md(o)
   if o.subtree then
     local bufnr = buffer_of(o)
     local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-    local filename = vim.api.nvim_buf_get_name(bufnr)
-    filename = filename ~= "" and filename or nil
+    local bufname = vim.api.nvim_buf_get_name(bufnr)
+    local filename = bufname ~= "" and bufname or nil
     local file = require("org.parser").parse(lines, filename)
     local line = o.line or vim.api.nvim_win_get_cursor(0)[1]
     local h = post_at(file, line)

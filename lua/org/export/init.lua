@@ -252,15 +252,15 @@ end
 --- `export.odt.async_convert`, or `opts.async`), the process is returned
 --- too, and `opts.on_done(result|nil, err|nil)` is called when it is done.
 ---@param format string html|md|gfm|txt|ascii|latin1|utf8|latex|pdf|beamer|org|ics|<pandoc format>
----@param opts? { bufnr?: integer, subtree?: boolean, subtree_line?: integer, body_only?: boolean, visible_only?: boolean, to_buffer?: boolean, open?: boolean, output?: string, async?: boolean, ext?: table, options?: table, on_done?: fun(result: string?, err: string?) }
+---@param opts? { bufnr?: integer, subtree?: boolean, subtree_line?: integer, body_only?: boolean, visible_only?: boolean, to_buffer?: boolean, hidden?: boolean, interactive?: boolean, open?: boolean, output?: string, async?: boolean, ext?: table, options?: table, on_done?: fun(result: string?, err: string?) }
 ---@return string|nil output path (or "buffer") / nil on failure
 ---@return org.export.Process? process running in the background
 function M.export(format, opts)
   opts = opts or {}
   local bufnr, subtree_line = resolve(opts)
   local lines = buffer_lines(bufnr)
-  local src = vim.api.nvim_buf_get_name(bufnr)
-  src = src ~= "" and src or nil
+  local bufname = vim.api.nvim_buf_get_name(bufnr)
+  local src = bufname ~= "" and bufname or nil
   local spec = M.FORMATS[format]
   if spec and spec[1] == "texinfo" and not spec.info and (cfg().texinfo or {}).use_pandoc then
     spec = nil -- pandoc fallback (export.texinfo.use_pandoc)
@@ -424,7 +424,7 @@ end
 --- local html = require("org.export").to_string("html", { body_only = true })
 --- ```
 ---@param format string
----@param opts? { bufnr?: integer, lines?: string[], filename?: string, subtree_line?: integer, body_only?: boolean, visible_only?: boolean, ext?: table, options?: table }
+---@param opts? { bufnr?: integer, lines?: string[], filename?: string, subtree_line?: integer, body_only?: boolean, visible_only?: boolean, no_final_newline?: boolean, ext?: table, options?: table }
 ---@return string
 function M.to_string(format, opts)
   opts = opts or {}
@@ -586,7 +586,8 @@ function M.stack_finish(entry, source, err)
     return
   end
   entry.finished = true
-  local log = entry.running and type(entry.source) == "number" and entry.source or nil
+  local running_source = entry.source
+  local log = entry.running and type(running_source) == "number" and running_source or nil
   if source == nil then
     local cancelled = entry.process and entry.process.cancelled
     if log and vim.api.nvim_buf_is_valid(log) then

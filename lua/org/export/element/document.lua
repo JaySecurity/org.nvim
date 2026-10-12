@@ -43,6 +43,7 @@ function P:parse(lines)
   data.pre_blank = s - 1
   local kids = {}
   local i = s
+  ---@type string|nil
   local mode = "first-section"
   -- top-level property drawer
   data.props = {}

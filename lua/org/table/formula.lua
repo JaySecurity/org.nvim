@@ -648,15 +648,19 @@ end
 --- (r, c). Returns kind ("counter", "named", "field" or "range"), the
 --- value (a string, or a list of strings for ranges; a number for
 --- counters) and the next index.
+---@return string kind, any value, integer next
 local function read_ref(m, s, i, r, c, ctx)
   local spec, j = parse_ref(s, i)
-  if not spec then
+  if not spec or not j then
     error("bad reference near: " .. s:sub(i, i + 5))
   end
   local named
   spec, named = resolve_name(m, spec, ctx)
   if named then
     return "named", named, j
+  end
+  if not spec then
+    error("bad reference near: " .. s:sub(i, i + 5))
   end
   if spec.row and spec.row.kind == "counter" and not spec.col then
     return "counter", r, j
@@ -665,11 +669,13 @@ local function read_ref(m, s, i, r, c, ctx)
   end
   local spec2
   if s:sub(j, j + 1) == ".." then
-    spec2, j = parse_ref(s, j + 2)
+    local j2
+    spec2, j2 = parse_ref(s, j + 2)
     spec2 = resolve_name(m, spec2, ctx)
-    if not spec2 then
+    if not spec2 or not j2 then
       error("bad range")
     end
+    j = j2
   end
   if not spec2 then
     local rr = resolve_row(m, spec.row, r, "single")
@@ -685,6 +691,18 @@ local function read_ref(m, s, i, r, c, ctx)
   local c2 = resolve_col(m, spec2.col, c)
   if c1 > c2 then
     c1, c2 = c2, c1
+  end
+  local hline_end = (spec.row and spec.row.kind == "hline") or (spec2.row and spec2.row.kind == "hline")
+  if spec.row and not hline_end and r1 == r2 and c1 == c2 then
+    -- org-table-get-range: an @ range of one field is that field, not a
+    -- vector (`vsum(@2..@-1)` on one row is `vsum(x)`); `$1..$1` stays a
+    -- vector (Emacs reads it as a range of the current row), and so does
+    -- a range ending on an hline (Emacs compares the hline's line)
+    local row = m.data[r1]
+    if not row or c1 < 1 or c1 > m.ncols then
+      error("reference out of range")
+    end
+    return "field", row[c1] or "", j
   end
   local vals = {}
   for rr = r1, r2 do

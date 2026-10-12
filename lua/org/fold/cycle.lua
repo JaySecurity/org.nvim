@@ -71,7 +71,7 @@ function M.show_level(lnum, level)
       -- open everything first so that each :foldclose below closes the
       -- fold it names, then close the descendants deepest first: opening
       -- the subtree again later shows its child headlines folded
-      pcall(vim.cmd, hl.line .. "," .. hl.end_line .. "foldopen!")
+      pcall(vim.api.nvim_command, hl.line .. "," .. hl.end_line .. "foldopen!")
       local desc = {}
       local function walk(h)
         for _, ch in ipairs(h.children) do
@@ -94,7 +94,7 @@ function M.show_level(lnum, level)
     end
     hide_archived(hl.line + 1, hl.end_line)
   elseif level >= 3 then
-    pcall(vim.cmd, hl.line .. "," .. hl.end_line .. "foldopen!")
+    pcall(vim.api.nvim_command, hl.line .. "," .. hl.end_line .. "foldopen!")
     M.unconceal(0, hl.line, hl.end_line)
     if level == 3 then
       close_drawers(hl.line, hl.end_line)

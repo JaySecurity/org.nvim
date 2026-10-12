@@ -158,7 +158,10 @@ local function c_pow(a, b)
     if b < 0 then
       return c_binary("/", 1, c_pow(a, -b))
     end
-    local r, base, n = 1, a, b
+    -- a number or a complex form
+    ---@type any
+    local r = 1
+    local base, n = a, b
     while n > 0 do
       if n % 2 == 1 then
         r = c_binary("*", r, base)

@@ -118,6 +118,7 @@ local function write_default(captured, cols, params, file)
     end
   end
   local hlines, indent = params.hlines, params.indent and params.indent ~= false
+  ---@type (string[]|"hline")[]
   local out = { captured[1], "hline" }
   for k = 3, #captured do
     local row = captured[k]
@@ -155,7 +156,7 @@ local function write_default(captured, cols, params, file)
   end
   if params.vlines then
     for i, row in ipairs(out) do
-      if row ~= "hline" then
+      if type(row) == "table" then
         out[i] = vim.list_extend({ "" }, row)
       end
     end

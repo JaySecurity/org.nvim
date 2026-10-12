@@ -44,7 +44,8 @@ function M.pick(spec, finish, user)
   -- each picker answers once; Snacks.picker.resume() opens a new one with
   -- these options
   local answered = setmetatable({}, { __mode = "k" })
-  local api = M.api()
+  -- pickers only calls pick() once available() said yes
+  local api = assert(M.api(), "snacks.nvim picker not available")
   -- snacks' file preview, of the buffer when the file is loaded
   local function preview(ctx)
     ctx.item.buf = pickers.buffer(ctx.item.org_item)

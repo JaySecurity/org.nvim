@@ -294,9 +294,12 @@ function M.conflicts(binds, keys)
   return out
 end
 
+---@param cmd string[]
+---@param timeout? integer
+---@return string?
 local function run(cmd, timeout)
   local ok, res = pcall(vim.system, cmd, { text = true })
-  if not ok then
+  if not ok or not res then
     return nil
   end
   local r = res:wait(timeout or 2000)

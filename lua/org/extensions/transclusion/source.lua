@@ -752,7 +752,7 @@ local function expand_nested(out, heads, ctx, res)
         block = b:lower()
       else
         local indent, value = keyword.match(line)
-        if indent then
+        if indent and value then
           local spec, err = keyword.parse(value)
           if spec and (ctx.depth or 0) + 1 >= maxd then
             err = "transclusions nested deeper than max_depth (" .. maxd .. ")"
@@ -1009,16 +1009,17 @@ resolve = function(spec, ctx)
         return nil, "No noweb chunk " .. search
       end
     elseif search and is_org then
-      local serr
-      start, _, serr = org_search(parse(lines, path, key), lines, search)
-      if not start then
+      local found, _, serr = org_search(parse(lines, path, key), lines, search)
+      if not found then
         return nil, serr
       end
+      start = found
     elseif search then
-      start = text_search(lines, search)
-      if not start then
+      local found = text_search(lines, search)
+      if not found then
         return nil, "No match for " .. search
       end
+      start = found
     end
     first, last = line_range(lines, start, spec, stop)
     if first > #lines or first < 1 then

@@ -23,8 +23,9 @@
 ---   `(x+1)*2` is `2 x + 2`. simplify, expand, collect, deriv, integ and
 ---   solve live in org.table.calc_alg, matrices in org.table.calc_vec.
 --- - Modulo forms `3 mod 7`.
---- - Quoted strings (`"big"`) are an extension: Calc turns them into
----   vectors of character codes, this module keeps them as text.
+--- - Quoted strings are vectors of character codes, as in Calc: `"ab"` is
+---   `[97, 98]`. Braces are brackets too (`x^{10}` is `x^[10]`) and `_`
+---   is the subscript operator (`a_i`, `[a, b]_2` is `b`).
 ---
 --- The evaluator is split by concern under lua/org/table/calc/: big
 --- (bignums), values (value types, modes and date forms), parser, arith
@@ -163,7 +164,7 @@ local K = {
 local V = require("org.table.calc_vec")(K)
 set_mat(V.mat_mul, V.mat_div, V.mat_pow)
 K.is_matrix = V.is_matrix
-require("org.table.calc_alg")(K)
+require("org.table.calc_alg").setup(K)
 
 M._format_float = format_float
 M._days_from_civil = days_from_civil

@@ -33,6 +33,7 @@ local VERSION = 2
 ---@field path string link path (an id, "//example.com", a cite key)
 ---@field lnum integer
 ---@field col integer
+---@field file? string file of the link (in query results)
 
 ---@class org.roam.FileEntry
 ---@field sec integer mtime seconds

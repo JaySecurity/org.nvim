@@ -11,10 +11,10 @@ you need to get started.
 - **Compare with Emacs.** If org.nvim does something differently from Emacs
   Org mode and the doc doesn't mention it
   ([`:h org-differences`](doc/org.txt)), please open an issue.
-- **Improve the docs.** The README, `doc/org.txt`,
+- **Improve the docs.** The README, the [guide](docs/guide.md), `doc/org.txt`,
   `examples/tutorial.org` and the per-feature files in `examples/` are all
   fair game.
-- **Build a feature.** The [Roadmap](README.md#-roadmap) lists what's
+- **Build a feature.** The [Roadmap](docs/guide.md#-roadmap) lists what's
   missing. Check the issues first, or open one, so work isn't duplicated.
 
 ## Development setup
@@ -79,9 +79,9 @@ To try your checkout in your own config, point lazy.nvim at it:
 | `lua/org/mobile.lua`, `lua/org/mobile/` | MobileOrg sync (`mobile.lua` holds MD5, file helpers and encryption and loads index, agenda, push, pull and flagged parts) |
 | `lua/org/agenda/` | agenda, search, sparse trees, notifications |
 | `lua/org/{capture,refile,archive,links,id,attach,footnotes}.lua`, `lua/org/capture/`, `lua/org/links/` | capture and navigation (links.lua is the facade; links/ holds parsing, search, opening, storing, inserting) |
-| `lua/org/table.lua`, `lua/org/table/` | tables and formulas (`table.lua` parses and aligns and loads the commands from `table/`) |
+| `lua/org/table.lua`, `lua/org/table/` | tables and formulas (`table.lua` parses and aligns and loads the commands from `table/`; `table/calc_alg.lua`, the Calc's symbolic algebra, loads its parts from `table/calc_alg/`) |
 | `lua/org/babel/` | source blocks |
-| `lua/org/export/`, `lua/org/export/{ox,odt,element}/` | exporters (`ox.lua`, `odt.lua` and `element.lua`, the export parser, are facades that load their parts from `ox/`, `odt/` and `element/`) |
+| `lua/org/export/`, `lua/org/export/{ox,odt,latex,html,ascii,element}/` | exporters (`ox.lua`, `odt.lua`, `latex.lua`, `html.lua`, `ascii.lua` and `element.lua`, the export parser, are facades that load their parts from `ox/`, `odt/`, `latex/`, `html/`, `ascii/` and `element/`) |
 | `syntax/`, `lua/org/{syntax,highlights}.lua`, `lua/org/ui/` | highlighting and decorations (`ui/images.lua` loads its parts from `ui/images/`) |
 | `tests/` | headless test runner and specs |
 
@@ -149,7 +149,8 @@ Some things to know before you start:
    end)
    ```
 
-4. Document it in `doc/org.txt` (and in the README if it's user-visible).
+4. Document it in `doc/org.txt` (and in the README or `docs/guide.md` if
+   it's user-visible).
 5. Run `make format`, `make test` and `make lint` (and `make typecheck`
    if you have lua-language-server).
 
@@ -196,8 +197,10 @@ usually the annotation, instead of silencing it.
 #### Strict paths
 
 The files and directories listed in `scripts/typecheck_strict.txt`
-(`lua/org/api/`, the parser and the core modules around it so far) are held to those hint
-checks too: in them, a `need-check-nil` or a `param-type-mismatch` fails
+(`lua/org/api/`, the parser and the core modules around it, structure,
+lists, clock, agenda, table, babel, capture, links, columns, mobile,
+export, pickers, health, folding, the UI, config migration, file reload
+and every extension) are held to those hint checks too: in them, a `need-check-nil` or a `param-type-mismatch` fails
 `make typecheck` like any other warning, so code that is already clean
 can't slip back. `make typecheck` runs `scripts/typecheck.lua`, which does
 one lua-language-server pass over the whole repository with the hint
@@ -396,6 +399,41 @@ fails the job. To handle a failure:
 the shrinking against a fake Emacs, so pull request CI covers that code
 without Emacs.
 
+### Watching for Org releases
+
+org.nvim is measured against one Org release, pinned by `ORG_VERSION` in
+`.github/workflows/difftest.yml` (9.8.10; `scripts/emacs-parity/common.el`
+and `docs/parity/inventory.el` name it too). Every Monday the Org releases
+workflow (`.github/workflows/org-release.yml`, also runnable from the
+Actions tab) looks up the latest release, the highest of GNU ELPA's `org`
+package and the `release_*` tags of the org-mode git repository. When it
+is newer than the pinned one, it lists the commands and options of both
+releases with `docs/parity/inventory.el` and opens an issue labelled
+`org-release` with the version and the diff: commands and options added,
+removed or moved to another library, and the ones
+`docs/parity/inventory.tsv` doesn't list yet. While that issue is open,
+later runs update it (for a still newer release too) instead of opening
+another; once it's closed, the same release isn't reported again. The
+workflow can only read the repository and write issues.
+
+[`scripts/emacs-parity/release-watch.sh`](scripts/emacs-parity/release-watch.sh)
+does the work, and runs locally too (it needs `curl`, `git`, Emacs and
+`make`; the issue step needs `gh`, and `DRY_RUN=1` only prints it):
+
+```sh
+w=scripts/emacs-parity/release-watch.sh
+$w pinned; $w latest                                    # 9.8.10, the newest
+$w inventory 9.8.10 out/old && $w inventory 9.8.11 out/new
+$w report out/old out/new 9.8.10 9.8.11 > report.md     # the issue body
+```
+
+A release only tagged in git (GNU ELPA publishes its tarball a little
+later) is fetched with `git clone` and `make autoloads`. To move to a new
+release: bump `ORG_VERSION` and the version checks under
+`scripts/emacs-parity/`, regenerate the fixtures (`make parity-fixtures`),
+give each new command and option a status in `docs/parity/inventory.tsv`,
+run `make difftest` against it, and close the issue.
+
 ## Screen snapshots
 
 Some bugs only show on screen: headline stars drawn as bold markup, a
@@ -456,8 +494,9 @@ fails the spec instead of hanging it.
 The website at <https://org-nvim.com/> is generated, never
 edited by hand: [`scripts/site/build.lua`](scripts/site/build.lua) turns
 `doc/org.txt` into one page per chapter (help tags become anchors, `|links|`
-hyperlinks and `>lua` blocks highlighted code), renders `README.md` and
-`docs/parity-review.md`, scores `docs/parity/inventory.tsv`, lists the
+hyperlinks and `>lua` blocks highlighted code), renders `README.md`,
+`docs/guide.md` (the setup and reference guide: installation, keys,
+options, integrations, extensions, roadmap) and `docs/parity-review.md`, scores `docs/parity/inventory.tsv`, lists the
 known differences from Emacs (the items of `:h org-differences`), publishes
 the extension promotion report (`scripts/extension_report.lua`, required as
 a module) as the "Extensions status" page, and exports every
@@ -672,7 +711,8 @@ Every extension is ✅ stable or 🧪 experimental (`:h
 org-extensions-stability`). The source of truth is the `stability` field
 of its module (`M.stability = "stable"` in
 `lua/org/extensions/<name>/init.lua`; a module without one is
-experimental). The README table, the `✅`/`🧪` mark of its README entry,
+experimental). The README table, the `✅`/`🧪` mark of its entry in
+`docs/guide.md`,
 the lists and the `Stability:` line of its section in `doc/org.txt` and
 `:checkhealth org` follow it, and `tests/spec/ext_stability_spec.lua`
 fails when one of them disagrees.
@@ -719,7 +759,8 @@ top of the script; change it there and here together.
 To promote, in a pull request into `dev` titled for the changelog
 (`feat(extensions): promote heatmap to stable`): set `M.stability =
 "stable"`, move the name to the stable column of the README table and to
-`Stable:` in `:h org-extensions-stability`, change its README mark to ✅
+`Stable:` in `:h org-extensions-stability`, change its mark in
+`docs/guide.md` to ✅
 and its `Stability:` line, and run `make test
 SPEC=tests/spec/ext_stability_spec.lua`. From then on, a change to its
 options, actions or keys is called out in the release notes, and a

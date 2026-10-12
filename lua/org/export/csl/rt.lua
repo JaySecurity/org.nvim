@@ -776,7 +776,7 @@ local function dedup_single(rt, substs)
   local new_attrs = U.afilter(attrs, function(p)
     return not (type(p) == "table" and (p[1] == "subst" or p[1] == "rendered-vars"))
   end)
-  local out = { new_attrs }
+  local out = { new_attrs } ---@type any[]
   for i = 1, new_c.n or #new_c do
     local x = new_c[i]
     if x == nil then

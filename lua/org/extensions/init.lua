@@ -81,7 +81,8 @@ local function track_keys()
   local actions = require("org.actions")
   local maps = config.opts.mappings
   for _, section in ipairs({ "global", "emacs_global" }) do
-    for aname, value in pairs(maps[section] or {}) do
+    local keys = maps[section]
+    for aname, value in pairs(type(keys) == "table" and keys or {}) do
       local a = registered.actions[aname] and actions.list[aname]
       if a then
         for _, lhs in ipairs(config.lhs_list(value)) do

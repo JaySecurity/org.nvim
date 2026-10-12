@@ -243,6 +243,7 @@ end
 
 -- the configured files (globbing a large org_directory takes a while),
 -- reused for `CACHE_MS` or until an org file is written or created
+---@type { at: integer, list: string[]|nil }
 local listed = { at = 0, list = nil }
 local CACHE_MS = 3000
 
@@ -271,6 +272,7 @@ function M.resolve(p, base)
   return r
 end
 
+---@return string[]
 local function configured_files()
   local now = vim.uv.now()
   if listed.list and now - listed.at < CACHE_MS then

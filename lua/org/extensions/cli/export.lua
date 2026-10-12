@@ -78,6 +78,7 @@ function M.cmd_export(words, flags)
   if not res then
     M.fail_with_messages("export failed")
   end
+  ---@cast res -nil
   M.check_prompted()
   res = vim.fs.normalize(res)
   return { data = { file = file, backend = backend, output = data.path(res), text = vim.NIL }, text = { res } }

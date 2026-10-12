@@ -430,24 +430,37 @@ describe("resolving clocks (Emacs)", function()
   end)
 
   test("keeping a dangling clock resumes it", function()
-    local start = ago(30)
-    local buf = file_buffer({ "* A", ":LOGBOOK:", "CLOCK: " .. ts(start), ":END:" })
-    with(ui, {
-      menu = function(opts)
-        ok(opts.title:match("^Dangling clock started 30 mins ago: A"), opts.title)
-        return "k"
+    -- "now" frozen: the clock starts 30 minutes before it, and the prompt
+    -- must not see a minute boundary passed in between
+    local real_time, real_date = os.time, os.date
+    local now = real_time()
+    with(os, {
+      time = function(t)
+        return t == nil and now or real_time(t)
+      end,
+      date = function(fmt, t)
+        return real_date(fmt or "%c", t or now)
       end,
     }, function()
-      with(utils, {
-        input = function()
-          return ""
+      local start = ago(30)
+      local buf = file_buffer({ "* A", ":LOGBOOK:", "CLOCK: " .. ts(start), ":END:" })
+      with(ui, {
+        menu = function(opts)
+          ok(opts.title:match("^Dangling clock started 30 mins ago: A"), opts.title)
+          return "k"
         end,
       }, function()
-        clock.resolve_clocks(true, {})
+        with(utils, {
+          input = function()
+            return ""
+          end,
+        }, function()
+          clock.resolve_clocks(true, {})
+        end)
       end)
+      eq(ts(start), clock.state.start)
+      eq({ "* A", ":LOGBOOK:", "CLOCK: " .. ts(start), ":END:" }, buf_lines(buf))
     end)
-    eq(ts(start), clock.state.start)
-    eq({ "* A", ":LOGBOOK:", "CLOCK: " .. ts(start), ":END:" }, buf_lines(buf))
   end)
 
   test("closing a dangling clock clocks it out fully, keeping the running clock", function()

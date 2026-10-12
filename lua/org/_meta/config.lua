@@ -380,6 +380,11 @@
 ---Fold `#+begin_...` blocks when a file is opened (`#+STARTUP: hideblocks`).
 ---(Emacs `org-hide-block-startup`, default: `false`)
 ---@field hide_block_startup? boolean
+---Reload a buffer when another program changes its file on disk: an
+---unmodified buffer at once (cursor and folds kept, `u` undoes it), a
+---modified one is kept and a warning shown (`:h org-reload`).
+---(Emacs `global-auto-revert-mode`, off there; default here: `true`)
+---@field reload_on_change? boolean
 ---Turn on the Beamer editing mode (`:Org beamer_mode`) when a file is opened
 ---(`#+STARTUP: beamer`). (Emacs `org-startup-with-beamer-mode`, default: `false`)
 ---@field startup_with_beamer_mode? boolean

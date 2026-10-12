@@ -315,11 +315,11 @@ function M.complete_target(arglead)
   return out
 end
 
---- Where an entry with `target` goes: { filename, lnum?, label, missing? }.
---- Without a target (or when it matches nothing) this is `file` /
---- `headline`; `missing` then names what was not found.
+--- Where an entry with `target` goes: { filename, lnum?, headline?,
+--- label, missing? }. Without a target (or when it matches nothing) this
+--- is `file` / `headline`; `missing` then names what was not found.
 ---@param target? { file?: string, heading?: string, raw: string }
----@return { filename: string, lnum?: integer, label: string, missing?: string }
+---@return { filename: string, lnum?: integer, headline?: string, label: string, missing?: string }
 function M.resolve_target(target)
   local function fallback(missing)
     local fname = default_file()

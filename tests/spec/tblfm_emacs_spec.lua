@@ -714,3 +714,64 @@ describe("tblfm: field formulas on rows written short", function()
     eq({ "2", "9", "5" }, g[3])
   end)
 end)
+
+describe("tblfm: Calc over text fields (Emacs Org 9.8.10 + Calc)", function()
+  -- difftest seeds 20, 58, 248, 267, 269, 271, 400, 1033, 50659: what
+  -- Calc makes of fields that are not numbers
+  it("braces are vectors: {{{title}}} is [[[title]]]", function()
+    eq("[[[(46 title)]]]", calc({ "| {{{title}}} | 46 |", "#+TBLFM: $3=$1*$2" })[1][3])
+    eq("[[[42 + title + 32]]]", calc({ "| 42 | {{{title}}} | 32 |", "#+TBLFM: $4=$1+$2+$3" })[1][4])
+    eq("[[[nan]]]", calc({ "| {{{title}}} | |", "#+TBLFM: $3=$1*$2;E" })[1][3])
+    eq("max(title, x)", calc({ "| {{{title}}} | x |", "#+TBLFM: $3=vmax($1..$2)" })[1][3])
+  end)
+
+  it("x^{10} is x^[10], a_{i} the subscript a_[i]", function()
+    eq("x^[10] > 71.8 ? 1 : 0", calc({ "| x^{10} | 71.8 |", "#+TBLFM: $3=if($1>$2, 1, 0)" })[1][3])
+    eq("[-4, a_[i]]", calc({ "| -4 a_{i} |", "#+TBLFM: $3=$1..$2" })[1][3])
+    eq("H_2 O a_b", calc({ "| H_2O | a_b |", "#+TBLFM: $3=$1*$2" })[1][3])
+    local g = calc({
+      "|",
+      "|---+---|",
+      "| | 80",
+      "| 94.5 | 41",
+      "| | x^{10}",
+      "|---+---|",
+      "| | |",
+      "#+TBLFM: @>$2=vsum(@2..@-1)",
+    })
+    eq("121 + x^[10]", g[5][2])
+  end)
+
+  it("a vector element starts at a brace: [src_python{1+1}, 3]", function()
+    eq("src_python + 5", calc({ "| src_python{1+1} | 3 |", "#+TBLFM: $3=vsum($1..$2)" })[1][3])
+  end)
+
+  it("a quoted string is the vector of its character codes", function()
+    eq("[a, [113, 117, 111, 116, 101, 100]]", calc({ '| a | "quoted" |', "#+TBLFM: $3=$1..$2" })[1][3])
+    eq("[114]", calc({ '| "q" |', "#+TBLFM: $2=$1+1" })[1][2])
+  end)
+
+  it("an @ range of one field is that field: vsum(task) stays", function()
+    local g = calc({
+      "| Price1",
+      "|---+---+---+---|",
+      "| | task | plan",
+      "| | | | 66",
+      "#+TBLFM: @>$2=vsum(@2..@-1)",
+    })
+    eq("vsum(task)", g[3][2])
+    -- a range ending on an hline stays a vector: vsum([Sum]) is Sum
+    eq("Sum", calc({ "| | gamma", "|---+---|", "| Sum |", "#+TBLFM: @>$1=vsum(@I..@II)" })[2][1])
+  end)
+
+  it("equal formulas compare: alpha > alpha is 0", function()
+    eq("0", calc({ "| alpha | alpha |", "#+TBLFM: $3=if($1>$2, 1, 0)" })[1][3])
+  end)
+
+  it("a table whose #+TBLFM line is empty is left alone, not aligned", function()
+    local _, lines = calc({ "| 1   | 2 |", "#+TBLFM:" })
+    eq({ "| 1   | 2 |", "#+TBLFM:" }, lines)
+    _, lines = calc({ "| 1   | 2 |", "#+TBLFM: :: " })
+    eq("| 1   | 2 |", lines[1])
+  end)
+end)

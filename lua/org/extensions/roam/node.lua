@@ -508,7 +508,7 @@ function M.insert()
       desc = fmt(c.node, c.name)
     end
     local row, col = capture().insert_link_at({ call_location = loc, link_description = desc }, c.node.id)
-    if row and vim.api.nvim_get_current_buf() == bufnr then
+    if row and col and vim.api.nvim_get_current_buf() == bufnr then
       M.cursor_after_link(row, col, insert_mode)
     end
     return
@@ -586,7 +586,7 @@ end
 function M.alias_add(alias)
   local h = here_or_warn()
   alias = h and ask("Alias: ", alias)
-  if alias then
+  if h and alias then
     M.property_add(h, "ROAM_ALIASES", alias)
   end
 end
@@ -606,7 +606,7 @@ end
 function M.ref_add(ref)
   local h = here_or_warn()
   ref = h and ask("Ref: ", ref)
-  if ref then
+  if h and ref then
     M.property_add(h, "ROAM_REFS", ref)
   end
 end
@@ -863,10 +863,13 @@ function M.refile()
     return
   end
   local c = M.read({ prompt = "Refile to", allow_new = false })
-  if not c or not c.node then
+  if not c then
     return
   end
   local node = c.node
+  if not node then
+    return
+  end
   local dbuf = utils.load_buffer(node.file)
   local dest = { bufnr = dbuf, filename = node.file }
   if node.level > 0 then
@@ -920,7 +923,9 @@ end
 ---@param e? integer
 ---@return integer
 function M.link_replace_all(bufnr, s, e)
-  bufnr = (bufnr == nil or bufnr == 0) and vim.api.nvim_get_current_buf() or bufnr
+  if bufnr == nil or bufnr == 0 then
+    bufnr = vim.api.nvim_get_current_buf()
+  end
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
   s, e = s or 1, math.min(e or #lines, #lines)
   local parser = require("org.parser")

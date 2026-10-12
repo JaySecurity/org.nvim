@@ -625,3 +625,238 @@ describe("export: Emacs parity (difftest #243)", function()
     has(out, '<ul class="org-ul">\n<li>42</li>\n</ul>')
   end)
 end)
+
+describe("export: Emacs parity (difftest known differences)", function()
+  local function latex(lines)
+    return ox.export_as("latex", lines, { body_only = true })
+  end
+
+  it("LaTeX escapes each of two backslashes (an intentional difference)", function()
+    -- Emacs writes "$\backslash$\ x" (:h org-export-unsupported); the
+    -- export NORMALISE rule of tests/emacs_parity.lua maps one to the other
+    local out = latex({ "A \\\\ x." })
+    has(out, "A $\\backslash$$\\backslash$ x.")
+    local parity = require("tests.emacs_parity")
+    local e, o = parity.normalise("export", { "A $\\backslash$\\ x." }, { "A $\\backslash$$\\backslash$ x." })
+    eq(e, o)
+  end)
+
+  it("LaTeX puts math entities of a caption in \\(...\\) as in the text", function()
+    -- org-latex--wrap-latex-math-block maps over affiliated keywords too
+    local out = latex({ "#+CAPTION[Short \\gamma]: A \\alpha\\beta and \\pi *b \\delta*", "| a |" })
+    has(out, "\\caption[Short \\(\\gamma\\)]{A \\(\\alpha \\beta\\) and \\(\\pi\\) \\textbf{b \\(\\delta\\)}}")
+  end)
+
+  it("Org export repairs plain lists like org-list-repair", function()
+    -- "1." bullets whatever the source used, sub-lists under their
+    -- parent's text, parent checkboxes from their children
+    local out = ox.export_as("org", {
+      "1) one",
+      "2) two",
+      "   1) sub",
+      "   2) [@5] subtwo",
+      "",
+      "- tag :: body",
+      "  - nested [X]",
+      "  - [ ] child",
+      "- [ ] parent",
+      "  - [X] c",
+      "  - [ ] d",
+      "    + [X] e",
+      "- [X] desc :: with",
+      "  1. [X] f",
+    }, { body_only = true })
+    eq(
+      table.concat({
+        "1. one",
+        "2. two",
+        "   1. sub",
+        "   5. [@5] subtwo",
+        "",
+        "3. tag :: body",
+        "   - nested [X]",
+        "   - [ ] child",
+        "4. [X] parent",
+        "   - [X] c",
+        "   - [X] d",
+        "     - [X] e",
+        "5. [X] desc :: with",
+        "   1. [X] f",
+        "",
+      }, "\n"),
+      out
+    )
+  end)
+
+  it("Org export indents repaired lists with spaces (an intentional difference)", function()
+    -- Emacs writes a tab from column 8 on (indent-tabs-mode); the export
+    -- NORMALISE rule expands tabs in the indentation (difftest seed 5129)
+    local out = ox.export_as("org", { "1.", "-", " 3.", "  -", "   (paren) Review" }, { body_only = true })
+    has(out, "\n        (paren) Review")
+    local parity = require("tests.emacs_parity")
+    local e, o = parity.normalise(
+      "export",
+      { "\t(paren) Review", "   \t x" },
+      { "        (paren) Review", "         x" }
+    )
+    eq(e, o)
+  end)
+
+  it("Org export keeps a sub-list under an item with only a checkbox", function()
+    -- the item's pre-blank counts lines from the bullet line
+    -- (org-element-item-parser), so the contents start on a new line
+    local out = ox.export_as("org", { "- [X]", "  - [-] a", "  - [ ] b", "-", "", "  text" }, { body_only = true })
+    eq("- [-] \n  - [-] a\n  - [ ] b\n- \n\n  text\n", out)
+  end)
+
+  it("Org export aligns headline tags by characters, as Emacs's interpreter", function()
+    -- org-element-headline-interpreter counts (length heading)
+    local out = ox.export_as("org", { "* 日本語 title :work:", "* Emoji 🎉 :x:" }, { body_only = true })
+    local lines = vim.split(out, "\n")
+    eq(77, vim.fn.strchars(lines[1]))
+    eq(77, vim.fn.strchars(lines[2]))
+    ok(lines[1]:match("^%* 日本語 title +:work:$"), lines[1])
+  end)
+
+  it("a block holding only a blank line has an empty box (ASCII) or quote (Markdown)", function()
+    -- org-ascii--box-string and org-md-quote-block replace "^" in an
+    -- empty string: nothing
+    local lines = { "#+begin_example", "", "#+end_example", "", "#+begin_quote", "", "#+end_quote", "", "End." }
+    eq(",----\n\n`----\n\n\n\nEnd.\n", (ox.export_as("ascii", lines, { body_only = true })))
+    local md = ox.export_as("md", lines, { body_only = true })
+    hasnt(md, ">")
+  end)
+
+  it("an ASCII box leaves an empty last line unprefixed only after an empty line", function()
+    -- replace-regexp-in-string "^" stops once an empty match reaches the
+    -- end of the string (difftest seeds 44, 62)
+    local function box(body)
+      local lines = { "#+begin_src" }
+      vim.list_extend(lines, body)
+      lines[#lines + 1] = "#+end_src"
+      return (ox.export_as("ascii", lines, { body_only = true }))
+    end
+    eq(",----\n| \n\n`----\n", box({ "", "" }))
+    eq(",----\n| x\n| \n`----\n", box({ "x", "" }))
+    eq(",----\n| x\n| \n\n`----\n", box({ "x", "", "" }))
+  end)
+
+  it("a timestamp keeps a habit's repeater deadline (.+2d/4d)", function()
+    local out = ox.export_as("ascii", { "Text <2026-10-01 Thu .+2d/4d> and [2026-10-01 Thu +1d/3d -2d]." }, {
+      body_only = true,
+    })
+    has(out, "<2026-10-01 Thu .+2d/4d>")
+    has(out, "[2026-10-01 Thu +1d/3d -2d]")
+  end)
+
+  it("a property drawer without :END: is text, its CUSTOM_ID unused", function()
+    local out = html({ "* H1", ":PROPERTIES:", ":CUSTOM_ID: foo", "Text after." })
+    hasnt(out, 'id="foo"')
+    has(out, ":PROPERTIES:\n:CUSTOM<sub>ID</sub>: foo\nText after.")
+  end)
+
+  it("an item with an empty tag (- :: text) is a plain item", function()
+    local out = html({ "- alpha :: one", "- :: two", "", "Para.", "", "- [ ] :: five", "- gamma :: six" })
+    has(out, "<dt>(no term)</dt><dd>:: two</dd>")
+    has(out, '<li class="off"><code>[&nbsp;]</code> :: five</li>')
+  end)
+
+  it("macros are replaced in the text before it is parsed", function()
+    -- org-macro-replace-all: {{{title}}} without #+title expands to
+    -- nothing, which empties a line (two paragraphs), stops a line
+    -- continuing a list item, empties a description tag and drops the
+    -- space it leaves at the end of a headline
+    local out = ox.export_as("org", {
+      "* Head {{{title}}}",
+      "First line",
+      "{{{title}}}",
+      "second para.",
+      "",
+      "- item one",
+      "{{{title}}} continues",
+      "- {{{title}}} :: tag gone",
+      "",
+      "=verbatim {{{title}}}= stays, {{{title}}} goes.",
+      "#+begin_src emacs-lisp",
+      "{{{nothing}}}",
+      "#+end_src",
+    }, { body_only = true })
+    eq(
+      table.concat({
+        "* Head",
+        "First line",
+        "",
+        "second para.",
+        "",
+        "- item one",
+        "  continues",
+        "- :: tag gone",
+        "",
+        "=verbatim {{{title}}}= stays,  goes.",
+        "#+begin_src emacs-lisp",
+        "  {{{nothing}}}",
+        "#+end_src",
+        "",
+      }, "\n"),
+      out
+    )
+  end)
+
+  it("macros of a caption or a title are replaced before the value is trimmed", function()
+    -- difftest seed 20231
+    local out = ox.export_as("org", {
+      "#+CAPTION: A alpha {{{title}}}",
+      ",*",
+      "",
+      "#+CAPTION[{{{title}}} short]: {{{title}}} Long =v {{{title}}}=",
+      "| a |",
+    }, { body_only = true })
+    has(out, "#+caption: A alpha\n")
+    has(out, "#+caption[ short]: Long =v {{{title}}}=\n")
+    local full = html({ "#+TITLE: Doc {{{author}}}", "x" }, { body_only = false })
+    has(full, "<title>Doc</title>")
+  end)
+
+  it("a paragraph's indentation ignores unindented lines starting with an object", function()
+    -- org-element-normalize-contents (difftest seed 120106)
+    local out = ox.export_as("org", { " plain gamma", "src_python{1+1}", "", " plain", "next" }, { body_only = true })
+    eq("plain gamma\nsrc_python{1+1}\n\n plain\nnext\n", out)
+  end)
+
+  it("a macro's value is parsed with the text around it", function()
+    local out = html({ "#+MACRO: item - $1", "{{{item(one)}}}", "{{{item(two)}}}" })
+    has(out, '<ul class="org-ul">\n<li>one</li>\n<li>two</li>\n</ul>')
+  end)
+
+  it("a footnote label defined twice exports its last definition", function()
+    -- org-export-get-footnote-definition fills its cache with puthash
+    local out = ox.export_as("ascii", {
+      "* A",
+      "Text[fn:1] and[fn:x].",
+      "",
+      "[fn:1] First def.",
+      "",
+      "[fn:x] X one.",
+      "* B",
+      "[fn:1] Second def.",
+      "",
+      "[fn:x] X two.",
+    }, { body_only = true })
+    has(out, "[1] Second def.")
+    has(out, "[2] X two.")
+    hasnt(out, "First def.")
+  end)
+
+  it("a date range whose end has no time takes the start's time", function()
+    -- org-element-timestamp-parser: hour-end defaults to hour-start (the
+    -- two spaces after a timestamp are Emacs's too)
+    local out = ox.export_as(
+      "org",
+      { "<2026-10-01 Thu 17:30>--<2026-10-03 Sat> <2026-10-01 Thu>--<2026-10-03 Sat 10:00>" },
+      {
+        body_only = true,
+      }
+    )
+    eq("<2026-10-01 Thu 17:30>--<2026-10-03 Sat 17:30>  <2026-10-01 Thu>--<2026-10-03 Sat 10:00>\n", out)
+  end)
+end)

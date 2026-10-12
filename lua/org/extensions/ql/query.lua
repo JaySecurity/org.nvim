@@ -141,6 +141,7 @@ end
 ---@return table
 function M.read_plain(s, default_predicate)
   default_predicate = default_predicate or "rifle"
+  ---@type any[]
   local terms = { "and" }
   for _, tok in ipairs(split_unquoted(s, "%s")) do
     local neg = false
@@ -748,7 +749,7 @@ P.clocked = function(pos, kw)
   return function(hl)
     for _, c in ipairs(hl.clocks or {}) do
       if c["end"] then
-        if any or test(c.start:clone({ range_end = c["end"] })) then
+        if any or (test and test(c.start:clone({ range_end = c["end"] }))) then
           return true
         end
       end

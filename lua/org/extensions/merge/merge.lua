@@ -88,8 +88,9 @@ local function set_drawer_names(opts)
     return require("org.config").opts
   end)
   if ok and type(cfg) == "table" then
-    if type(cfg.log_into_drawer) == "string" then
-      names[cfg.log_into_drawer:upper()] = true
+    local log_into = cfg.log_into_drawer
+    if type(log_into) == "string" then
+      names[log_into:upper()] = true
     end
     local into = type(cfg.clock) == "table" and cfg.clock.into_drawer
     if type(into) == "string" then
@@ -193,8 +194,10 @@ end
 -- text, or for an entry without text the titles of its children.
 local function content_sig(e)
   if e.sig == nil then
-    local s = own_text(e, true)
-    if not s:find("%S") or s:match("^%s*%z%s*$") then
+    local text = own_text(e, true)
+    ---@type string|false
+    local s = text
+    if not text:find("%S") or text:match("^%s*%z%s*$") then
       s = false
       if #e.children > 0 then
         local titles = {}

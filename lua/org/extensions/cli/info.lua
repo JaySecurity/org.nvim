@@ -21,6 +21,7 @@ function M.cmd_templates()
     local t = templates[k]
     local group = type(t) ~= "table"
     local desc = type(t) == "table" and t.description or (type(t) == "string" and t) or ""
+    ---@type string|vim.NIL
     local target = vim.NIL
     if not group then
       local ok, p = pcall(capture.target_path, t)

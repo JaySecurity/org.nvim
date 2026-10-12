@@ -177,8 +177,8 @@ local function dt_subheading(bufnr, s, e, level, title, cmp)
   end
   -- ... and one is added when org--blank-before-heading-p says so
   local blank = false
-  local setting = config.opts.blank_before_new_entry
-  setting = type(setting) == "table" and setting.heading or setting
+  local opt = config.opts.blank_before_new_entry
+  local setting = type(opt) == "table" and opt.heading or opt
   if setting == true then
     blank = b > 0
   elseif setting == "auto" and b > 0 then
@@ -264,7 +264,7 @@ function M.ensure_datetree(bufnr, parent_lnum, d, tree_type)
   local created = false
   for _, h in ipairs(hier) do
     if line then
-      local hl = files.get_buffer(bufnr):headline_at(line)
+      local hl = assert(files.get_buffer(bufnr):headline_at(line)) -- a datetree node's heading
       level, s, e = hl.level + 1, hl.line + 1, hl.end_line
     end
     line, created = dt_subheading(bufnr, s, e, level, h[1], h[2])
@@ -298,8 +298,7 @@ local function track_target_changes(loc, before)
   loc.original_lines = before
   loc.changes = {}
   local after = vim.api.nvim_buf_get_lines(loc.bufnr, 0, -1, false)
-  local hunks =
-    vim.diff(table.concat(before, "\n") .. "\n", table.concat(after, "\n") .. "\n", { result_type = "indices" })
+  local hunks = utils.diff_indices(table.concat(before, "\n") .. "\n", table.concat(after, "\n") .. "\n")
   for _, h in ipairs(hunks) do
     if h[4] > 0 then
       loc.changes[#loc.changes + 1] = {

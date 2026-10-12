@@ -26,6 +26,8 @@ package.loaded["org.links"] = M
 ---@field raw string
 ---@field target string link path as written (unescaped, newlines collapsed)
 ---@field desc string|nil
+---@field raw_target? string bracket link target as written, before unescaping
+---@field desc_start? integer 1-based column of the description
 ---@field start_col integer 1-based inclusive (in the line `lnum`)
 ---@field end_col integer 1-based inclusive (in the line `end_lnum`)
 ---@field lnum? integer

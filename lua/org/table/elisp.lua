@@ -702,6 +702,7 @@ S.cond = function(x, env)
   end
 end
 S["and"] = function(x, env)
+  ---@type any
   local res = true
   for i = 2, x.n do
     res = eval(x[i], env)

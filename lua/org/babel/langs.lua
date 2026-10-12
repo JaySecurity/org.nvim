@@ -271,6 +271,7 @@ local function bash_assignment(name, val, sep, hline)
 end
 
 --- Option `key` of language `lang` (`babel.languages[lang][key]`), else `default`.
+---@return any
 local function lang_opt(lang, key, default)
   local cfg = (require("org.config").opts.babel.languages or {})[lang]
   if type(cfg) == "table" and cfg[key] ~= nil then
@@ -558,7 +559,7 @@ local function words(v)
     return {}
   end
   local ok, r = pcall(lisp.read, v)
-  if ok and is_list(r) then
+  if ok and type(r) == "table" and is_list(r) then
     local out = {}
     for i, x in ipairs(r) do
       out[i] = lisp.princ(x)
@@ -1007,7 +1008,7 @@ end
 --- Build how to run a block with an external program. Returns a spec:
 --- `{ steps = { { cmd = argv|string, stdin?, script?, env? } }, result_file? }`.
 --- A string `cmd` runs through `sh -c`.
----@param ctx { cmd: string[], ext: string, graphics_file?: string }
+---@param ctx { cmd: string[], ext: string, graphics_file?: string, colnames?: table }
 function M.prepare(lang, body, args, vars, ctx)
   local fam = M.family(lang)
   local rp = require("org.babel.results").result_params(args)

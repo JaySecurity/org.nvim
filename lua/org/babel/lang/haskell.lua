@@ -172,7 +172,7 @@ end
 --- Visit `file` (find-file): in this window, else in a split when the
 --- current buffer can't be hidden.
 local function open_file(file)
-  if not pcall(vim.cmd, "hide edit " .. vim.fn.fnameescape(file)) then
+  if not pcall(vim.api.nvim_command, "hide edit " .. vim.fn.fnameescape(file)) then
     vim.cmd("split " .. vim.fn.fnameescape(file))
   end
 end

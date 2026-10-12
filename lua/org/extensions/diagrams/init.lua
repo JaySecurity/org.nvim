@@ -138,7 +138,7 @@ local function runnable_blocks(bufnr)
   local out = {}
   for _, b in ipairs(blocks.parse_blocks(lines)) do
     if not b.call and set[b.lang] then
-      local args = babel.block_args(b, file, bufnr)
+      local args = babel.block_args(b, file, bufnr) or {}
       local ev = args.eval or (args.noeval and "no")
       if ev ~= "no" and ev ~= "never" and ev ~= "query" then
         table.insert(out, 1, b)
@@ -336,7 +336,9 @@ end
 ---@param bufnr? integer
 ---@return string[] unused, string|nil dir
 function M.unreferenced(bufnr)
-  bufnr = (bufnr == nil or bufnr == 0) and vim.api.nvim_get_current_buf() or bufnr
+  if bufnr == nil or bufnr == 0 then
+    bufnr = vim.api.nvim_get_current_buf()
+  end
   local file = vim.api.nvim_buf_get_name(bufnr)
   if file == "" then
     return {}, nil
@@ -389,7 +391,7 @@ end
 function M.clean(dry)
   local utils = require("org.utils")
   local unused, dir = M.unreferenced(0)
-  if #unused == 0 then
+  if #unused == 0 or not dir then
     utils.notify("diagrams: no unused diagrams" .. (dir and (" in " .. require("org.utils").abbreviate(dir)) or ""))
     return 0
   end

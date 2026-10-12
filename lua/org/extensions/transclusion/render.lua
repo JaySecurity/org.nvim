@@ -81,7 +81,7 @@ end
 local function resolve_at(buf, row, env)
   local line = api.nvim_buf_get_lines(buf, row - 1, row, false)[1] or ""
   local indent, value = keyword.match(line)
-  if not indent then
+  if not indent or not value then
     return nil, "not a #+transclude: line"
   end
   local spec, err = keyword.parse(value)
@@ -96,7 +96,7 @@ end
 local function open_folds(buf, first, last)
   for _, w in ipairs(vim.fn.win_findbuf(buf)) do
     api.nvim_win_call(w, function()
-      pcall(vim.cmd, string.format("silent! %d,%dfoldopen!", first, last))
+      pcall(vim.api.nvim_command, string.format("silent! %d,%dfoldopen!", first, last))
     end)
   end
 end
@@ -124,6 +124,8 @@ end
 -- differ (marks, folds and the cursor stay on the others).
 local function replace_text(buf, r, lines)
   local old = r.data.lines
+  -- vim.text.diff is Neovim 0.12+; 0.11, still supported, has only vim.diff
+  ---@diagnostic disable-next-line: deprecated
   local diff = (vim.text and vim.text.diff) or vim.diff
   local ok, hunks = pcall(diff, table.concat(old, "\n") .. "\n", table.concat(lines, "\n") .. "\n", {
     result_type = "indices",
@@ -306,7 +308,7 @@ local function render(buf, st, refresh)
       if ok then
         uok, u = pcall(decorations.ui_options, buf)
       end
-      ui = uok and u.indent_mode and { u = u, widths = decorations.indent_widths } or false
+      ui = uok and u and u.indent_mode and { u = u, widths = decorations.indent_widths } or false
     end
     if not ui or not level or level <= 0 then
       return 0
@@ -339,7 +341,8 @@ local function render(buf, st, refresh)
       end
       local n = res and #res.lines or 0
       if
-        n > 0
+        res
+        and n > 0
         and lines[kw.row + n] ~= nil
         and vim.deep_equal(vim.list_slice(lines, kw.row + 1, kw.row + n), res.lines)
       then

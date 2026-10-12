@@ -187,6 +187,8 @@ do
         base, prefix = rest, p
       end
     end
+    -- false: not a unit (cached too)
+    ---@type table|false
     local info = false
     if def then
       local factor = eval(parse(def[1]))
@@ -265,10 +267,11 @@ do
     -- the same unit with different prefixes: into the last one (km m is
     -- 1000 m^2), by exact powers of ten when they are positive, like Calc
     for i, x in ipairs(units) do
-      local ux = unit_info(x[1])
+      -- the factors of a monomial are known units
+      local ux = assert(unit_info(x[1]))
       for j = i + 1, #units do
         local y = units[j]
-        local uy = unit_info(y[1])
+        local uy = assert(unit_info(y[1]))
         if x[2] ~= 0 and y[2] ~= 0 and ux.base == uy.base then
           coef = mul(coef, pow(10, (ux.prefix - uy.prefix) * x[2]))
           y[2], x[2] = y[2] + x[2], 0
@@ -281,7 +284,7 @@ do
       for j = i + 1, #units do
         local y = units[j]
         if x[2] ~= 0 and x[2] == -y[2] then
-          local ux, uy = unit_info(x[1]), unit_info(y[1])
+          local ux, uy = assert(unit_info(x[1])), assert(unit_info(y[1]))
           if same_dims(ux.dims, uy.dims) then
             local ratio = x[2] > 0 and div(ux.factor, uy.factor) or div(uy.factor, ux.factor)
             coef = mul(coef, pow(ratio, math.abs(x[2])))

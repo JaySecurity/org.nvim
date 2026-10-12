@@ -121,7 +121,7 @@ local function ioctl_cell_size()
   )
   for _, fd in ipairs({ 1, 0, 2 }) do
     local ok, w, h = pcall(function()
-      local sz = ffi.new("org_winsize")
+      local sz = ffi.new("org_winsize") --[[@as { row: integer, col: integer, xpixel: integer, ypixel: integer }]]
       if ffi.C.ioctl(fd, request, sz) ~= 0 or sz.col == 0 or sz.row == 0 or sz.xpixel == 0 then
         return nil
       end

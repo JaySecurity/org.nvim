@@ -945,7 +945,7 @@ function M.quit()
   })
   if vim.api.nvim_tabpage_is_valid(st.tab) then
     if #vim.api.nvim_list_tabpages() > 1 then
-      pcall(vim.cmd, "tabclose " .. vim.api.nvim_tabpage_get_number(st.tab))
+      pcall(vim.api.nvim_command, "tabclose " .. vim.api.nvim_tabpage_get_number(st.tab))
     end
   end
   for _, b in ipairs({ st.buf, st.bg_buf }) do

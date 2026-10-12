@@ -42,13 +42,13 @@ end
 --- Close the fold starting at lnum if it is open.
 local function close_at(lnum)
   if vim.fn.foldclosed(lnum) == -1 and vim.fn.foldlevel(lnum) > 0 then
-    pcall(vim.cmd, lnum .. "foldclose")
+    pcall(vim.api.nvim_command, lnum .. "foldclose")
   end
 end
 
 local function open_at(lnum)
   if vim.fn.foldclosed(lnum) ~= -1 then
-    pcall(vim.cmd, lnum .. "foldopen")
+    pcall(vim.api.nvim_command, lnum .. "foldopen")
   end
 end
 
@@ -89,7 +89,7 @@ local function open_outline(s, e)
     end
   end
   if next(keep) == nil then
-    pcall(vim.cmd, s .. "," .. e .. "foldopen!")
+    pcall(vim.api.nvim_command, s .. "," .. e .. "foldopen!")
     return
   end
   local l = s
@@ -103,7 +103,7 @@ local function open_outline(s, e)
       -- one level at a time, so that a closed block inside stays closed
       local tries = 0
       while vim.fn.foldclosed(l) == fc and tries < 100 do
-        pcall(vim.cmd, l .. "foldopen")
+        pcall(vim.api.nvim_command, l .. "foldopen")
         tries = tries + 1
       end
       if vim.fn.foldclosed(l) == fc then

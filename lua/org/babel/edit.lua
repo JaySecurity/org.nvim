@@ -117,7 +117,7 @@ local function native_indent(ft, lines, idx, like)
   local amount
   vim.api.nvim_buf_call(scratch, function()
     pcall(vim.api.nvim_win_set_cursor, 0, { idx, 0 })
-    local ie = vim.bo.indentexpr
+    local ie = vim.bo.indentexpr --[[@as string]]
     if ie ~= "" then
       local ok, v = pcall(function()
         vim.v.lnum = idx

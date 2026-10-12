@@ -238,6 +238,9 @@ function M.wrap_region(opts)
     vim.api.nvim_win_set_cursor(0, { lnum, col })
     M.next_row()
     local info2 = M.at_cursor()
+    if not info2 then
+      return
+    end
     local row2, field2 = cursor_pos(info2)
     local t2 = info2.tbl
     pad_rows(t2)

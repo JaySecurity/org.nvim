@@ -727,6 +727,9 @@ function M.collect(bufnr, lnum)
     return nil
   end
   local info = tbl().find(bufnr, l)
+  if not info then
+    return nil
+  end
   local opts = vim.deepcopy(M.default_options)
   local k = info.start - 1
   local plots = {}
@@ -780,7 +783,7 @@ function M.gnuplot(bufnr, lnum)
   lnum = lnum or vim.api.nvim_win_get_cursor(0)[1]
   local prog = require("org.config").opts.plot_gnuplot_program or "gnuplot"
   local opts, rows, ncols = M.collect(bufnr, lnum)
-  if not opts then
+  if not opts or not rows then
     utils.warn("No table to plot")
     return false
   end

@@ -33,10 +33,11 @@ end
 function M.new_entry(arg)
   local d = date.today()
   if type(arg) == "string" and vim.trim(arg) ~= "" then
-    d = read_date(arg, "Journal entry")
-    if not d then
+    local picked = read_date(arg, "Journal entry")
+    if not picked then
       return
     end
+    d = picked
   end
   core.open(d, { entry = true })
 end

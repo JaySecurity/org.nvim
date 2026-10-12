@@ -334,7 +334,8 @@ function M.open(opts)
   vim.wo.number = false
   vim.wo.relativenumber = false
   render(state)
-  vim.api.nvim_win_set_height(0, math.min(#state.rows + 3, math.floor(vim.o.lines / 2)))
+  -- :resize, not nvim_win_set_height (deprecated on Neovim 0.13)
+  vim.cmd("resize " .. math.min(#state.rows + 3, math.floor(vim.o.lines / 2)))
   vim.api.nvim_create_autocmd("BufWipeout", {
     buffer = buf,
     once = true,

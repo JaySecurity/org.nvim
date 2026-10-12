@@ -9,6 +9,9 @@
 
 local M = {}
 
+-- vim.text.diff is Neovim 0.12+; 0.11, still supported, has only vim.diff
+---@type fun(a: string, b: string, opts: table): integer[][]?
+---@diagnostic disable-next-line: deprecated
 local xdiff = (vim.text and vim.text.diff) or vim.diff
 
 local function join(lines)

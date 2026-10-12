@@ -401,7 +401,7 @@ end
 
 --- Re-read the table starting at `info.start` (after a buffer change).
 local function reload(info)
-  local fresh = M.find(0, info.start)
+  local fresh = assert(M.find(0, info.start), "no table")
   fresh.tbl = M.parse(fresh.lines)
   pad_rows(fresh.tbl)
   return fresh

@@ -91,6 +91,7 @@ end
 -- case as known in its spec instead.
 --   emacs = { { pattern, replacement }, ... }  gsub on each Emacs line
 --   both = { { pattern, replacement }, ... }  gsub on the lines of both sides
+--     (a replacement is a string or a function, as for gsub)
 --   drop = { pattern, ... }  lines dropped on both sides
 --   ids = pattern  generated ids, renamed on each side to ID1, ID2, ... in
 --     order of first appearance (links between them still have to agree)
@@ -99,12 +100,44 @@ M.NORMALISE = {
     -- ids Org makes up for headlines, footnotes, tables, ... are random
     -- (org-export-new-reference); org.nvim makes up others
     ids = "org%x%x%x%x%x%x%x",
+    both = {
+      -- LaTeX: a backslash followed by another. Emacs's
+      -- org-latex-plain-text escapes the first and copies the second as
+      -- is ("\\ x" is "$\backslash$\ x", "\\$" a broken "\\$"); org.nvim
+      -- escapes both (:h org-export-unsupported). Each pair of escaped
+      -- backslashes is written the Emacs way on both sides.
+      { "%$\\backslash%$%$\\backslash%$", "$\\backslash$\\" },
+      -- Org export: org-list-repair re-indents list lines with
+      -- indent-line-to, which writes tabs from column 8 on
+      -- (indent-tabs-mode is on by default); org.nvim writes spaces (:h
+      -- org-export-unsupported). Tabs in the indentation as spaces, tab
+      -- stops every 8 columns.
+      {
+        "^[ \t]*\t[ \t]*",
+        function(ws)
+          local col = 0
+          for c in ws:gmatch(".") do
+            col = c == "\t" and (math.floor(col / 8) + 1) * 8 or col + 1
+          end
+          return string.rep(" ", col)
+        end,
+      },
+    },
   },
   agenda = {
     emacs = {
       -- the hint lines name the key that edits the query: Vim's count
       -- prefix instead of Emacs' C-u (:h org-agenda-keys, "r")
       { "‘C%-u r’", "‘1 r’" },
+    },
+  },
+  commands = {
+    both = {
+      -- org-todo on a COMMENT headline with tags: Emacs puts COMMENT back
+      -- after aligning the tags, which end 8 columns too far right;
+      -- org.nvim aligns them (:h org-differences). The tags of a COMMENT
+      -- headline are compared after a single space.
+      { "^(%*+ .-COMMENT .-)%s+(:[%w_@#%%:\128-\255]+:)$", "%1 %2" },
     },
   },
   lint = {

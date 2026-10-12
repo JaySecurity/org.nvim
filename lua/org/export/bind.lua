@@ -180,6 +180,7 @@ function M.install(keywords)
   end
   local opts = vim.deepcopy(saved)
   for _, b in ipairs(binds) do
+    ---@type table<string, any>
     local t = opts
     for i = 1, #b.path - 1 do
       local k = b.path[i]

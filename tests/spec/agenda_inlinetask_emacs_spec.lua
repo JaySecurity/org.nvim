@@ -92,4 +92,24 @@ describe("inline tasks in the agenda", function()
       end)
     )
   end)
+
+  -- org-agenda-get-timestamps and org-agenda-get-blocks find the heading
+  -- of a timestamp with org-outline-regexp-bol, which stops at an END line:
+  -- what follows it is an entry titled "END", with the inline task's tags
+  it("a timestamp after an inline task's END line is an entry titled END", function()
+    write({
+      "* Project :work:",
+      STARS .. " TODO Inline :home:",
+      STARS .. " END",
+      "After <2026-10-01 Thu>",
+      "<2026-10-03 Sat>--<2026-10-04 Sun>",
+      "* Next",
+    })
+    eq(
+      { "END :work::home:", "(1/2): END :work::home:", "(2/2): END :work::home:" },
+      entries(function(a)
+        a.open_agenda({ span = "week", anchor = require("org.date").read_date("2026-09-28"):days() })
+      end)
+    )
+  end)
 end)

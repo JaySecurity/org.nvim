@@ -6,6 +6,7 @@
 -- copied by hand:
 --   doc/org.txt          → manual/<chapter tag>.html (vimdoc → HTML)
 --   README.md            → index.html
+--   docs/guide.md        → guide.html (setup, keys, options, extensions)
 --   examples/*.org       → examples/<name>.html, exported by org.nvim's own
 --                          HTML exporter (body only, no Babel evaluation)
 --   docs/parity-review.md, docs/parity/inventory.tsv → parity/
@@ -232,6 +233,7 @@ end
 -- repository file → site page
 local SITE_MAP = {
   ["README.md"] = "index.html",
+  ["docs/guide.md"] = "guide.html",
   ["doc/org.txt"] = "manual/index.html",
   ["docs/parity-review.md"] = "parity/review.html",
   ["docs/parity/inventory.tsv"] = "parity/index.html",
@@ -306,6 +308,7 @@ local function markdown_page(src, path, title, group)
 end
 
 markdown_page("README.md", "index.html", "Home", "home")
+markdown_page("docs/guide.md", "guide.html", "Guide", "guide")
 markdown_page("docs/parity-review.md", "parity/review.html", "Parity reviews", "parity")
 
 -- Parity scorecard ----------------------------------------------------------------
@@ -903,7 +906,12 @@ local function nav_html(page)
       .. html.escape(label or p.title)
       .. "</a></li>"
   end
-  local out = { "<ul>", item(by_path["index.html"], "Home"), item(by_path["playground.html"], "Playground") }
+  local out = {
+    "<ul>",
+    item(by_path["index.html"], "Home"),
+    item(by_path["guide.html"], "Guide"),
+    item(by_path["playground.html"], "Playground"),
+  }
   local function group(title, key, filter)
     local open = page.group == key and " open" or ""
     out[#out + 1] = '<li><details class="group"' .. open .. "><summary>" .. title .. "</summary><ul>"

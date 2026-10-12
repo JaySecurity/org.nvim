@@ -118,8 +118,6 @@ local function agenda(file)
   config.opts.agenda.show_current_time_in_grid = false
   -- difftest.el loads org-inlinetask (common.el): headlines of level 15
   -- and deeper are inline tasks there, and their END lines no headlines.
-  -- (The visibility oracle leaves inline tasks off for now: org.nvim
-  -- folds them differently, see known.lua.)
   config.opts.inlinetask_min_level = 15
   local out = {}
   local okc, err = pcall(function()
@@ -175,6 +173,10 @@ end
 
 local function visibility(file)
   local fold = require("org.fold")
+  local config = require("org.config")
+  -- inline tasks on, as in Emacs (see `agenda`)
+  local saved_inline = config.opts.inlinetask_min_level
+  config.opts.inlinetask_min_level = 15
   vim.cmd("silent! only!")
   vim.cmd("silent! %bwipeout!")
   vim.cmd("edit " .. vim.fn.fnameescape(file))
@@ -193,6 +195,7 @@ local function visibility(file)
     dump("S" .. i)
   end
   vim.cmd("silent! %bwipeout!")
+  config.opts.inlinetask_min_level = saved_inline
   return table.concat(out, "\n") .. "\n"
 end
 

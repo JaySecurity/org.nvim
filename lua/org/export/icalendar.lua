@@ -22,6 +22,10 @@ local function icfg()
 end
 
 --- Option value from config with the Emacs default.
+--- The icalendar option `name`, or `default` when it is unset.
+---@param name string
+---@param default any
+---@return any
 local function opt(name, default)
   local v = icfg()[name]
   if v == nil then
@@ -514,7 +518,7 @@ local function vtodo(entry, uid, summary, location, description, cats, tz, class
   if dl and not repeat_until then
     s = s .. M.convert_timestamp(dl, "DUE", nil, tz) .. "\n"
   end
-  if dl_repeat and not (repeat_value == dl.repeater_value and repeat_unit == dl.repeater_unit) then
+  if dl_repeat and dl and not (repeat_value == dl.repeater_value and repeat_unit == dl.repeater_unit) then
     utils.warn("Not yet implemented: different repeaters on SCHEDULED and DEADLINE.  Skipping.")
   elseif dl_repeat and sc and not sc_repeat then
     utils.warn("Not yet implemented: repeater on DEADLINE but not SCHEDULED.  Skipping.")
@@ -837,7 +841,7 @@ local EXT = { ascii_charset = "utf-8", ascii_links_to_notes = false }
 
 --- Export Org lines to an iCalendar string (LF line endings).
 ---@param lines string[]
----@param opts? { filename?: string, bufnr?: integer, body_only?: boolean, ext?: table }
+---@param opts? { filename?: string, bufnr?: integer, body_only?: boolean, subtree_line?: integer, visible_only?: boolean, ext?: table }
 ---@return string
 function M.to_string(lines, opts)
   opts = opts or {}

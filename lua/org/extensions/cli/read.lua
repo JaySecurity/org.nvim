@@ -30,6 +30,7 @@ local function open_agenda(words, flags)
     if not d then
       fail("cannot read date " .. flags.date, "bad_value", { date = flags.date })
     end
+    ---@cast d -nil
     anchor = d:days()
   end
   local span
@@ -47,6 +48,7 @@ local function open_agenda(words, flags)
       )
     end
   end
+  ---@type string, string|vim.NIL
   local label, key = what, vim.NIL
   local custom = not (what == "todo" or what == "tags" or what == "tags-todo")
     and type((config.opts.agenda.custom_commands or {})[what]) == "table"
@@ -181,6 +183,7 @@ local function match_predicate(match)
   if not pred then
     fail("bad match " .. match .. ": " .. tostring(e), "bad_value", { match = match })
   end
+  ---@cast pred -nil
   return pred
 end
 
@@ -249,6 +252,7 @@ local function date_range(spec, flag)
     if not d then
       fail(string.format("%s: cannot read date %s", flag, s), "bad_value", { date = s })
     end
+    ---@cast d -nil
     return d:days()
   end
   local from, to = day(a), day(b)

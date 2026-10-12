@@ -236,6 +236,7 @@
 ---| "meta_right" # Demote / move column right
 ---| "meta_shift_return" # New TODO heading / checkbox item
 ---| "meta_up" # Move subtree / item / row / element up
+---| "migrate_config" # Convert an nvim-orgmode setup (:Org migrate_config [file])
 ---| "mouse_context_menu" # Context menu for the cursor position (org-mouse-show-context-menu)
 ---| "mouse_end_headline" # End of the headline, before the tags (org-mouse-end-headline)
 ---| "mouse_insert_checkbox" # Checkbox on the item (org-mouse-insert-checkbox)

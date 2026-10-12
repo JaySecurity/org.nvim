@@ -649,8 +649,16 @@ local function start_repl(sess, opts)
   })
 end
 
+---@class org.babel.SessionOpts
+---@field lang string
+---@field family string
+---@field name string
+---@field cmd? string[] the REPL command (none for a Lua session)
+---@field cwd? string
+---@field explicit? boolean `cmd` comes from a header argument (`:ruby`)
+
 --- Start a session.
----@param opts { lang: string, family: string, name: string, cmd: string[], cwd?: string, explicit?: boolean }
+---@param opts org.babel.SessionOpts
 local function start(opts)
   local sess = {
     key = key(opts.family, opts.name),
@@ -685,7 +693,7 @@ end
 
 --- The running session for (family, name), started when needed.
 --- `opts.explicit`: `cmd` comes from a header argument (`:ruby`).
----@param opts { lang: string, family: string, name: string, cmd?: string[], cwd?: string, explicit?: boolean }
+---@param opts org.babel.SessionOpts
 function M.get(opts)
   local sess = M.sessions[key(opts.family, opts.name)]
   if sess and sess.alive then
@@ -704,7 +712,7 @@ end
 --- expression, as typed at the prompt).
 --- `opts.params` are the result params (python formats the value like
 --- Emacs), `opts.file` the graphics file.
----@param opts? { timeout?: integer, echo?: boolean, params?: string[], file?: string }
+---@param opts? { timeout?: integer, echo?: boolean, typed?: boolean, params?: string[], file?: string } `typed`: typed at the session's prompt
 function M.eval(sess, code, mode, cb, opts)
   opts = opts or {}
   if sess.kind == "lua" then

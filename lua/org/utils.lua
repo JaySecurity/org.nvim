@@ -951,12 +951,22 @@ function M.load_buffer(path)
   return b
 end
 
+--- The hunks between texts `a` and `b`, as `{ start_a, count_a, start_b,
+--- count_b }` lists: Neovim's xdiff with `result_type = "indices"`
+--- (`vim.text.diff` on Neovim 0.12+, `vim.diff` before it).
+---@param a string
+---@param b string
+---@return integer[][]
+function M.diff_indices(a, b)
+  local xdiff = (vim.text and vim.text.diff) or vim.diff
+  return xdiff(a, b, { result_type = "indices" }) --[[@as integer[][] ]]
+end
+
 --- Restore a synchronous edit snapshot without replacing unchanged lines.
 --- This keeps unrelated extmarks and cursor locations intact on rollback.
 function M.restore_buffer(bufnr, lines, modified)
   local current = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  local hunks =
-    vim.diff(table.concat(current, "\n") .. "\n", table.concat(lines, "\n") .. "\n", { result_type = "indices" })
+  local hunks = M.diff_indices(table.concat(current, "\n") .. "\n", table.concat(lines, "\n") .. "\n")
   for i = #hunks, 1, -1 do
     local h = hunks[i]
     local start = h[2] == 0 and h[1] or h[1] - 1

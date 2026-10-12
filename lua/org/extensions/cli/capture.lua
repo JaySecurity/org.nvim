@@ -147,6 +147,7 @@ function M.cmd_capture(words, flags)
       if not lines then
         fail("no such file: " .. p, "bad_value", { file = p })
       end
+      ---@cast lines -nil
       text = table.concat(lines, "\n")
     end
     local ok, obj = pcall(vim.json.decode, text, { luanil = { object = true, array = true } })
@@ -221,9 +222,11 @@ function M.cmd_protocol(words, flags)
   end
   local protocol = require("org.protocol")
   local h, params = protocol.parse(url)
-  if not h then
+  if not h or type(params) ~= "table" then
     fail(tostring(params), "bad_value", { url = url })
   end
+  ---@cast h -nil
+  ---@cast params table
   if state.session then
     -- after the request returns, with this Neovim's own prompts back
     vim.schedule(function()
@@ -250,7 +253,7 @@ function M.cmd_protocol(words, flags)
       local bufnr, line = store_capture(tpl, { initial = initial })
       return { bufnr = bufnr, line = line }
     end,
-  })
+  }) --[[@as { bufnr: integer, line: integer|nil }]]
   state.touched = true
   M.save_all(flags)
   local path = data.path(vim.api.nvim_buf_get_name(res.bufnr))

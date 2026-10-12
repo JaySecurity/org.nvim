@@ -300,7 +300,10 @@ local function write_coverage()
   end
 end
 
-local files = _G.arg and #_G.arg > 0 and _G.arg or vim.fn.glob(root .. "/tests/spec/**/*_spec.lua", false, true)
+-- a copy of the list part only: `arg` also holds the script at index 0,
+-- which vim.tbl_filter (pairs) would keep as a spec file
+local files = _G.arg and #_G.arg > 0 and { unpack(_G.arg) }
+  or vim.fn.glob(root .. "/tests/spec/**/*_spec.lua", false, true)
 local progress = vim.env.ORG_TEST_PROGRESS
 
 --- Spec files that time their work: a parallel run starts them after every
