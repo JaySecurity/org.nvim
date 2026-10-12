@@ -404,6 +404,9 @@ function M.render()
     return
   end
   local step = current()
+  if not step then
+    return
+  end
   local lines, marks = {}, {}
   local function add(text, group, from, to)
     lines[#lines + 1] = text
@@ -568,6 +571,9 @@ end
 -- keys of the current step (`step.keys`), removed when the step changes
 local function map_step_keys()
   local s = M.session
+  if not s then
+    return
+  end
   for _, lhs in ipairs(s.step_keys or {}) do
     pcall(vim.keymap.del, "n", lhs, { buffer = s.buf })
   end
@@ -575,6 +581,9 @@ local function map_step_keys()
   -- give back the review keys the previous step's keys covered
   map_keys(s.buf)
   local step = current()
+  if not step then
+    return
+  end
   for lhs, fn in pairs(step.keys or {}) do
     s.step_keys[#s.step_keys + 1] = lhs
     vim.keymap.set("n", lhs, function()
@@ -624,6 +633,9 @@ end
 
 local function show()
   local s = M.session
+  if not s then
+    return
+  end
   if not (s.win and vim.api.nvim_win_is_valid(s.win)) then
     open_window()
   else
@@ -683,11 +695,12 @@ function M.start(args)
   state = state or new_state()
   local index = find_step(steps, state.step) or 1
   if args ~= "" and args ~= "restart" then
-    index = find_step(steps, args)
-    if not index then
+    local found = find_step(steps, args)
+    if not found then
       utils.warn("Unknown review step: " .. args)
       return
     end
+    index = found
   end
   close_window()
   M.session = { steps = steps, index = index, state = state }
@@ -706,20 +719,23 @@ function M.restart()
   return M.start("restart")
 end
 
+--- The open review, or nil (with a warning).
+---@return table|nil
 local function require_session()
-  if not M.session then
+  local s = M.session
+  if not s then
     utils.warn("No weekly review running (:Org review)")
-    return false
+    return nil
   end
-  return true
+  return s
 end
 
 --- Go to step `i` (clamped).
 function M.goto_step(i)
-  if not require_session() then
+  local s = require_session()
+  if not s then
     return
   end
-  local s = M.session
   s.index = math.max(1, math.min(#s.steps, i))
   if s.buf and vim.api.nvim_buf_is_valid(s.buf) then
     map_step_keys()
@@ -838,7 +854,8 @@ end
 ---@param what string
 ---@param it? table the item (default: at the cursor)
 function M.act(what, it)
-  if not require_session() then
+  local s = require_session()
+  if not s then
     return
   end
   local row
@@ -851,7 +868,6 @@ function M.act(what, it)
   if not (it and it.hl) then
     return
   end
-  local s = M.session
   local stats = s.state.stats
   if what == "skip" then
     local key = item_key(it)
@@ -864,7 +880,7 @@ function M.act(what, it)
     return true
   end
   local bufnr, hl = resolve(it)
-  if not bufnr then
+  if not bufnr or not hl then
     M.render()
     return
   end
@@ -935,7 +951,8 @@ end
 --- <CR>: answer the question at the cursor, or go to the entry (the
 --- review is paused; `:Org review` comes back to it).
 function M.open(it)
-  if not require_session() then
+  local s = require_session()
+  if not s then
     return
   end
   it = it or M.item_at_cursor()
@@ -943,10 +960,9 @@ function M.open(it)
     return M.note(it)
   end
   local bufnr, hl = resolve(it)
-  if not bufnr then
+  if not bufnr or not hl then
     return
   end
-  local s = M.session
   local origin = s.origin_win
   save_state()
   close_window()
@@ -962,14 +978,14 @@ end
 
 --- Answer the reflection question at the cursor.
 function M.note(it)
-  if not require_session() then
+  local s = require_session()
+  if not s then
     return
   end
   it = it or M.item_at_cursor()
   if not (it and it.question) then
     return
   end
-  local s = M.session
   local q = (opts().questions or {})[it.question]
   local key = tostring(it.question)
   -- the note buffer is a split: answer with the float hidden
@@ -1079,11 +1095,11 @@ end
 --- Finish the review: write the review entry into the log date tree (or
 --- capture it with `capture_template`) and forget the saved state.
 function M.finish()
-  if not require_session() then
+  local s = require_session()
+  if not s then
     return
   end
   local o = opts()
-  local s = M.session
   local lines = M.entry_lines(s)
   local origin = s.origin_win
   close_window()
