@@ -96,7 +96,7 @@ local function minutes(key)
 end
 
 local function redraw()
-  pcall(vim.cmd, "redrawstatus")
+  pcall(vim.api.nvim_command, "redrawstatus")
 end
 
 ---------------------------------------------------------------------------
@@ -244,7 +244,7 @@ local function clock_out()
   local st = M.state
   local clock = require("org.clock")
   local lnum = entry_line()
-  if clock.state and lnum and clock.is_clocked_headline(st.bufnr, lnum) then
+  if st and clock.state and lnum and clock.is_clocked_headline(st.bufnr, lnum) then
     clock.clock_out({ quiet = true, switch_to_state = false, note = false })
   end
 end
@@ -257,6 +257,9 @@ local function count_pomodoro()
     return
   end
   local hl = require("org.files").get_buffer(M.state.bufnr):headline_at(lnum)
+  if not hl then
+    return
+  end
   local n = tonumber(hl.properties[prop:upper()] or "") or 0
   require("org.edit").set_property(M.state.bufnr, lnum, prop, tostring(n + 1))
 end
@@ -333,7 +336,7 @@ local function start_timer()
   if timer then
     return
   end
-  timer = vim.uv.new_timer()
+  timer = assert(vim.uv.new_timer())
   timer:start(
     1000,
     1000,
@@ -350,6 +353,9 @@ end
 
 local function begin(phase, now)
   local st = M.state
+  if not st then
+    return
+  end
   st.phase = phase
   st.started = now or M.time()
   st.paused_at = nil
@@ -398,6 +404,9 @@ end
 ---@param skipped? boolean
 local function finish(now, skipped)
   local st = M.state
+  if not st then
+    return
+  end
   local o = opts()
   if st.phase == "work" and not skipped and o.manual_break then
     -- org-pomodoro-overtime: the clock runs on until pomodoro_start
@@ -505,6 +514,10 @@ function M.start(target)
     return
   end
   local hl = require("org.files").get_buffer(bufnr):headline_at(lnum)
+  if not hl then
+    utils.warn("Pomodoro: not on a heading")
+    return
+  end
   local st = M.state
   if st and st.bufnr == bufnr and entry_line() == lnum and st.phase == "work" then
     if st.paused_at then
@@ -682,7 +695,7 @@ function M.restore()
   end
   local f = state_file()
   local data = f and utils.read_json(f)
-  if type(data) ~= "table" or type(data.phase) ~= "string" or data.phase == "ready" then
+  if not f or type(data) ~= "table" or type(data.phase) ~= "string" or data.phase == "ready" then
     return nil
   end
   local now = M.time()
@@ -766,7 +779,11 @@ local augroup
 function M.setup(o)
   local org = require("org")
   if org.statusline_components then
-    org.statusline_components.pomodoro = o.statusline ~= false and M.statusline or nil
+    if o.statusline ~= false then
+      org.statusline_components.pomodoro = M.statusline
+    else
+      org.statusline_components.pomodoro = nil
+    end
   end
   augroup = vim.api.nvim_create_augroup("org.pomodoro", { clear = true })
   vim.api.nvim_create_autocmd("VimLeavePre", {
