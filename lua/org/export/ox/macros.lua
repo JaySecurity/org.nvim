@@ -216,14 +216,18 @@ local VERBATIM_BLOCKS = { src = true, example = true, export = true, comment = t
 --- list item or empty a description tag. Only the macros of text where
 --- objects are parsed are replaced here: paragraphs (also in items,
 --- drawers, footnote definitions, quote and special blocks), verse
---- blocks, headline titles and table rows. Keywords, node properties and
---- {{{results}}} are left to the parser; src, example, export and comment
---- blocks, LaTeX environments, fixed-width and comment lines have no
---- macros.
+--- blocks, headline titles and table rows, and the values of the parsed
+--- keywords (`popts.parsed_keywords`: #+TITLE, #+AUTHOR, ... of the
+--- back-end) and of their EXPORT_ node properties, where they are, so
+--- {{{n}}} counters follow the document. Other keywords, node properties
+--- and {{{results}}} are left to the parser; src, example, export and
+--- comment blocks, LaTeX environments, fixed-width and comment lines have
+--- no macros.
 ---@param lines string[]
 ---@param expander fun(node: table, parser: table): string|nil
----@param popts table element parser options (todo, inlinetask_min_level, alpha, term)
----@return string[]
+---@param popts table element parser options (todo, inlinetask_min_level, alpha, term, parsed_keywords)
+---@return string[] lines
+---@return boolean changed whether a parsed keyword or EXPORT_ property had macros
 function M.replace_all_macros(lines, expander, popts)
   local shared = require("org.export.element.shared")
   local R = element.RESTRICTIONS.paragraph
@@ -285,6 +289,28 @@ function M.replace_all_macros(lines, expander, popts)
       out[#out + 1] = lines[j]
     end
   end
+  -- org-macro-replace-all forces macro recognition in the parsed
+  -- keywords and their EXPORT_ node properties
+  local parsed = popts.parsed_keywords or {}
+  local changed = false
+  local function keyword_line(l, prop)
+    if not l:find("{{{", 1, true) then
+      return nil
+    end
+    local head, key, rest
+    if prop then
+      head, key, rest = l:match("^([ \t]*:)(%S-)(:.*)$")
+      key = key and key:upper():match("^EXPORT_(.-)%+?$")
+    else
+      head, key, rest = l:match("^([ \t]*#%+)(%S-)(:.*)$")
+    end
+    if not (key and parsed[key:upper()]) then
+      return nil
+    end
+    changed = true
+    local text = head .. l:sub(#head + 1, #l - #rest) .. ":" .. pp:replace_macros(rest:sub(2), R)
+    return vim.split(text, "\n", { plain = true })
+  end
   local i = 1
   local meta = false -- right after a headline or its planning line
   while i <= n do
@@ -320,7 +346,15 @@ function M.replace_all_macros(lines, expander, popts)
       i = i + 1
     elseif after_hl and shared.property_drawer_end(lines, i, next_hl[i] - 1) then
       e = shared.property_drawer_end(lines, i, next_hl[i] - 1)
-      keep(i, e)
+      keep(i)
+      for j = i + 1, e do
+        local rep = j < e and keyword_line(lines[j], true)
+        if rep then
+          vim.list_extend(out, rep)
+        else
+          out[#out + 1] = lines[j]
+        end
+      end
       i = e + 1
     else
       local btype = shared.block_type(l)
@@ -339,7 +373,12 @@ function M.replace_all_macros(lines, expander, popts)
         end)
       end
       local caption = l:match("^[ \t]*#%+[Cc][Aa][Pp][Tt][Ii][Oo][Nn][%[:]")
-      if caption then
+      local kw = not caption and not btype and keyword_line(l, false)
+      if kw then
+        flush()
+        vim.list_extend(out, kw)
+        i = i + 1
+      elseif caption then
         -- a caption is parsed: its macros are objects (org-element-context)
         local head, short, colon, value = l:match("^([ \t]*#%+%a+)(%b[])(:)(.*)$")
         if not head then
@@ -401,5 +440,5 @@ function M.replace_all_macros(lines, expander, popts)
     end
   end
   flush()
-  return out
+  return out, changed
 end

@@ -1147,8 +1147,9 @@ for one entry).
 Priorities
 <S-Up> / <S-Down>   (ctx) Raise / lower priority on a headline. Past the
                     highest or lowest priority the cookie is removed; the
-                    next shift in the same direction wraps around to the
-                    other end, like Emacs.
+                    next shift in the same direction right after it wraps
+                    around to the other end, like Emacs; after an edit or a
+                    cursor motion it starts again from the default.
 <C-a> / <C-x>       (ctx) Same, with the cursor on the `[#A]` cookie.
 <prefix>,           Set priority (press a letter, <Space> removes it). With
                     a count of 4 (C-u C-c ,), show the priority value.
@@ -5420,7 +5421,11 @@ functions) and the built-ins `{{{title}}}`, `{{{author}}}`, `{{{email}}}`,
 commit (Emacs asks any VC back-end). As in Emacs, macros are replaced in
 the text before it is parsed: a macro that expands to nothing on a line
 of its own ends the paragraph, and one whose value starts with `- ` at
-the start of a line makes a list item.
+the start of a line makes a list item. The whole file is gone through in
+order, also for a subtree export, and the macros of `#+TITLE`,
+`#+AUTHOR`, `#+DATE`, `#+SUBTITLE` (and the other keywords the back-end
+parses, such as LaTeX's `#+DESCRIPTION`) and of their `EXPORT_` properties
+are replaced where they are: `{{{n}}}` counters follow the document.
 
 `#+MACRO: name (eval FORM)` macros evaluate the Emacs Lisp FORM like
 org-macro: `$1`...`$N` are variables bound to the arguments (strings, nil
@@ -8521,6 +8526,10 @@ Differences from Emacs:
   tables); here the field shows #ERROR (the last definition wins) and the
   other fields are still computed. Left sides Emacs rejects are accepted:
   `$name=` for a named column, `$2..$3=` and `@I$2..@>$2=` ranges.
+  An `@` that starts no reference (`"a@b"` in a formula, or a field
+  holding an e-mail address) is left as written and the references after
+  it are still replaced; Emacs stops replacing the `@` references that
+  come after it.
 - Footnote sorting and renumbering leave src, example, export and comment
   blocks alone: a line starting with `[fn:N]` inside one is code, not a
   definition. Emacs renumbers such lines too.

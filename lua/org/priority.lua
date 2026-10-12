@@ -102,8 +102,17 @@ function M.enabled(quiet)
 end
 
 -- The last shift that removed a cookie, to wrap around on the next one
--- (Emacs checks `last-command`).
+-- (Emacs checks `last-command`): buffer, headline, direction, changedtick,
+-- window and cursor right after it. Any edit or cursor motion in between
+-- is another command, and the next shift starts again from the default.
 local last_removal = nil
+
+--- Forget the last removal, as another command in between does in Emacs
+--- (`last-command` no longer the shift): the next shift on a headline
+--- without a cookie starts from the default instead of wrapping around.
+function M.forget_cycle()
+  last_removal = nil
+end
 
 --- Shift priority. dir = 1 raises (towards highest), -1 lowers. Moving past
 --- either end removes the cookie; the next shift in the same direction
@@ -128,6 +137,8 @@ function M.shift(target, dir)
     and last_removal.lnum == hl.line
     and last_removal.dir == dir
     and last_removal.tick == vim.api.nvim_buf_get_changedtick(bufnr)
+    and last_removal.win == vim.api.nvim_get_current_win()
+    and vim.deep_equal(last_removal.cursor, vim.api.nvim_win_get_cursor(0))
   last_removal = nil
   local new
   if cur then
@@ -151,7 +162,14 @@ function M.shift(target, dir)
   edit.update_headline(bufnr, hl.line, { priority = value or false })
   changed(bufnr, hl.line, hl.priority, value or nil)
   if not value then
-    last_removal = { bufnr = bufnr, lnum = hl.line, dir = dir, tick = vim.api.nvim_buf_get_changedtick(bufnr) }
+    last_removal = {
+      bufnr = bufnr,
+      lnum = hl.line,
+      dir = dir,
+      tick = vim.api.nvim_buf_get_changedtick(bufnr),
+      win = vim.api.nvim_get_current_win(),
+      cursor = vim.api.nvim_win_get_cursor(0),
+    }
     utils.notify("Priority removed")
   end
   return value

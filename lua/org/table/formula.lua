@@ -655,7 +655,17 @@ local function read_ref(m, s, i, r, c, ctx)
     error("bad reference near: " .. s:sub(i, i + 5))
   end
   local named
-  spec, named = resolve_name(m, spec, ctx)
+  if spec.name and not spec.row and not ctx.no_names then
+    -- org-table-formula-substitute-names: a `$name` that is no column,
+    -- field, parameter, constant or property is "#UNDEFINED_NAME"
+    local ok, s2, v2 = pcall(resolve_name, m, spec, ctx)
+    if not ok then
+      return "named", "#UNDEFINED_NAME", j
+    end
+    spec, named = s2, v2
+  else
+    spec, named = resolve_name(m, spec, ctx)
+  end
   if named then
     return "named", named, j
   end
@@ -807,6 +817,11 @@ local function substitute(m, rhs, r, c, flags, mode, ctx)
   local in_str = nil
   while i <= n do
     local ch = rhs:sub(i, i)
+    -- org-table-eval-formula replaces references by regexp over the whole
+    -- formula text, so a Calc or Lisp formula has them replaced inside
+    -- double-quoted strings too (`"$1"` is `"(5)"` in Calc, `""5""` in
+    -- Lisp, `"5"` with `L`); only the Lua formulas, which are not Emacs',
+    -- keep their strings as written
     if in_str then
       out[#out + 1] = ch
       if ch == "\\" then
@@ -816,7 +831,7 @@ local function substitute(m, rhs, r, c, flags, mode, ctx)
         in_str = nil
       end
       i = i + 1
-    elseif ch == '"' then
+    elseif ch == '"' and mode == "lua" then
       in_str = ch
       out[#out + 1] = ch
       i = i + 1
@@ -852,6 +867,10 @@ local function substitute(m, rhs, r, c, flags, mode, ctx)
     elseif mode == "elisp" and ch == "$" and rhs:sub(i + 1, i + 1) == "$" then
       -- `$$2` in org-sbe: a literal `$` (quote the next value as a string)
       out[#out + 1] = "$ "
+      i = i + 1
+    elseif (ch == "@" or ch == "$") and mode ~= "lua" and not parse_ref(rhs, i) then
+      -- `a@b`, `5$` or `$` alone: no reference, Emacs leaves it as written
+      out[#out + 1] = ch
       i = i + 1
     elseif ch == "@" or ch == "$" then
       local kind, v, j = read_ref(m, rhs, i, r, c, ctx)

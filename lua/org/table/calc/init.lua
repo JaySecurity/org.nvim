@@ -95,6 +95,20 @@ require("org.table.calc.units")
 -- Entry point
 ---------------------------------------------------------------------------
 
+--- math-constp: a number or an HMS, error, interval or modulo form, or a
+--- vector of those (the results `calc-eval` 'num accepts).
+local function is_const(v)
+  if tag(v) == "vec" then
+    for _, x in ipairs(v) do
+      if not is_const(x) then
+        return false
+      end
+    end
+    return true
+  end
+  return is_object(v) and tag(v) ~= "date"
+end
+
 --- Evaluate a Calc formula.
 ---@param s string the formula, references already substituted
 ---@param opts? { prec?: integer, float_format?: table, deg?: boolean, frac?: boolean, num?: boolean }
@@ -109,7 +123,7 @@ function M.eval(s, opts)
   set_simplifying(false)
   local ok, res = pcall(function()
     local v = eval(M.parse(s))
-    if opts.num and not is_real(v) then
+    if opts.num and not is_const(v) then
       error("result is not a number")
     end
     return display(v, opts.float_format or { "float", 8 }, modes.prec)
