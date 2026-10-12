@@ -52,3 +52,5 @@ lua/org/export/html_indent.lua
 lua/org/export/fontify.lua
 lua/org/export/markdown.lua
 lua/org/export/gfm.lua
+lua/org/export/ascii.lua
+lua/org/export/ascii
