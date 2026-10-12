@@ -104,13 +104,16 @@ end
 --- link's path and description, within a paragraph).
 M.MAX_LINK_LINES = 5
 
+---@class org.lsp.Link: org.Link
+---@field starts? integer[] offsets where the joined lines of a multi-line link start
+
 --- Line and column of a 1-based offset into a link's text (links that
 --- span lines are parsed from their lines joined with "\n").
 ---@param link org.Link
 ---@param off integer
 ---@return integer lnum, integer col
 function M.link_pos(link, off)
-  local starts = link.starts
+  local starts = (link --[[@as org.lsp.Link]]).starts
   if not starts then
     return link.lnum, off
   end
@@ -298,6 +301,8 @@ end
 
 --- Form of a search option: "custom_id", "heading", "fuzzy", "line" or
 --- "other" (coderefs and regexps).
+---@param search? string
+---@return string|nil
 function M.search_form(search)
   if not search then
     return nil
@@ -632,8 +637,8 @@ end
 --- Subject for a location (the target of a link) in a form: the link
 --- form decides whether a heading is renamed by its title, its CUSTOM_ID
 --- or its ID.
----@param loc table from `locate`
----@param form? "heading"|"custom_id"|"id"
+---@param loc table|nil from `locate`
+---@param form? string "heading", "custom_id" or "id" (others: by title)
 ---@return org.lsp.Subject|nil
 function M.subject_of(loc, form)
   if not loc then

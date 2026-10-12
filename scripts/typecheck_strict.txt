@@ -40,3 +40,4 @@ lua/org/extensions/ics
 lua/org/extensions/journal
 lua/org/extensions/kanban
 lua/org/extensions/literate
+lua/org/extensions/lsp
