@@ -52,6 +52,19 @@ describe("export (Emacs features)", function()
     ok(h2:find('<a href="#org%x+">big\nbox</a>'), h2)
   end)
 
+  it("a line starting with an object with contents doesn't count for a paragraph's indentation", function()
+    -- org-element-normalize-contents (difftest seed 8395981): the empty
+    -- {{{title}}} leaves " task", and the other lines start with objects
+    eq(
+      '<p>\ntask gamma\n<a id="orgID">radio</a>\n</p>\n',
+      (html({ "{{{title}}} task gamma", "<<<radio>>>" }):gsub("org%x+", "orgID"))
+    )
+    has(html({ " task gamma", "*bold* x" }), "<p>\ntask gamma\n<b>bold</b> x\n</p>")
+    has(html({ " task gamma", "_*mixed*_ x" }), '<p>\ntask gamma\n<span class="underline"><b>mixed</b></span> x\n</p>')
+    -- a line starting with text keeps the indentation
+    has(html({ " task gamma", "plain" }), "<p>\n task gamma\nplain\n</p>")
+  end)
+
   it("honours tasks:, arch:, stat:, e: and c: options", function()
     local lines = {
       "#+OPTIONS: tasks:todo arch:nil stat:nil e:nil c:t toc:nil num:nil",
