@@ -62,3 +62,4 @@ lua/org/export/process.lua
 lua/org/export/hooks.lua
 lua/org/export/bind.lua
 lua/org/export/publish.lua
+lua/org/export/icalendar.lua
