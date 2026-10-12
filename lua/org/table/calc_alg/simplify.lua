@@ -6,6 +6,13 @@
 
 local A = require("org.table.calc_alg")
 
+--- A formula node of org.table.calc (an operator and its operands).
+---@class calc.Node
+---@field tag string
+---@field op? string
+---@field a any
+---@field b any
+
 local K = A.K
 local F = A.F
 local tag = A.tag
@@ -372,7 +379,11 @@ local function simplify_addsub(expr)
   elseif expr.op == "+" and is_number(expr.a) and not is_number(expr.b) then
     expr.a, expr.b = expr.b, expr.a
   end
-  local aa, aaa = expr, nil
+  -- the node and its operand being walked down (formula nodes)
+  ---@type calc.Node
+  local aa = expr
+  ---@type calc.Node
+  local aaa = nil
   while true do
     aaa = aa.a
     if not isop(aaa, "+", "-") then
@@ -410,7 +421,11 @@ local function simplify_mul(expr)
       expr.a = mul(expr.a, temp)
     end
   end
-  local aa, aaa = expr, nil
+  -- the node and its operand being walked down (formula nodes)
+  ---@type calc.Node
+  local aa = expr
+  ---@type calc.Node
+  local aaa = nil
   while true do
     aaa = aa.b
     if not (isop(aaa, "*") and safe) then

@@ -155,6 +155,9 @@ function M.sort_column(opts)
     getkey = read_function("Function for extracting keys: ")
     compare = compare or read_function("Function for comparing keys (empty for default): ", true)
   end
+  if kind == "f" and not getkey then
+    return -- the prompt was cancelled
+  end
   local reverse = choice ~= kind
   -- only data rows move; hlines inside a selected region stay in place
   local slots, slice = {}, {}
@@ -164,12 +167,12 @@ function M.sort_column(opts)
       local r = t.rows[i]
       local v = vim.trim(r.cells[field] or "")
       local k
-      if kind == "f" then
+      if kind == "f" and getkey then
         k = getkey(v)
       else
         k = sort_key(kind, v)
         if kind == "a" and not with_case then
-          k = k:lower()
+          k = tostring(k):lower()
         end
       end
       slice[#slice + 1] = { row = r, key = k, i = #slice + 1 }

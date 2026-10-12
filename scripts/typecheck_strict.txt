@@ -29,3 +29,5 @@ lua/org/capture.lua
 lua/org/capture
 lua/org/babel
 lua/org/extensions
+lua/org/table.lua
+lua/org/table

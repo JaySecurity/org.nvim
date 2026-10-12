@@ -54,6 +54,7 @@ local function two_eq(a, b)
     elseif #a ~= #b then
       return 0
     end
+    ---@type integer?
     local res = 1
     for i = 1, #a do
       local r = two_eq(a[i], b[i])

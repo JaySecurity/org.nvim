@@ -648,15 +648,19 @@ end
 --- (r, c). Returns kind ("counter", "named", "field" or "range"), the
 --- value (a string, or a list of strings for ranges; a number for
 --- counters) and the next index.
+---@return string kind, any value, integer next
 local function read_ref(m, s, i, r, c, ctx)
   local spec, j = parse_ref(s, i)
-  if not spec then
+  if not spec or not j then
     error("bad reference near: " .. s:sub(i, i + 5))
   end
   local named
   spec, named = resolve_name(m, spec, ctx)
   if named then
     return "named", named, j
+  end
+  if not spec then
+    error("bad reference near: " .. s:sub(i, i + 5))
   end
   if spec.row and spec.row.kind == "counter" and not spec.col then
     return "counter", r, j
@@ -665,11 +669,13 @@ local function read_ref(m, s, i, r, c, ctx)
   end
   local spec2
   if s:sub(j, j + 1) == ".." then
-    spec2, j = parse_ref(s, j + 2)
+    local j2
+    spec2, j2 = parse_ref(s, j + 2)
     spec2 = resolve_name(m, spec2, ctx)
-    if not spec2 then
+    if not spec2 or not j2 then
       error("bad range")
     end
+    j = j2
   end
   if not spec2 then
     local rr = resolve_row(m, spec.row, r, "single")

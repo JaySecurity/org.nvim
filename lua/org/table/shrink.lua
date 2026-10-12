@@ -284,7 +284,7 @@ function M.refresh(bufnr, lnum)
     return
   end
   local e, info = entry_for(bufnr, lnum, false)
-  if e then
+  if e and info then
     draw(bufnr, e, info.start)
   end
 end
@@ -294,7 +294,7 @@ end
 function M.set(bufnr, lnum, cols)
   bufnr = (bufnr == nil or bufnr == 0) and vim.api.nvim_get_current_buf() or bufnr
   local e, info = entry_for(bufnr, lnum, true)
-  if not e then
+  if not e or not info then
     return false
   end
   e.cols = cols
@@ -335,7 +335,7 @@ end
 function M.shift(bufnr, lnum, map)
   bufnr = (bufnr == nil or bufnr == 0) and vim.api.nvim_get_current_buf() or bufnr
   local e, info = entry_for(bufnr, lnum, false)
-  if not e then
+  if not e or not info then
     return
   end
   local cols = {}

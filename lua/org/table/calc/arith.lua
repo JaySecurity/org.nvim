@@ -346,7 +346,10 @@ local function combine_prod(a, b, inva, invb, scalar_ok)
   end
   local function split(x)
     local t = tag(x)
-    local base, p = x, 1
+    local base = x
+    -- the power: a number or a formula
+    ---@type any
+    local p = 1
     if t == "op" and x.op == "^" and (simplifying or is_number(x.b)) then
       base, p = x.a, x.b
     elseif t == "call" and x.name == "sqrt" and #x.args == 1 then

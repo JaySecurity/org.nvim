@@ -331,6 +331,7 @@ function M.rows_to_lines(rows, indent)
     if r == "hline" then
       t.rows[#t.rows + 1] = { hline = true }
     else
+      ---@cast r string[]
       local cells = {}
       for i, v in ipairs(r) do
         cells[i] = tostring(v):gsub("\n", " "):gsub("|", "\\vert{}")
@@ -925,7 +926,7 @@ function M.recalc_buffer(bufnr)
       if info then
         if #info.tblfm > 0 then
           M.recalc(bufnr, l)
-          info = M.find(bufnr, l)
+          info = M.find(bufnr, l) or info
         end
         l = (info.tblfm[#info.tblfm] or info.finish) + 1
       else
