@@ -251,6 +251,9 @@ end
 
 --- Parse the words after `every` from token `i`: returns the repeater,
 --- weekdays (a list of 0-6), the index after the spec, or nil.
+---@param tokens string[]
+---@param i integer
+---@return { value: integer, unit: string }|nil repeater, integer[]|nil days, integer|nil next
 local function parse_every(tokens, i)
   local w = tokens[i] and lower(tokens[i])
   if not w then
@@ -458,7 +461,7 @@ function M.parse(text, now, opts)
     end
     -- "at"/"on" can't end a run
     if #run == 0 then
-      return i
+      return i, nil, false
     end
     return j, run, prep
   end
@@ -533,7 +536,7 @@ function M.parse(text, now, opts)
       end
     elseif (w == "every" or w == "every!") and not every then
       local rep, days, j = parse_every(tokens, i + 1)
-      if rep or days then
+      if (rep or days) and j then
         every = { repeater = rep, days = days, bang = w == "every!" }
         i = j
       else
@@ -577,12 +580,14 @@ function M.parse(text, now, opts)
 
   local saved_now = date.now
   if now then
-    date.now = function()
-      return now:clone()
+    local fixed = now
+    local function fixed_now()
+      return fixed:clone()
     end
+    date.now = fixed_now
   end
+  now = date.now()
   local ok, err = pcall(function()
-    now = date.now()
     for _, kind in ipairs({ "scheduled", "deadline" }) do
       local part = last[kind]
       if part then
