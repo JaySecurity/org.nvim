@@ -184,7 +184,7 @@ M.source = source
 
 --- Open search results in an agenda buffer (org-ql-search).
 ---@param q string|table query
----@param o? { files?: any, sort?: any, title?: string, super_groups?: table }
+---@param o? { files?: any, sort?: any, title?: string, super_groups?: table, include_hidden?: boolean }
 function M.search(q, o)
   o = o or {}
   local pred, err = query.try_compile(q)

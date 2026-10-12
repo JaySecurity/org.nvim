@@ -44,3 +44,4 @@ lua/org/extensions/lsp
 lua/org/extensions/merge
 lua/org/extensions/pomodoro
 lua/org/extensions/present
+lua/org/extensions/ql
