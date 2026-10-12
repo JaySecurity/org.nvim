@@ -399,6 +399,7 @@ function M.face_runs(code, lang)
   end
   for _, r in ipairs(runs) do
     local name = r[2] and fontify.face(r[2])
+    ---@type string|nil
     local face = name and M.FACE[name]
     if r[2] and r[2]:match("^constructor") and r[1]:match("^%p+$") then
       -- Lua's table braces: font-lock leaves them alone

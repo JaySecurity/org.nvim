@@ -38,3 +38,10 @@ lua/org/export/ox.lua
 lua/org/export/ox
 lua/org/export/element.lua
 lua/org/export/element
+lua/org/export/latex.lua
+lua/org/export/latex
+lua/org/export/latex_data.lua
+lua/org/export/beamer.lua
+lua/org/export/beamer_mode.lua
+lua/org/export/koma.lua
+lua/org/export/engrave.lua

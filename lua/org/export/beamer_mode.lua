@@ -232,7 +232,7 @@ function M.mode(bufnr, on)
     end
     vim.b[bufnr].org_beamer_saved_maps = nil
     vim.api.nvim_buf_call(bufnr, function()
-      pcall(vim.cmd, "syntax clear orgBeamerTag")
+      pcall(vim.api.nvim_command, "syntax clear orgBeamerTag")
     end)
   end
   pcall(vim.api.nvim_exec_autocmds, "User", {
