@@ -295,8 +295,9 @@ describe("playground", function()
         end,
       })
       local tutor = require("org.tutor")
-      local last_level, positions = 0, {}
-      for _, name in ipairs(playground.lessons(root)) do
+      local positions, levels = {}, {}
+      local names = playground.lessons(root)
+      for _, name in ipairs(names) do
         local meta = assert(tutor.meta(name))
         local tab = page.body:match('<button type="button" role="tab" id="tab%-' .. name .. '".-</button>')
         ok(tab, "no tab for " .. name)
@@ -314,12 +315,23 @@ describe("playground", function()
         -- each lesson's transcript and "try it" command
         ok(page.body:find('<details class="pg-transcript" id="' .. name .. '-transcript">', 1, true))
         ok(page.body:find('data-copy=":Org tutor ' .. name .. '"', 1, true))
-        local level = 0
+        levels[name] = 0
         for i, l in ipairs(tutor.levels) do
-          level = l == meta.level and i or level
+          levels[name] = l == meta.level and i or levels[name]
         end
-        ok(level >= last_level, name .. ": the cards are grouped by level, easiest first")
-        last_level = level
+      end
+      -- the cards are grouped by level, easiest first, and in course order
+      -- within a level (a lesson can come after one of a harder level)
+      local on_page = vim.deepcopy(names)
+      table.sort(on_page, function(a, b)
+        return positions[a] < positions[b]
+      end)
+      for i = 2, #on_page do
+        local prev, name = on_page[i - 1], on_page[i]
+        ok(levels[name] >= levels[prev], name .. ": the cards are grouped by level, easiest first")
+        if levels[name] == levels[prev] then
+          ok(tutor.meta(prev).order < tutor.meta(name).order, name .. ": in course order within a level")
+        end
       end
       -- grouped by level: a heading per level that has lessons
       ok(page.body:find('<h2 class="pg-level-head" id="level-beginner">Beginner</h2>', 1, true))
