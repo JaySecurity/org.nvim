@@ -1,0 +1,141 @@
+#+TITLE: org.nvim tutor 3: writing in org
+#+TUTOR_ORDER: 3
+#+TUTOR_LEVEL: Beginner
+#+TUTOR_TOPICS: emphasis, paragraphs, comments, keywords, blocks, source code, footnotes
+#+STARTUP: showall nologdone fnlocal
+#+TODO: TODO | DONE
+
+An org file is mostly text. This lesson shows how to write it: bold and
+italic words, paragraphs, keywords, blocks of quotes and code, and
+footnotes. It assumes the keys of the first lesson (=:Org tutor basics=).
+
+- As before, a {{done}} at the end of an exercise's headline means it is
+  done, and {{todo}} that it is not yet. Keys are shown as mapped in your
+  config; =<leader>= is ={{leader}}=.
+- This is a working copy: =:w= saves your progress and =:Org tutor
+  writing reset= starts over.
+- Stuck? =:Org tutor_hint= shows the keys that solve the exercise at
+  the cursor, and =:Org tutor= lists every lesson.
+
+* Lesson 1: emphasis
+Put a marker on each side of a word to style it: *bold*, /italic/,
+_underline_, +strike-through+, =verbatim= and ~code~. The markers stay
+in the text, which is plain to read anywhere. Set
+=ui.hide_emphasis_markers= in your config to hide them on screen.
+
+** 1.1 Make a word bold
+Select the word =important= with =viw= and press ={{org.emphasize}}=,
+then =*=: the markers go around the selection. Any marker of the six
+works the same way.
+
+This step is important for the rest.
+
+** 1.2 Type in italics
+With nothing selected, ={{org.emphasize}}= puts a pair of markers at the
+cursor and leaves you typing between them. On the empty line below
+=Notes:=, press ={{org.emphasize}}= and =/=, type =in italics= and press
+=<Esc>=.
+
+Notes:
+
+
+* Lesson 2: paragraphs
+A blank line separates paragraphs. Inside one, line breaks don't matter
+when you export: the lines are joined.
+
+** 2.1 Fill a paragraph
+The paragraph below is one long line. Put the cursor on it and press
+=gqip=: it is filled, broken into lines no wider than ='textwidth'= (79
+when it is 0). In a list item or a comment, the filling keeps the
+indentation or the =#=.
+
+Org files are plain text, so you can read them anywhere, edit them in any editor, keep them in version control and still find your notes in twenty years.
+
+** 2.2 Draw a horizontal rule
+A line of five dashes or more is a horizontal rule. Put the cursor on
+=First part=, press =o=, type =-----= and press =<Esc>=.
+
+First part.
+
+Second part.
+
+** 2.3 Comment out a line
+A line that starts with =#= and a space is a comment: it stays in the
+file but is never exported. Put the cursor on =Draft:= and press =gcc=
+(Vim's comment key) to comment it out; =gcc= again brings it back.
+
+Draft: remember to check the numbers.
+
+* Lesson 3: keywords and blocks
+A line like =#+TITLE: ...= is a keyword: a setting for the file or for
+the element below it. A block is text between =#+begin_...= and
+=#+end_...= lines: a quote, an example, source code.
+
+** 3.1 Add a keyword
+This file starts with =#+TITLE:=. Press =gg= to go there, press =o= and
+type =#+AUTHOR: Ada= (or your name), then =<Esc>=. Exports put the
+author under the title.
+
+** 3.2 Quote a paragraph
+Select the two lines of the poem with =Vj= and press
+={{org.insert_structure_template}}=: a menu of block types opens. Press
+=q= and the lines are wrapped in a quote block. =e= makes an example
+block, =s= a source block, =v= a verse.
+
+Hope is the thing with feathers
+That perches in the soul
+
+** 3.3 Insert a source block
+On the empty line below =Code:=, press ={{org.insert_structure_template}}=
+and =s=. The cursor waits after =#+begin_src= for the language: type
+=python=, press =<CR>= and type =print("hello")=, then =<Esc>=.
+
+Code:
+
+
+** 3.4 Edit code in its own window
+Put the cursor on =hello= in the block below and press
+={{org.edit_special}}=: the code opens in a window of its own, set up
+for its language (indenting, highlighting, completion). Change =hello=
+to =world= (=ciw=), then press ={{edit_src.save_exit}}= to put it back
+in the block.
+
+#+begin_src python
+print("hello")
+#+end_src
+
+* Lesson 4: footnotes
+A footnote is a reference in the text, a label such as =fn:1= in square
+brackets, and a definition: a paragraph that starts with the same
+reference. This file has =#+STARTUP: fnlocal=, so a new definition goes
+at the end of the section; by default it goes under a =Footnotes=
+headline at the end of the file.
+
+** 4.1 Add a footnote
+Put the cursor at the end of the =Tea= line and press
+={{org.insert_footnote}}=. A reference goes in the text and the cursor
+jumps to its new definition, in Insert mode: type =Green or black.= and
+press =<Esc>=.
+
+Tea is ready.
+
+** 4.2 Jump to a definition and back
+Put the cursor on =[fn:milk]= after =Coffee with milk.= and press
+={{org.insert_footnote}}=: the cursor jumps to the definition. It has no
+text yet: press =A=, type a space and =Just a drop.=, then =<Esc>=. On
+the definition's label (=0=), the same key jumps back to the reference.
+={{org.open_at_point}}= follows a footnote too.
+
+Coffee with milk.[fn:milk]
+
+[fn:milk]
+
+* What next
+You can write in org now. From here:
+
+- ={{org.help}}= lists every key; =:h org-footnotes=, =:h org-fill= and
+  =:h org-babel-edit-special= tell more about this lesson's keys.
+- ={{org.export}}= exports this file to HTML, Markdown, LaTeX and more:
+  that is where the markup, keywords and footnotes show their worth.
+- {{examples}} links to one file per feature, each with many examples
+  and exercises.

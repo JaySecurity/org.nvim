@@ -1,0 +1,181 @@
+#+TITLE: org.nvim tutor 6: properties and column view
+#+TUTOR_ORDER: 6
+#+TUTOR_LEVEL: Power user
+#+TUTOR_TOPICS: properties, allowed values, effort, column view, summaries, columnview blocks
+#+STARTUP: showall nologdone
+#+TODO: TODO | DONE
+
+Properties are named values on a headline, such as a colour, an owner
+or how long a task will take. Column view shows them as a table over
+your outline, where you can edit them and see their sums.
+
+- As before, a {{done}} at the end of an exercise's headline means it is
+  done, and {{todo}} that it is not yet. Keys are shown as mapped in your
+  config; =<leader>= is ={{leader}}=.
+- This is a working copy: =:w= saves your progress and =:Org tutor
+  properties reset= starts over. Nothing here touches your notes.
+- Stuck? =:Org tutor_hint= shows the keys that solve the exercise at
+  the cursor, and =:Org tutor= lists every lesson.
+
+* Lesson 1: properties
+Properties live in a =:PROPERTIES:= drawer right under the headline, one
+=:Name: value= per line. You rarely type the drawer yourself: the keys
+below make it for you. Drawers start folded; ={{org.cycle}}= on the
+=:PROPERTIES:= line opens and closes one.
+
+** 1.1 Set a property
+Put the cursor on =Coffee grinder= and press ={{org.set_property}}=. Type
+the name =Color= and =<CR>=, then the value =red= and =<CR>=. A drawer
+with =:Color: red= appears under the headline.
+
+*** Coffee grinder
+
+** 1.2 Cycle through allowed values
+A =:Size_ALL:= property lists the values =Size= may take, in its whole
+subtree (an =_ALL= property is inherited). Open the drawer of =Blue
+shirt= with ={{org.cycle}}= on its =:PROPERTIES:= line. Then on =:Size: M=
+press ={{org.shift_right}}=: it changes to the next allowed value, =L=
+(={{org.shift_left}}= goes back).
+
+*** Shirts
+:PROPERTIES:
+:Size_ALL: S M L XL
+:END:
+**** Blue shirt
+:PROPERTIES:
+:Size:     M
+:END:
+
+** 1.3 Pick an allowed value
+When a property has allowed values, ={{org.set_property}}= offers them
+in a menu. On =Red shirt=, set =Size= to =S=: press the key, type =Size=
+and =<CR>=, then pick =S=.
+
+*** Shirts
+:PROPERTIES:
+:Size_ALL: S M L XL
+:END:
+**** Red shirt
+
+** 1.4 Set an effort
+=Effort= is the property for how long a task should take, as =H:MM=.
+The clock, the agenda and column view use it. On =Write the intro=,
+press ={{org.set_effort}}=, type =0:45= and =<CR>=.
+
+*** TODO Write the intro
+
+** 1.5 Delete a property
+On =Old lamp=, press ={{org.delete_property}}= and pick =Color=. The
+drawer goes too, as nothing is left in it.
+
+*** Old lamp
+:PROPERTIES:
+:Color:    green
+:END:
+
+* Lesson 2: column view
+Column view draws the properties of a subtree as columns over its
+headlines. A =#+COLUMNS:= line sets the columns for the whole file:
+
+: #+COLUMNS: %25ITEM %Effort{:} %Owner
+
+Each =%Name= is a column and =ITEM= is the headline. A number before the
+name is the column's width, and ={:}= after it adds up the times of the
+children in their parent. A =:COLUMNS:= property sets the columns for
+one subtree, as in the trees below. Most properties belong to their own
+headline only: =COLUMNS= and the =_ALL= ones are among the few that
+are inherited.
+
+** 2.1 Open column view
+On =Website= press ={{org.column_view}}=. Its headlines become rows,
+and =Website= shows the sum of the efforts below it, =3:30=. Press =q=
+to close the view again.
+
+*** Website
+:PROPERTIES:
+:COLUMNS:  %ITEM %Effort{:} %Owner
+:END:
+**** Design the pages
+:PROPERTIES:
+:Effort:   2:00
+:END:
+**** Write the copy
+:PROPERTIES:
+:Effort:   1:30
+:END:
+
+** 2.2 Cycle a value in column view
+Open column view on =Garden=. =l= and =h= move across the columns, =j=
+and =k= across the rows. On the =Owner= column of =Dig the beds=, press
+=n= until it shows =Ben= (=p= goes back). Then =q= closes the view.
+
+*** Garden
+:PROPERTIES:
+:COLUMNS:  %ITEM %Effort{:} %Owner
+:Owner_ALL: Ana Ben Cleo
+:END:
+**** Dig the beds
+:PROPERTIES:
+:Owner:    Ana
+:END:
+
+** 2.3 Edit a value and watch the sum
+Open column view on =Kitchen=. On the =Effort= column of =Paint the
+walls=, press =e=, type =3:00= and =<CR>=: the sum on =Kitchen= goes
+from =0:30= to =3:30=. Press =q= when you are done.
+
+*** Kitchen
+:PROPERTIES:
+:COLUMNS:  %ITEM %Effort{:}
+:END:
+**** Paint the walls
+**** Fix the tap
+:PROPERTIES:
+:Effort:   0:30
+:END:
+
+** 2.4 Insert a columnview block
+A columnview block writes the column view of a subtree into the file,
+as a table. Put the cursor on the =Report:= line below and press
+={{emacs.insert_columnview}}=, then =<CR>= at the prompt (=local= is
+the subtree the block is in).
+
+*** Shop
+:PROPERTIES:
+:COLUMNS:  %ITEM %Effort{:}
+:END:
+Report:
+**** Order paint
+:PROPERTIES:
+:Effort:   0:20
+:END:
+
+** 2.5 Update a columnview block
+=Pack the boxes= now takes =2:00=, but the table below still says
+=1:00=. Put the cursor on its =#+BEGIN:= line and press
+={{org.context_action}}= (or ={{org.dblock_update}}=): the table is
+written again, with the new times.
+
+*** Move
+:PROPERTIES:
+:COLUMNS:  %ITEM %Effort{:}
+:END:
+#+BEGIN: columnview :hlines 1 :id local
+| ITEM           | Effort |
+|----------------+--------|
+| Move           |   1:00 |
+| Pack the boxes |   1:00 |
+#+END:
+**** Pack the boxes
+:PROPERTIES:
+:Effort:   2:00
+:END:
+
+* What next
+That's properties and column view. From here:
+
+- ={{org.help}}= lists every key, grouped by topic; =:h org-properties=
+  and =:h org-columns= are the manual's chapters on them.
+- {{examples}} links to one file per feature, properties and column view
+  among them, with more examples and exercises.
+- =:Org tutor= lists every lesson.

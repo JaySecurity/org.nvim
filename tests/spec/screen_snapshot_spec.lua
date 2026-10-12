@@ -171,6 +171,20 @@ describe("screen snapshot", function()
     screen:expect("tutor_marks")
   end)
 
+  it("the :Org tutor line naming the next lesson once every exercise is done", function()
+    new(nil, 70, 8)
+    screen:org({
+      "#+TITLE: Tutor",
+      "* Lesson 1",
+      "** 1.1 Finish a task",
+      "*** DONE Buy milk",
+    })
+    screen:lua([[
+      require("org.tutor").attach(0, { ["1.1"] = { heading = "Buy milk", todo = "DONE" } }, "basics")
+    ]])
+    screen:expect("tutor_next_lesson")
+  end)
+
   it("tables", function()
     new()
     screen:org({

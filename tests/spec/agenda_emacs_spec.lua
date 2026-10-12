@@ -590,6 +590,26 @@ describe("agenda blocks from planning date ranges (org-agenda-get-blocks)", func
     eq(18 * 60 + 45, block.time)
   end)
 
+  it("a SCHEDULED range's time is searched on into the headline (difftest seed 8395844)", function()
+    -- org-agenda-format-item looks for a time in DOTIME ("10:45>--<b 08:30")
+    -- followed by the headline: "<2026-10-11 Sun 08:30 @@html:<b>" reads
+    -- as a timestamp at 08:30, and the entry still sorts at 10:45
+    local file = parser.parse(
+      { "* @@html:<b>@@ x", "SCHEDULED: <2026-09-28 10:45>--<2026-10-11 Sun 08:30>" },
+      "/tmp/agenda_sched_range.org"
+    )
+    local list = items.agenda({ file }, A, A, { today = A })[A]
+    local sched
+    for _, it in ipairs(list) do
+      if it.type == "scheduled" then
+        sched = it
+      end
+    end
+    ok(sched, "no scheduled entry")
+    eq(8 * 60 + 30, sched.time)
+    eq(10 * 60 + 45, sched.sort_time)
+  end)
+
   it("a range after another stamp on its line starts at that stamp", function()
     -- org-tr-regexp's `<date .*?>` runs over the first stamp's `>`
     eq({}, day_entries({ "* TODO x", "SCHEDULED: <2026-10-12 Mon> DEADLINE: <2026-09-28 Mon>--<2026-09-29 Tue>" }, A))

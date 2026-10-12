@@ -1,4 +1,7 @@
 #+TITLE: org.nvim tutor 1: the basics
+#+TUTOR_ORDER: 1
+#+TUTOR_LEVEL: Beginner
+#+TUTOR_TOPICS: outline, folding, TODO items, priorities, tags, dates, lists, checkboxes, tables, links
 #+STARTUP: showall nologdone
 #+TODO: TODO | DONE
 
@@ -14,7 +17,10 @@ file: every key of org.nvim works here, and you learn by doing.
   =<C-x>= Ctrl+x.
 - Nothing you do here touches your notes. Make a mess if you like: =u=
   undoes, =:w= saves your progress, and =:Org tutor basics reset= starts
-  the lesson over. =:Org tutor= brings you back here later.
+  the lesson over. =:Org tutor basics= brings you back here later, and
+  =:Org tutor= lists every lesson with your progress.
+- Stuck? =:Org tutor_hint= shows the keys that solve the exercise at
+  the cursor.
 - ={{org.help}}= lists every key of an org buffer, any time.
 
 Move down with =j= to start.
@@ -30,7 +36,7 @@ a few times: it cycles the subtree between folded, its children and
 everything. ={{org.global_cycle}}= does the same for the whole file (press
 it until everything shows again).
 
-There is nothing to check here: move on when you are done.
+The {{done}} shows once =Kitchen= has been folded (a moment after).
 
 *** Kitchen
 **** Pots

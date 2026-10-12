@@ -1,0 +1,141 @@
+#+TITLE: org.nvim tutor 7: organize and find
+#+TUTOR_ORDER: 7
+#+TUTOR_LEVEL: Daily workflow
+#+TUTOR_TOPICS: refile, archive, sparse trees, jump to a heading, narrowing, tag search
+#+STARTUP: showall nologdone
+#+TODO: TODO | DONE
+#+ARCHIVE: %s_archive::
+
+Notes pile up. This lesson shows how to keep a file in order: move
+entries where they belong (refile), put finished work out of the way
+(archive), and find things again: sparse trees, jumping to a heading,
+narrowing to one subtree and searching tags in the agenda.
+
+- As before, a {{done}} at the end of an exercise's headline means it is
+  done, and {{todo}} that it is not yet. Keys are shown as mapped in your
+  config; =<leader>= is ={{leader}}=.
+- This is a working copy: =:w= saves your progress and =:Org tutor
+  organize reset= starts over. The =#+ARCHIVE:= line at the top sends
+  archived entries to a file next to this copy, away from your notes.
+- Stuck? =:Org tutor_hint= shows the keys that solve the exercise at
+  the cursor, and =:Org tutor= lists every lesson.
+
+* Lesson 1: refile
+Refiling moves a subtree, with everything in it, under another
+headline. The targets are the top-level headlines of the file, unless
+the =refile.targets= option names other files and levels.
+
+** 1.1 Refile a task
+Put the cursor on =Buy stamps= and press ={{org.refile}}=. Pick =Errands=
+in the list: the task moves to the end of =Errands=, the headline after
+this lesson.
+
+*** TODO Buy stamps
+*** TODO Book the flights
+
+** 1.2 Copy instead of moving
+={{org.refile_copy}}= files a copy and keeps the original. On =Renew the
+passport= press ={{org.refile_copy}}= and pick =Errands=: the task is
+now in both places.
+
+*** TODO Renew the passport
+
+* Errands
+The target of Lesson 1: refiled entries land at the end of it.
+
+* Lesson 2: archive
+Archiving puts done work out of the way, so the outline and the agenda
+stay short. Nothing is lost: archived entries keep their text.
+
+** 2.1 Tag a subtree ARCHIVE
+On =Old ideas= press ={{org.toggle_archive_tag}}=. The ARCHIVE tag keeps
+a subtree folded (={{org.cycle}}= leaves it closed) and out of the
+agenda, while it stays where it is. The same key removes the tag.
+
+*** Old ideas
+- A bigger desk
+- A tea kettle
+
+** 2.2 Archive under the Archive sibling
+On =Fix the fence= press ={{emacs.archive_to_sibling}}=: it moves under an
+=Archive= headline next to it, which is made, with the ARCHIVE tag, the
+first time.
+
+*** DONE Fix the fence
+*** TODO Paint the shed
+
+** 2.3 Archive to a file
+On =Pay the rent= press ={{org.archive_subtree}}=: the subtree leaves this
+file for =organize.org_archive=, next to it. The =#+ARCHIVE:= line or
+an =ARCHIVE= property says where; =archive_location= is the default.
+
+*** DONE Pay the rent
+
+* Lesson 3: sparse trees
+A sparse tree folds the whole file down to the entries that match, with
+the headlines above them, and highlights the matches.
+={{org.sparse_tree}}= shows the menu of searches.
+
+** 3.1 Show the TODO entries
+Press ={{org.sparse_tree}}= and then =t=: only the open TODO entries of
+the file show. =Water the garden= is DONE, so it folds away.
+
+*** TODO Call the plumber
+*** DONE Water the garden
+The roses too.
+
+** 3.2 Search for a word
+Press ={{org.sparse_tree}}=, =r=, type =invoice= and press =<CR>=: the
+entries with the word in their text open, the word highlighted.
+
+*** Shop
+Send the invoice to Anna.
+*** Garden
+Nothing to send here.
+
+** 3.3 Match a tag
+Press ={{org.sparse_tree}}=, =m=, type =phone= and press =<CR>=: the
+headlines tagged =phone= show. A match can combine tags: =phone-work=.
+
+*** Call the bank                                                   :phone:
+Ask about the card.
+*** Read the contract                                                :work:
+Before Friday.
+
+** 3.4 Back to the whole file
+Press ={{org.sparse_tree}}= and then =C= to clear the highlights, and
+={{org.global_cycle}}= until the whole file shows again.
+
+* Lesson 4: jump and focus
+In a long file, go straight to a heading, work on one subtree with
+nothing else in view, or let the agenda find entries by their tags.
+
+** 4.1 Jump to a heading
+={{org.buffer_goto}}= shows the outline of this file in a tab of its own.
+Type =What next= to search for it, press =<CR>= to end the search and
+=<CR>= again to jump there. The folds of this file stay as they were.
+
+** 4.2 Narrow to a subtree
+On =Packing list= press ={{org.narrow_subtree}}=: the subtree opens alone
+in an edit buffer. Add an item =- Sunscreen= at the end, then press
+={{edit_src.save_exit}}= to write it back and close it.
+
+*** Packing list
+- Passport
+- Charger
+
+** 4.3 Search tags in the agenda
+The agenda searches tags across files. Press ={{global.agenda}}=, then
+=<= (this file only), =m=, type =errand= and press =<CR>=. On =Return
+the books= press ={{agenda.goto}}= to jump to it.
+
+*** TODO Return the books                                         :errand:
+*** TODO Pick up the parcel                                       :errand:
+
+* What next
+That's how to keep a file in order. From here:
+
+- ={{org.help}}= lists every key, grouped by topic; =:h org-refile=,
+  =:h org-archive= and =:h org-sparse-tree= are the manual's sections.
+- {{examples}} links to one file per feature, with more on refiling,
+  archiving and searching.

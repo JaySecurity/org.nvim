@@ -309,6 +309,63 @@ describe("org-src edit buffers", function()
     eq("Edit, then exit with ‘<C-c>'’ or abort with ‘<C-c><C-k>’", vim.wo.winbar)
   end)
 
+  -- Emacs 9.8.10: org-src--coordinates keeps the line and the column from
+  -- the end of the line, into the edit buffer and back on exit
+  it("keeps the cursor's place in the edit buffer and back", function()
+    local src = org_buffer({ "* H", "  #+begin_src python", "    x = 1", "    yy = 2", "  #+end_src" }, { 4, 7 })
+    local ebuf = babel.edit_special()
+    eq(ebuf, vim.api.nvim_get_current_buf())
+    eq({ 2, 3 }, vim.api.nvim_win_get_cursor(0))
+    vim.api.nvim_win_set_cursor(0, { 1, 4 })
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<C-c>'", true, false, true), "x", false)
+    eq(src, vim.api.nvim_get_current_buf())
+    eq({ 3, 8 }, vim.api.nvim_win_get_cursor(0))
+  end)
+
+  it("goes to the start from the #+begin line, to the end from the #+end line", function()
+    org_buffer(block, { 2, 3 })
+    babel.edit_special()
+    eq({ 1, 0 }, vim.api.nvim_win_get_cursor(0))
+    close_edits()
+    org_buffer({ "* H", "#+begin_src python", "x = 1", "yy = 2", "#+end_src" }, { 5, 3 })
+    babel.edit_special()
+    eq({ 2, 5 }, vim.api.nvim_win_get_cursor(0))
+  end)
+
+  it("keeps the column of an example block's escaped line", function()
+    org_buffer({ "* H", "#+begin_example", ",* a", "b c", "#+end_example" }, { 4, 2 })
+    require("org.context").edit_special()
+    eq({ "* a", "b c" }, buf_lines(0))
+    eq({ 2, 2 }, vim.api.nvim_win_get_cursor(0))
+  end)
+
+  it("keeps the cursor's place in the code, going in and coming back", function()
+    -- Emacs (org-src--goto-coordinates): point at "World" (line 4, column
+    -- 12) is at line 2, column 10 of the edit buffer; after moving to the
+    -- end of its first line, org-edit-src-exit leaves point on line 3 at
+    -- column 9, two past the indentation (column 8 is the last character
+    -- here, as Normal mode can't go past it)
+    local src = org_buffer({
+      "* H",
+      "#+begin_src emacs-lisp",
+      "  (list 1",
+      '    "Hello, World")',
+      "#+end_src",
+    }, { 4, 12 })
+    local ebuf = babel.edit_special()
+    eq(ebuf, vim.api.nvim_get_current_buf())
+    eq({ 2, 10 }, vim.api.nvim_win_get_cursor(0))
+    vim.api.nvim_win_set_cursor(0, { 1, 6 })
+    special.edits[ebuf].close()
+    eq(src, vim.api.nvim_get_current_buf())
+    eq({ 3, 8 }, vim.api.nvim_win_get_cursor(0))
+    -- on the #+begin_src line: the start of the code
+    vim.api.nvim_win_set_cursor(0, { 2, 5 })
+    ebuf = babel.edit_special()
+    eq({ 1, 0 }, vim.api.nvim_win_get_cursor(0))
+    special.edits[ebuf].close()
+  end)
+
   it("edit_src_persistent_message = false shows nothing", function()
     config.opts.edit_src_persistent_message = false
     org_buffer(block, { 3, 0 })

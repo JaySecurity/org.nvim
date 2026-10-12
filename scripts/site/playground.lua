@@ -2,6 +2,11 @@
 -- lesson (docs/playground/<lesson>.cast, made by `make playground`, see
 -- scripts/playground/record.lua) to play in the page, next to the
 -- lesson's exercises with their keys, and a box to try the syntax.
+-- The lesson cards are grouped by level and ordered by the lessons'
+-- #+TUTOR_ORDER: / #+TUTOR_LEVEL: / #+TUTOR_TOPICS: (org.tutor's
+-- `file_meta`); each lesson has a transcript (its exercises, keys,
+-- captions and the screen at the end of each, played from the cast by
+-- `M.screens`), for phones, screen readers and readers without JavaScript.
 --
 -- The page's script (assets/playground.js) plays the asciicast v2 files
 -- itself. A recording is loaded with a <script> tag, as
@@ -12,17 +17,29 @@ local html = require("site.html")
 
 local M = {}
 
---- Lesson names: basics first (the tutor's default), then the others.
+--- The lessons' metadata (`#+TUTOR_ORDER:`, `#+TUTOR_LEVEL:`,
+--- `#+TUTOR_TOPICS:`, see org.tutor's `file_meta`), by name.
+---@param root string
+---@return table<string, org.tutor.Meta>
+function M.metas(root)
+  local out = {}
+  for _, f in ipairs(vim.fn.glob(root .. "/tutor/org/*.org", false, true)) do
+    local meta = require("org.tutor").file_meta(f)
+    out[meta.name] = meta
+  end
+  return out
+end
+
+--- Lesson names in course order (`#+TUTOR_ORDER:`, then by name).
 ---@param root string
 ---@return string[]
 function M.lessons(root)
-  local out = {}
-  for _, f in ipairs(vim.fn.glob(root .. "/tutor/org/*.org", false, true)) do
-    out[#out + 1] = vim.fn.fnamemodify(f, ":t:r")
-  end
+  local metas = M.metas(root)
+  local out = vim.tbl_keys(metas)
   table.sort(out, function(a, b)
-    if (a == "basics") ~= (b == "basics") then
-      return a == "basics"
+    local oa, ob = metas[a].order or math.huge, metas[b].order or math.huge
+    if oa ~= ob then
+      return oa < ob
     end
     return a < b
   end)
@@ -185,22 +202,44 @@ function M.markers(cast)
   return out
 end
 
---- The cast's markers with their times, and its length in seconds.
+--- Label prefixes of the captions' and step markers' "m" events
+--- (scripts/playground/record.lua); an exercise's marker has none.
+M.CAPTION = "say: "
+M.STEP = "step: "
+
+---@class site.playground.Timeline
+---@field markers { label: string, t: number }[] the exercises
+---@field captions { text: string, t: number, exercise?: string }[] the captions, with the exercise they are in
+---@field steps { label: string, t: number }[] the step markers
+---@field duration number seconds
+
+--- The cast's exercise markers, captions and step markers with their
+--- times, and its length in seconds.
 ---@param cast string
----@return { markers: { label: string, t: number }[], duration: number }
+---@return site.playground.Timeline
 function M.timeline(cast)
-  local out, last = {}, 0
+  local out = { markers = {}, captions = {}, steps = {} }
+  local last, exercise = 0, nil
   for line in cast:gmatch("[^\n]+") do
     if line:sub(1, 1) == "[" then
       local ev = vim.json.decode(line)
       last = ev[1]
       if ev[2] == "m" then
-        out[#out + 1] = { label = ev[3], t = ev[1] }
+        local label = ev[3]
+        if vim.startswith(label, M.CAPTION) then
+          out.captions[#out.captions + 1] = { text = label:sub(#M.CAPTION + 1), t = ev[1], exercise = exercise }
+        elseif vim.startswith(label, M.STEP) then
+          out.steps[#out.steps + 1] = { label = label:sub(#M.STEP + 1), t = ev[1] }
+        else
+          out.markers[#out.markers + 1] = { label = label, t = ev[1] }
+          exercise = label
+        end
       end
     end
   end
   -- the player holds the last frame for 2 s (assets/playground.js)
-  return { markers = out, duration = last + 2 }
+  out.duration = last + 2
+  return out
 end
 
 --- Seconds as m:ss, rounded down as the player shows them.
@@ -226,6 +265,230 @@ local function plural(n, word)
   return n .. " " .. word .. (n == 1 and "" or "s")
 end
 
+--- The screen at the end of each exercise of a cast, as plain text: the
+--- "o" events played up to the next exercise marker (colors left out).
+--- The recorder writes whole rows (CUP, the text, EL), so a small
+--- emulator of CUP, ED 2, EL and text does.
+---@param cast string
+---@return table<string, string> exercise marker label -> screen text
+function M.screens(cast)
+  local first = cast:match("^[^\n]*")
+  local ok, header = pcall(vim.json.decode, first)
+  local width = ok and header.width or 80
+  local height = ok and header.height or 24
+  local rows, row, col = {}, 1, 1
+  local out, current = {}, nil
+  local function clear()
+    for r = 1, height do
+      rows[r] = {}
+    end
+  end
+  clear()
+  local function snapshot()
+    if current then
+      local lines = {}
+      for r = 1, height do
+        lines[r] = (table.concat(rows[r]):gsub("%s+$", ""))
+      end
+      out[current] = (table.concat(lines, "\n"):gsub("\n+$", ""))
+    end
+  end
+  local function put(ch)
+    if row < 1 or row > height or col > width then
+      return
+    end
+    local line = rows[row]
+    for c = #line + 1, col - 1 do
+      line[c] = " "
+    end
+    line[col] = ch
+    local w = vim.fn.strdisplaywidth(ch)
+    if w == 2 then
+      line[col + 1] = "" -- the second cell of a wide character
+    end
+    col = col + math.max(w, 1)
+  end
+  local function write(data)
+    local i, n = 1, #data
+    while i <= n do
+      local b = data:byte(i)
+      if b == 27 and data:sub(i + 1, i + 1) == "[" then
+        local _, e, params, final = data:find("^%[([%d;%? ]*)([@-~])", i + 1)
+        if not e then
+          break
+        end
+        if final == "H" or final == "f" then
+          local r, c = params:match("^(%d*);?(%d*)")
+          row, col = tonumber(r) or 1, tonumber(c) or 1
+        elseif final == "J" and (params == "2" or params == "3") then
+          clear()
+        elseif final == "K" then
+          local line = rows[row] or {}
+          for c = #line, col, -1 do
+            line[c] = nil
+          end
+        end
+        i = e + 1
+      elseif b < 32 then
+        if b == 13 then
+          col = 1
+        elseif b == 10 then
+          row = row + 1
+        end
+        i = i + 1
+      else
+        local ch = data:match("^[%z\1-\127\194-\244][\128-\191]*", i)
+        put(ch)
+        i = i + #ch
+      end
+    end
+  end
+  for line in cast:gmatch("[^\n]+") do
+    if line:sub(1, 1) == "[" then
+      local ev = vim.json.decode(line)
+      if ev[2] == "o" then
+        write(ev[3])
+      elseif ev[2] == "m" and not vim.startswith(ev[3], M.CAPTION) and not vim.startswith(ev[3], M.STEP) then
+        snapshot()
+        current = ev[3]
+      end
+    end
+  end
+  snapshot()
+  return out
+end
+
+--- The "Try the syntax" box's examples: name, label, text.
+M.presets = {
+  {
+    "outline",
+    "Outline",
+    {
+      "#+TITLE: My first org file",
+      "",
+      "* TODO Write the report                                   :work:",
+      "  SCHEDULED: <2026-10-12 Mon> DEADLINE: <2026-10-16 Fri>",
+      "** [#A] Gather the numbers [1/2]",
+      "   - [X] Sales",
+      "   - [ ] Costs",
+      "* DONE Call Bob",
+      "  CLOSED: [2026-10-11 Sun 17:02]",
+      "  Notes with *bold*, /italic/, _underline_, =verbatim= and ~code~.",
+      "# a comment",
+    },
+  },
+  {
+    "table",
+    "Table",
+    {
+      "#+NAME: stock",
+      "| Fruit  | Count | Price | Total |",
+      "|--------+-------+-------+-------|",
+      "| Apple  |     3 |  0.50 |  1.50 |",
+      "| Orange |    12 |  0.25 |  3.00 |",
+      "|--------+-------+-------+-------|",
+      "| Sum    |    15 |       |  4.50 |",
+      "#+TBLFM: $4=$2*$3;%.2f::@>$2=vsum(@I..@II)::@>$4=vsum(@I..@II);%.2f",
+    },
+  },
+  {
+    "code",
+    "Code block",
+    {
+      "* Fruit, in Lua",
+      "#+begin_src lua :results output",
+      'local fruits = { "apple", "pear" }',
+      "for i, f in ipairs(fruits) do",
+      "  print(i, f)",
+      "end",
+      "#+end_src",
+      "",
+      "#+RESULTS:",
+      ": 1\tapple",
+      ": 2\tpear",
+      "",
+      "#+begin_quote",
+      "Code and its output, in one file.",
+      "#+end_quote",
+    },
+  },
+  {
+    "links",
+    "Links & dates",
+    {
+      "* TODO Plan the trip <2026-10-16 Fri 09:00>",
+      "  DEADLINE: <2026-10-20 Tue -2d> SCHEDULED: <2026-10-14 Wed>",
+      "  :PROPERTIES:",
+      "  :CREATED:  [2026-10-12 Mon 08:30]",
+      "  :END:",
+      "- Trains: [[https://example.org/trains][the timetable]]",
+      "- See [[*Packing list]] and [[file:notes.org::*Ideas][my ideas]]",
+      "- Every week <2026-10-12 Mon +1w>; away <2026-10-16 Fri>--<2026-10-18 Sun>",
+      "- A footnote[fn:1] and a plain link: https://org-nvim.com",
+      "* Packing list",
+      "[fn:1] Footnotes work too.",
+    },
+  },
+}
+
+--- The page's lesson cards, grouped by level: `lessons` in course order.
+---@param lessons table[]
+---@return string
+local function path_html(lessons)
+  local levels = vim.deepcopy(require("org.tutor").levels)
+  for _, l in ipairs(lessons) do
+    if not vim.tbl_contains(levels, l.level) then
+      levels[#levels + 1] = l.level
+    end
+  end
+  local b = { '<nav class="pg-path" aria-label="Lessons">' }
+  local first = lessons[1]
+  for _, level in ipairs(levels) do
+    local group = vim.tbl_filter(function(l)
+      return l.level == level
+    end, lessons)
+    if #group > 0 then
+      local slug = level:lower():gsub("[^%w]+", "-")
+      b[#b + 1] = '<section class="pg-level"><h2 class="pg-level-head" id="level-'
+        .. slug
+        .. '">'
+        .. html.escape(level)
+        .. '</h2><div class="pg-tabs" role="tablist" aria-labelledby="level-'
+        .. slug
+        .. '">'
+      for _, l in ipairs(group) do
+        local n = #l.lesson.exercises
+        b[#b + 1] = '<button type="button" role="tab" id="tab-'
+          .. l.name
+          .. '" aria-controls="lesson-'
+          .. l.name
+          .. '" aria-selected="'
+          .. tostring(l == first)
+          .. '" data-lesson="'
+          .. l.name
+          .. '"><span class="pg-tab-num">Lesson '
+          .. html.escape(l.num)
+          .. '<span class="pg-tab-progress" data-total="'
+          .. n
+          .. '"></span></span><span class="pg-tab-title">'
+          .. html.escape(l.title)
+          .. '</span><span class="pg-tab-meta"><span class="pg-tab-level">'
+          .. html.escape(l.level)
+          .. "</span> · "
+          .. plural(n, "exercise")
+          .. " · "
+          .. M.clock(l.timeline.duration)
+          .. '</span><span class="pg-tab-topics">'
+          .. html.escape(table.concat(l.topics, " · "))
+          .. "</span></button>"
+      end
+      b[#b + 1] = "</div></section>"
+    end
+  end
+  b[#b + 1] = "</nav>"
+  return table.concat(b, "\n")
+end
+
 --- The playground page and its files.
 ---@param root string the checkout
 ---@param opts { err: fun(fmt: string, ...), blob: fun(path: string): string }
@@ -236,14 +499,16 @@ function M.build(root, opts)
   local leader = vim.g.mapleader
   vim.g.mapleader = " "
   local function render(key)
-    return tutor.render({ key })[1]
+    return tutor.render_line(key)
   end
   local files = {}
+  local metas = M.metas(root)
 
   -- every lesson first: the header and the lesson cards show their totals
   local lessons = {}
   local total_ex, total_s = 0, 0
   for _, name in ipairs(M.lessons(root)) do
+    local meta = metas[name]
     local cast_path = root .. "/docs/playground/" .. name .. ".cast"
     local f = io.open(cast_path, "rb")
     local cast = f and f:read("*a") or nil
@@ -259,16 +524,25 @@ function M.build(root, opts)
       opts.err("scripts/playground/lessons/%s.lua: %s", name, tostring(steps))
       steps = {}
     end
-    local timeline = cast and M.timeline(cast) or { markers = {}, duration = 0 }
-    local num, title = M.short_title(lesson.title)
+    if not meta.order or not meta.level then
+      opts.err(
+        'tutor/org/%s.org has no #+TUTOR_ORDER: or #+TUTOR_LEVEL: (CONTRIBUTING.md, "Writing a tutor lesson")',
+        name
+      )
+    end
+    local timeline = cast and M.timeline(cast) or { markers = {}, captions = {}, steps = {}, duration = 0 }
+    local _, title = M.short_title(lesson.title)
     lessons[#lessons + 1] = {
       name = name,
       cast = cast,
       lesson = lesson,
       steps = steps,
       timeline = timeline,
-      num = num or tostring(#lessons + 1),
+      screens = cast and M.screens(cast) or {},
+      num = tostring(meta.order or (#lessons + 1)),
       title = title,
+      level = meta.level or "More lessons",
+      topics = meta.topics,
     }
     total_ex = total_ex + #lesson.exercises
     total_s = total_s + timeline.duration
@@ -279,8 +553,9 @@ function M.build(root, opts)
     '<p class="pg-eyebrow">Playground</p>',
     "<h1>Try org.nvim in your browser</h1>",
     '<p class="lead">Watch each lesson of the built-in tutor, <code>:Org tutor</code>, played in a real '
-      .. "Neovim. Pause, scrub, jump to any exercise and copy text off the screen. The keys are "
-      .. "org.nvim's defaults, with the leader key on <kbd>Space</kbd>.</p>",
+      .. "Neovim, with captions. Pause, scrub, jump to any exercise and copy text off the screen, or "
+      .. "turn on <em>Follow along</em> and press the keys yourself. The keys are org.nvim's defaults, "
+      .. "with the leader key on <kbd>Space</kbd>.</p>",
     '<ul class="pg-facts">'
       .. "<li><strong>"
       .. #lessons
@@ -291,28 +566,15 @@ function M.build(root, opts)
       .. "</strong> exercises</li><li><strong>"
       .. math.max(1, math.floor(total_s / 60 + 0.5))
       .. "</strong> minutes</li><li>Nothing to install</li></ul>",
+    -- shown by the script when this browser has watched something
+    '<div class="pg-resume" hidden><button type="button" class="pg-continue">'
+      .. '<span class="pg-continue-label">Continue where you left off</span>'
+      .. '<span class="pg-continue-what"></span></button>'
+      .. '<button type="button" class="pg-forget">Forget my progress</button></div>',
     "</header>",
   }
 
-  b[#b + 1] = '<div class="pg-tabs" role="tablist" aria-label="Lessons">'
-  for k, l in ipairs(lessons) do
-    b[#b + 1] = '<button type="button" role="tab" id="tab-'
-      .. l.name
-      .. '" aria-controls="lesson-'
-      .. l.name
-      .. '" aria-selected="'
-      .. tostring(k == 1)
-      .. '"><span class="pg-tab-num">Lesson '
-      .. html.escape(l.num)
-      .. '</span><span class="pg-tab-title">'
-      .. html.escape(l.title)
-      .. '</span><span class="pg-tab-meta">'
-      .. plural(#l.lesson.exercises, "exercise")
-      .. " · "
-      .. M.clock(l.timeline.duration)
-      .. "</span></button>"
-  end
-  b[#b + 1] = "</div>"
+  b[#b + 1] = path_html(lessons)
 
   for k, l in ipairs(lessons) do
     local name, cast, lesson = l.name, l.cast, l.lesson
@@ -324,6 +586,13 @@ function M.build(root, opts)
     for _, m in ipairs(l.timeline.markers) do
       at[m.label] = at[m.label] or m.t
     end
+    local captions = {}
+    for _, c in ipairs(l.timeline.captions) do
+      local key = c.exercise or ""
+      captions[key] = captions[key] or {}
+      table.insert(captions[key], c.text)
+    end
+    local command = ":Org tutor " .. name
     files["playground/" .. name .. ".cast"] = cast or ""
     files["playground/" .. name .. ".js"] = "window.ORG_CAST&&window.ORG_CAST("
       .. vim.json.encode(name)
@@ -336,12 +605,18 @@ function M.build(root, opts)
       .. name
       .. '" data-lesson="'
       .. name
+      .. '" data-order="'
+      .. l.num
       .. '" data-src="playground/'
       .. name
       .. '.js"'
       .. (k == 1 and "" or " hidden")
       .. ">"
     b[#b + 1] = '<h2 class="pg-sr">' .. html.escape(lesson.title) .. "</h2>"
+    b[#b + 1] = '<p class="pg-rotate">Turn your phone sideways for a bigger terminal, or read the '
+      .. '<a href="#'
+      .. name
+      .. '-transcript">transcript</a>.</p>'
     b[#b + 1] = '<div class="pg-stage">'
     b[#b + 1] = '<div class="pg-player" role="region" tabindex="0" aria-label="Recording of the '
       .. name
@@ -350,7 +625,7 @@ function M.build(root, opts)
       .. '.org">'
       .. '<noscript><p>The player needs JavaScript; <a href="playground/'
       .. name
-      .. '.cast">download the recording</a> for any asciicast player.</p></noscript></div>'
+      .. '.cast">download the recording</a> for any asciicast player, or read the transcript below.</p></noscript></div>'
     b[#b + 1] = '<div class="pg-side"><h3 class="pg-side-head">Exercises <span>' .. #lesson.exercises .. "</span></h3>"
     b[#b + 1] = '<ol class="pg-steps">'
     --- The head of a step: its play button (or its number), title and time.
@@ -368,10 +643,18 @@ function M.build(root, opts)
         .. (t and ('<span class="pg-step-time">' .. M.clock(t) .. "</span>") or "")
         .. "</div>"
     end
+    local try_line = '<p class="pg-try-nvim"><span class="pg-keys-label">Try it in Neovim</span> <code>'
+      .. html.escape(command)
+      .. '</code> <button type="button" class="pg-copy-cmd" data-copy="'
+      .. html.escape(command)
+      .. '" aria-label="Copy '
+      .. html.escape(command)
+      .. '">Copy</button></p>'
     b[#b + 1] = '<li data-marker="Welcome">'
       .. head("▶", "Welcome", "Welcome")
       .. '<div class="pg-step-body">'
       .. prose(first_paragraph(lesson.intro))
+      .. try_line
       .. "</div></li>"
     for _, ex in ipairs(lesson.exercises) do
       local label = ex.id .. " " .. ex.title
@@ -393,9 +676,55 @@ function M.build(root, opts)
           by_id[ex.id].steps,
           render
         ) .. "</p>") or "")
+        .. try_line
         .. "</div></li>"
     end
     b[#b + 1] = "</ol></div></div>"
+
+    -- the transcript: everything the recording shows, as text
+    b[#b + 1] = '<details class="pg-transcript" id="'
+      .. name
+      .. '-transcript"><summary>Transcript <span>the exercises, their keys and captions, and the screen '
+      .. "at the end of each, as text</span></summary>"
+    b[#b + 1] = '<ol class="pg-tr">'
+    local function captions_html(label)
+      local list = captions[label]
+      if not list then
+        return ""
+      end
+      local items = {}
+      for _, text in ipairs(list) do
+        items[#items + 1] = "<li>" .. html.escape(text) .. "</li>"
+      end
+      return '<ul class="pg-tr-captions" aria-label="Captions">' .. table.concat(items) .. "</ul>"
+    end
+    local function screen_html(label, what)
+      local text = l.screens[label]
+      if not text then
+        return ""
+      end
+      return '<pre class="pg-tr-screen" tabindex="0" aria-label="The screen at the end of '
+        .. html.escape(what)
+        .. '">'
+        .. html.escape(text)
+        .. "</pre>"
+    end
+    b[#b + 1] = "<li><h3>Welcome</h3>" .. prose(first_paragraph(lesson.intro)) .. captions_html("Welcome") .. "</li>"
+    for _, ex in ipairs(lesson.exercises) do
+      local label = ex.id .. " " .. ex.title
+      b[#b + 1] = "<li><h3>"
+        .. html.escape(label)
+        .. "</h3>"
+        .. prose(ex.lines)
+        .. (by_id[ex.id] and ('<p class="pg-keys-used"><span class="pg-keys-label">Keys</span> ' .. M.keys(
+          by_id[ex.id].steps,
+          render
+        ) .. "</p>") or "")
+        .. captions_html(label)
+        .. screen_html(label, label)
+        .. "</li>"
+    end
+    b[#b + 1] = "</ol></details>"
     b[#b + 1] = '<p class="pg-source">The lesson: <a href="'
       .. opts.blob("tutor/org/" .. name .. ".org")
       .. '"><code>tutor/org/'
@@ -410,27 +739,32 @@ function M.build(root, opts)
   vim.g.mapleader = leader
 
   b[#b + 1] = '<h2 id="try-the-syntax">Try the syntax</h2>'
-  b[#b + 1] = "<p>Type some Org below: headlines, TODO keywords, tags, lists, checkboxes, tables, "
-    .. "dates and markup are highlighted as you type. (This box only colors text; the editing "
-    .. "happens in Neovim.)</p>"
+  b[#b + 1] = "<p>Type some Org below, or start from an example: headlines, TODO keywords, tags, lists, "
+    .. "checkboxes, tables, blocks, links, dates and markup are highlighted as you type. (This box "
+    .. "only colors text; the editing happens in Neovim.)</p>"
+  local presets = { '<div class="pg-presets" role="group" aria-label="Examples">' }
+  for i, p in ipairs(M.presets) do
+    presets[#presets + 1] = '<button type="button" class="pg-preset" data-preset="'
+      .. p[1]
+      .. '" aria-pressed="'
+      .. tostring(i == 1)
+      .. '">'
+      .. html.escape(p[2])
+      .. "</button>"
+  end
+  presets[#presets + 1] = "</div>"
+  for _, p in ipairs(M.presets) do
+    presets[#presets + 1] = '<template class="pg-preset-text" data-preset="'
+      .. p[1]
+      .. '">'
+      .. html.escape(table.concat(p[3], "\n"))
+      .. "</template>"
+  end
+  b[#b + 1] = table.concat(presets)
   b[#b + 1] = '<div class="pg-try"><pre class="pg-try-hl" aria-hidden="true"></pre>'
     .. '<textarea class="pg-try-input" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" '
     .. 'aria-label="Org text to highlight">'
-    .. html.escape(table.concat({
-      "#+TITLE: My first org file",
-      "",
-      "* TODO Write the report                                   :work:",
-      "  SCHEDULED: <2026-10-12 Mon> DEADLINE: <2026-10-16 Fri>",
-      "** [#A] Gather the numbers",
-      "   - [X] Sales",
-      "   - [ ] Costs",
-      "* DONE Call Bob",
-      "  Notes with *bold*, /italic/, =verbatim= and a [[https://org-nvim.com][link]].",
-      "",
-      "| Fruit | Count |",
-      "|-------+-------|",
-      "| Apple |     3 |",
-    }, "\n"))
+    .. html.escape(table.concat(M.presets[1][3], "\n"))
     .. "</textarea></div>"
   b[#b + 1] = '<div class="pg-install"><div><h2 id="install">Ready for the real thing?</h2>'
     .. "<p>Install org.nvim and run <code>:Org tutor</code>: the same lessons, in your editor, with "
