@@ -100,10 +100,18 @@ keys. `/` searches the list and `{` / `}` jump between sections.
 Tutor                                                *org-tutor* *:Org-tutor*
 :Org tutor [lesson] [reset]
     A guided lesson in the spirit of |vimtutor|, in an org buffer of its
-    own, so every org key works in it. Two lessons ship with org.nvim:
-      `basics`     the outline, TODO items and priorities, tags, dates,
-                   lists and checkboxes, tables, links (the default)
-      `workflow`   capture, the agenda and clocking
+    own, so every org key works in it. The lessons make a course, in
+    order:
+      `basics`     1. the outline, TODO items and priorities, tags,
+                   dates, lists and checkboxes, tables, links (Beginner)
+      `workflow`   2. capture, the agenda and clocking (Daily workflow)
+    `:Org tutor` without a lesson lists them, each with its number,
+    title, level and progress (exercises done in your saved copy, or
+    "not started"): `j`/`k` and `<CR>` (or the key shown) open one,
+    `<Esc>` or `q` closes the list. `:Org tutor {lesson}` opens a lesson
+    directly. (Before, `:Org tutor` alone opened `basics`; that is now
+    `:Org tutor basics`.)
+
     Each lesson is in small numbered sections. An exercise is a headline
     whose title starts with its number (`1.2 Insert a headline`): once
     you have done what it asks, a ✓ shows at the end of that headline
@@ -111,6 +119,15 @@ Tutor                                                *org-tutor* *:Org-tutor*
     marks are checked from the outline as org.nvim parses it ("this
     headline is DONE", "has the tag :work:", "the table is aligned"), a
     moment after each change, including changes made from the agenda.
+    A few exercises are about what a window shows (folding a subtree,
+    following a link): they are checked when the cursor moves or rests,
+    and stay done once done. When every exercise is done, the lesson
+    names the next one under its last line.
+
+                                                        *:Org-tutor_hint*
+:Org tutor_hint
+    In a lesson: show the keys that solve the exercise at the cursor (the
+    cursor anywhere in the exercise's text).
 
     The lesson is a copy: `:Org tutor` writes it to
     `stdpath("data")/org/tutor/{lesson}.org` and opens that file, never
@@ -122,40 +139,60 @@ Tutor                                                *org-tutor* *:Org-tutor*
     are those of your `mappings` when the copy is made (`:Org {action}`
     for an action without a key).
 
-    Running `:Org tutor` again opens the same copy: what you saved with
-    `:w` is kept. `reset` starts the lesson over from a fresh copy (the
-    buffer, when it is loaded, keeps its undo history: `u` brings back
-    what you had). Completion lists the lessons.
+    Running `:Org tutor {lesson}` again opens the same copy: what you
+    saved with `:w` is kept. `reset` starts the lesson over from a fresh
+    copy (the buffer, when it is loaded, keeps its undo history: `u`
+    brings back what you had). Completion lists the lessons.
 
     The playground of the website, https://org-nvim.com/playground.html,
     plays a recording of each lesson done exercise by exercise, with the
-    default keys.
+    default keys and captions, and a follow-along mode where you press
+    the keys yourself.
 
     `ui.tutor_marks` sets the marks (default `{ done = "✓", todo = "✗" }`),
     and the highlight groups `OrgTutorDone`, `OrgTutorTodo` and
     `OrgTutorProgress` (the count on the first line) their colors.
 
+                                                        *org-tutor-lessons*
     A lesson is `tutor/org/{lesson}.org` on 'runtimepath', so a plugin or
-    your config can add one; its checks, if any, are a Lua table returned
-    by the module `org.tutor.lessons.{lesson}`, keyed by exercise number.
-    Each value is a condition, or a list of conditions that must all
-    hold, on the exercise's subtree: >lua
+    your config can add one. Keywords before its first headline place it
+    in the course (they are left out of the copy): >org
+    #+TITLE: org.nvim tutor 3: writing
+    #+TUTOR_ORDER: 3
+    #+TUTOR_LEVEL: Beginner
+    #+TUTOR_TOPICS: markup, lists, footnotes
+<
+    `#+TUTOR_ORDER:` is its number (lessons without one come last),
+    `#+TUTOR_LEVEL:` one of `Beginner`, `Daily workflow` or `Power
+    user`, `#+TUTOR_TOPICS:` what it teaches, comma-separated. Its checks
+    and hints, if any, are a Lua table returned by the module
+    `org.tutor.lessons.{lesson}`, keyed by exercise number: >lua
     return {
-      ["1.2"] = { heading = "Pears", parent = "Fruit" },
-      ["2.1"] = { heading = "Buy milk", todo = "DONE" },
-      ["6.1"] = { table_aligned = true },
+      checks = {
+        ["1.2"] = { heading = "Pears", parent = "Fruit" },
+        ["2.1"] = { heading = "Buy milk", todo = "DONE" },
+        ["6.1"] = { table_aligned = true },
+      },
+      hints = {
+        ["1.2"] = "On Apples press {{org.meta_return}}, type Pears, <Esc>.",
+      },
     }
 <
-    A condition tests the headline `heading` of the subtree (by its title
-    without keyword, priority or tags; the exercise headline when not
-    given) for `todo`, `priority`, `tags`, `parent`, `depth` (levels below
-    the exercise), `children` (titles in order), `scheduled`, `deadline`,
-    `clocked` and `min_headings`; or the subtree's text for `item` (a list
-    item), `checked` (a checked item), `table_aligned`, `table_row` (first
-    field of a row) and `contains`; `fn(ctx)` returns a boolean for
-    anything else. `{{org.cycle}}` in the lesson text is replaced by the key
-    of `mappings.org.cycle` (any `mappings` section works), `{{leader}}` by
-    the leader key, `{{done}}` and `{{todo}}` by the `ui.tutor_marks`.
+    (A module that returns the checks table alone still works.) Each
+    check is a condition, or a list of conditions that must all hold, on
+    the exercise's subtree. A condition tests the headline `heading` of
+    the subtree (by its title without keyword, priority or tags; the
+    exercise headline when not given) for `todo`, `priority`, `tags`,
+    `parent`, `depth` (levels below the exercise), `children` (titles in
+    order), `scheduled`, `deadline`, `clocked`, `min_headings` and
+    `folded` (folded in a window); or the subtree's text for `item` (a
+    list item), `checked` (a checked item), `table_aligned`, `table_row`
+    (first field of a row) and `contains`; `cursor` is the title of a
+    headline of the file a window has the cursor on; `fn(ctx)` returns a
+    boolean for anything else. `{{org.cycle}}` in the lesson text and in
+    hints is replaced by the key of `mappings.org.cycle` (any `mappings`
+    section works), `{{leader}}` by the leader key, `{{done}}` and
+    `{{todo}}` by the `ui.tutor_marks`.
 
 ==============================================================================
 2. INSTALLATION                                             *org-installation*
@@ -7751,7 +7788,8 @@ Additional subcommands:
   - `:Org toggle_timestamp_type`
   - `:Org notifications_start`, `notifications_stop`
   - `:Org lint [checker ...]` (|org-lint|)
-  - `:Org tutor [lesson] [reset]` (|org-tutor|)
+  - `:Org tutor [lesson] [reset]` (without a lesson: the lesson list),
+    `:Org tutor_hint` (|org-tutor|)
   - `:Org feed_update [name]`, `feed_update_all`, `feed_goto_inbox [name]`,
     `feed_show_raw [name]` (|org-feed|)
   - `:Org mobile_push`, `mobile_pull`, `mobile_apply`, `mobile_goto_inbox`,

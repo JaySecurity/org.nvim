@@ -86,9 +86,14 @@ group("Anywhere", {
   bug_report = { "org.bug_report", "submit", desc = "Report a bug (org-submit-bug-report)", global = true },
   tutor = {
     "org.tutor",
-    "open",
+    "start",
     desc = "Interactive tutorial (:Org tutor [lesson] [reset])",
     global = true,
+  },
+  tutor_hint = {
+    "org.tutor",
+    "hint",
+    desc = "Show the keys that solve the tutor exercise at the cursor",
   },
   clock_menu = { "org.menu", "clock_menu", desc = "Pop up the clock menu (org-clock-menu)", global = true },
   migrate_config = {

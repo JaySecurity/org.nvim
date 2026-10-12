@@ -118,6 +118,7 @@ describe("tutor", function()
       return vim.deep_equal(mark(buf, "2.1"), TODO)
     end))
     -- exercises without a check have no mark
+    tutor.attach(buf, { ["2.1"] = { heading = "Buy milk", todo = "TODO" } })
     eq(nil, mark(buf, "1.1"))
   end)
 
@@ -319,8 +320,23 @@ describe("tutor", function()
     vim.cmd("Org tutor workflow")
     eq("workflow", vim.b.org_tutor)
     eq(real(tutor.copy_path("workflow")), real(vim.api.nvim_buf_get_name(0)))
+    -- without a lesson: the lesson list
+    local ui = require("org.ui")
+    local orig_choose = ui.choose
+    local picked
+    ui.choose = function(o)
+      picked = o
+      return "basics"
+    end
     vim.cmd("Org tutor")
+    ui.choose = orig_choose
     eq("basics", vim.b.org_tutor)
+    eq(
+      { "basics", "workflow" },
+      vim.tbl_map(function(it)
+        return it.value
+      end, picked.items)
+    )
     eq(
       { "basics", "reset", "workflow" },
       (function()
@@ -342,8 +358,195 @@ describe("tutor", function()
   end)
 end)
 
+describe("tutor course", function()
+  before_each(cleanup)
+  after_each(cleanup)
+
+  local function virt_lines(buf)
+    local out = {}
+    for _, m in ipairs(vim.api.nvim_buf_get_extmarks(buf, tutor.ns, 0, -1, { details = true })) do
+      for _, vl in ipairs(m[4].virt_lines or {}) do
+        for _, chunk in ipairs(vl) do
+          out[#out + 1] = chunk[1]
+        end
+      end
+    end
+    return table.concat(out, "\n")
+  end
+
+  it("reads each lesson's order, level and topics, and lists the lessons in that order", function()
+    local meta = assert(tutor.meta("basics"))
+    eq(1, meta.order)
+    eq("Beginner", meta.level)
+    ok(vim.tbl_contains(meta.topics, "tables"))
+    eq("org.nvim tutor 1: the basics", meta.title)
+    eq(2, assert(tutor.meta("workflow")).order)
+    eq({ "basics", "workflow" }, tutor.lesson_names())
+    eq("workflow", tutor.next_lesson("basics"))
+    eq(nil, tutor.next_lesson("workflow"))
+    eq("Capture, agenda and clocking", tutor.title("workflow"))
+    -- the copy has no metadata lines
+    local buf = assert(tutor.open("basics"))
+    for _, line in ipairs(buf_lines(buf)) do
+      ok(not line:lower():find("^#%+tutor_"), line)
+    end
+    eq("#+TITLE: org.nvim tutor 1: the basics", buf_lines(buf)[1])
+  end)
+
+  it("lists the lessons with their number, title, level and progress", function()
+    local buf = assert(tutor.open("basics"))
+    cursor_to(buf, "*** TODO Buy milk")
+    feed("cit")
+    vim.cmd("silent write")
+    local n = vim.tbl_count(tutor.checks("basics"))
+    eq({ 1, n }, { tutor.progress("basics") })
+    eq({ nil, nil }, { tutor.progress("workflow") })
+    local ui = require("org.ui")
+    local orig = ui.choose
+    local seen
+    ui.choose = function(o)
+      seen = o
+      return nil -- Esc
+    end
+    eq(nil, tutor.start())
+    ui.choose = orig
+    eq("1. The basics", seen.items[1].label)
+    eq(("Beginner · 1/%d · :Org tutor basics"):format(n), seen.items[1].desc)
+    eq("2. Capture, agenda and clocking", seen.items[2].label)
+    eq("Daily workflow · not started · :Org tutor workflow", seen.items[2].desc)
+  end)
+
+  it("names the next lesson once every exercise is done", function()
+    local buf = assert(tutor.open("basics"))
+    -- a lesson of one exercise, as far as the marks go
+    tutor.attach(buf, { ["2.1"] = { heading = "Buy milk", todo = "DONE" } }, "basics")
+    eq("", virt_lines(buf))
+    local msgs = {}
+    local orig = utils.notify
+    utils.notify = function(msg)
+      msgs[#msgs + 1] = msg
+    end
+    cursor_to(buf, "*** TODO Buy milk")
+    feed("cit")
+    tutor.refresh(buf)
+    utils.notify = orig
+    ok(virt_lines(buf):find("Next lesson: 2. Capture, agenda and clocking (:Org tutor workflow)", 1, true))
+    ok(msgs[1] and msgs[1]:find(":Org tutor workflow", 1, true), vim.inspect(msgs))
+    -- the last lesson says so
+    local wbuf = assert(tutor.open("workflow"))
+    tutor.attach(wbuf, { ["2.1"] = { heading = "Call the dentist", todo = "DONE" } }, "workflow")
+    cursor_to(wbuf, "*** TODO Call the dentist")
+    feed("cit")
+    tutor.refresh(wbuf)
+    ok(virt_lines(wbuf):find("That was the last lesson", 1, true))
+  end)
+
+  it("checks folding (1.1) and following a link (7.2), and remembers them", function()
+    local buf = assert(tutor.open("basics"))
+    eq(TODO, mark(buf, "1.1"))
+    eq(TODO, mark(buf, "7.2"))
+    cursor_to(buf, "*** Kitchen")
+    feed("<Tab>")
+    ok(vim.fn.foldclosed(vim.fn.line(".")) ~= -1, "Kitchen folded")
+    tutor.refresh(buf)
+    eq(DONE, mark(buf, "1.1"))
+    -- unfolded again: still done
+    feed("zR")
+    tutor.refresh(buf)
+    eq(DONE, mark(buf, "1.1"))
+    -- 7.2: the link of 7.1, followed
+    local lnum = cursor_to(buf, "Map:")
+    vim.api.nvim_buf_set_lines(buf, lnum - 1, lnum, false, { "Map: [[*Treasure chest][the treasure]]" })
+    tutor.refresh(buf)
+    eq(TODO, mark(buf, "7.2"))
+    vim.api.nvim_win_set_cursor(0, { lnum, 8 })
+    feed("<C-c><C-o>")
+    eq("*** Treasure chest", vim.api.nvim_get_current_line())
+    tutor.refresh(buf)
+    eq(DONE, mark(buf, "7.2"))
+    vim.cmd("silent write")
+    -- remembered for the lesson list, though the file can't show it
+    eq({ ["1.1"] = true, ["7.2"] = true }, tutor.seen("basics"))
+    vim.cmd("enew")
+    vim.cmd("bwipeout! " .. buf)
+    local passed = tutor.progress("basics")
+    eq(3, passed) -- 1.1, 7.1 and 7.2
+    -- reset forgets them
+    buf = assert(tutor.open("basics", true))
+    eq({}, tutor.seen("basics"))
+    eq(TODO, mark(buf, "1.1"))
+  end)
+
+  it("gives the keys of the exercise at the cursor as a hint", function()
+    local buf = assert(tutor.open("basics"))
+    local msgs = {}
+    local orig = utils.notify
+    utils.notify = function(msg)
+      msgs[#msgs + 1] = msg
+    end
+    cursor_to(buf, "**** Apples")
+    vim.cmd("Org tutor_hint")
+    cursor_to(buf, "* Lesson 1: the outline")
+    vim.cmd("Org tutor_hint")
+    utils.notify = orig
+    eq(
+      "Hint for 1.2 Insert a headline: On Apples (not at the line start) press <M-CR>, type Pears, then <Esc>.",
+      msgs[1]
+    )
+    ok(msgs[2]:find("Put the cursor in an exercise", 1, true), msgs[2])
+    -- not a lesson
+    local warned
+    local orig_warn = utils.warn
+    utils.warn = function(msg)
+      warned = msg
+    end
+    vim.cmd("enew")
+    vim.bo.filetype = "org"
+    tutor.hint()
+    utils.warn = orig_warn
+    ok(warned and warned:find(":Org tutor", 1, true))
+  end)
+end)
+
 describe("tutor lessons", function()
   local lessons = tutor.lessons()
+
+  it("has the metadata of a course: a unique order matching the title, a level and topics", function()
+    local orders = {}
+    for name in pairs(lessons) do
+      local meta = assert(tutor.meta(name))
+      ok(meta.order and meta.order == math.floor(meta.order), name .. ": no #+TUTOR_ORDER:")
+      ok(not orders[meta.order], ("%s: #+TUTOR_ORDER: %s is %s's too"):format(name, meta.order, orders[meta.order]))
+      orders[meta.order] = name
+      ok(vim.tbl_contains(tutor.levels, meta.level), name .. ": #+TUTOR_LEVEL: is one of " .. vim.inspect(tutor.levels))
+      ok(#meta.topics > 0, name .. ": no #+TUTOR_TOPICS:")
+      eq(
+        tostring(meta.order),
+        meta.title:match("^org%.nvim tutor (%d+): %l"),
+        name .. ": #+TITLE: org.nvim tutor N: ..."
+      )
+    end
+  end)
+
+  it("has a hint for every exercise, with keys that exist", function()
+    local defaults = config.defaults.mappings
+    for name, path in pairs(lessons) do
+      local hints = tutor.hints(name)
+      local file = require("org.parser").parse(vim.fn.readfile(path))
+      for _, hl in ipairs(file.headlines) do
+        local id = tutor.exercise_id(hl)
+        if id then
+          ok(hints[id], ("%s: exercise %s has no hint"):format(name, id))
+        end
+      end
+      for id, hint in pairs(hints) do
+        for ref in hint:gmatch("{{([^}]*)}}") do
+          local section, action = ref:match("^([%w_]+)%.([%w_]+)$")
+          ok(section and defaults[section] and defaults[section][action], ("%s %s: bad {{%s}}"):format(name, id, ref))
+        end
+      end
+    end
+  end)
 
   it("ships the basics and workflow lessons", function()
     eq({ "basics", "workflow" }, tutor.lesson_names())

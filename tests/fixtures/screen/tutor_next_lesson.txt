@@ -1,0 +1,15 @@
+screen 70x8
+|{1:#+TITLE:}{2: Tutor} {3: ✓ 1/1}|
+|{4:* Lesson 1}|
+|{5:** 1.1 Finish a task} {3: ✓}|
+|{6:*** }{7:DONE}{6: Buy milk}|
+||
+|{3:✓ Next lesson: 2. Capture, agenda and clocking (:Org tutor workflow)}|
+
+{1} orgTitleKeyword -> OrgKeyword -> PreProc
+{2} OrgTitle -> Title [bold]
+{3} OrgTutorDone -> DiagnosticOk
+{4} OrgHeadlineLevel1 -> Title [bold]
+{5} OrgHeadlineLevel2 -> Constant
+{6} OrgHeadlineDone -> Comment
+{7} OrgDone -> @comment.note

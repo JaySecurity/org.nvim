@@ -14,11 +14,19 @@
 --- when it has none), so the lesson shows the keys of your config.
 ---
 --- Exercises are the headlines whose title starts with a number like
---- `1.2`. Their checks live in `lua/org/tutor/lessons/<lesson>.lua`, keyed
---- by that number: a condition, or a list of conditions that must all
---- hold, evaluated on the parse of the buffer (`org.files`) within the
---- exercise's subtree. A ✓ or ✗ (`ui.tutor_marks`) at the end of the
---- exercise's headline shows the result, updated as the buffer changes.
+--- `1.2`. Their checks live in `lua/org/tutor/lessons/<lesson>.lua`
+--- (`{ checks = ..., hints = ... }`), keyed by that number: a condition,
+--- or a list of conditions that must all hold, evaluated on the parse of
+--- the buffer (`org.files`) within the exercise's subtree. A ✓ or ✗
+--- (`ui.tutor_marks`) at the end of the exercise's headline shows the
+--- result, updated as the buffer changes; once all are ✓ the next lesson
+--- is named under the last line. A hint (`:Org tutor_hint`) gives the keys
+--- that solve the exercise at the cursor.
+---
+--- The `#+TUTOR_ORDER:`, `#+TUTOR_LEVEL:` and `#+TUTOR_TOPICS:` keywords of
+--- a lesson (`M.meta`) give its place in the course, its level and what it
+--- teaches: `:Org tutor` without a lesson lists them in that order with
+--- the progress of each, and the website's playground groups them so.
 
 local config = require("org.config")
 local utils = require("org.utils")
@@ -50,7 +58,14 @@ M.default_lesson = "basics"
 ---@field table_aligned? boolean the first table in the exercise is aligned
 ---@field table_row? string a table row in the exercise whose first field is this
 ---@field contains? string text (plain) found in the exercise
+---@field folded? boolean its subtree is folded in a window (view: see below)
+---@field cursor? string a window has the cursor on the headline with this plain title, anywhere in the file (view: see below)
 ---@field fn? fun(ctx: org.tutor.Context): boolean
+---
+--- `folded` and `cursor` test what a window shows, not the text: once an
+--- exercise with such a condition has passed it stays done (remembered
+--- in `M.seen_path()`, until the lesson is reset), as there is nothing in
+--- the file to show it.
 
 ---@class org.tutor.Context
 ---@field buf integer
@@ -75,20 +90,114 @@ function M.lessons()
   return out
 end
 
---- Lesson names, sorted.
+--- The levels a lesson can be at (`#+TUTOR_LEVEL:`), easiest first.
+M.levels = { "Beginner", "Daily workflow", "Power user" }
+
+---@class org.tutor.Meta
+---@field name string lesson name (the file name without `.org`)
+---@field path string the shipped lesson file
+---@field title string its `#+TITLE:` ("" when it has none)
+---@field order? integer its place in the course (`#+TUTOR_ORDER:`)
+---@field level? string one of `M.levels` (`#+TUTOR_LEVEL:`)
+---@field topics string[] what it teaches (`#+TUTOR_TOPICS:`, comma-separated)
+
+--- A lesson's metadata: the `#+TITLE:` and the `#+TUTOR_ORDER:`,
+--- `#+TUTOR_LEVEL:` and `#+TUTOR_TOPICS:` keywords of its file, read up
+--- to the first headline. nil when there is no such lesson.
+---@param name string
+---@return org.tutor.Meta|nil
+function M.meta(name)
+  local path = M.lessons()[name]
+  return path and M.file_meta(path) or nil
+end
+
+--- The metadata of the lesson file at `path` (see `M.meta`).
+---@param path string
+---@return org.tutor.Meta
+function M.file_meta(path)
+  ---@type org.tutor.Meta
+  local meta = { name = vim.fn.fnamemodify(path, ":t:r"), path = path, title = "", topics = {} }
+  for _, line in ipairs(vim.fn.readfile(path, "", 40)) do
+    if line:match("^%*+%s") then
+      break
+    end
+    local key, value = line:match("^#%+([%w_]+):%s*(.-)%s*$")
+    key = key and key:lower()
+    if key == "title" then
+      meta.title = value
+    elseif key == "tutor_order" then
+      meta.order = tonumber(value)
+    elseif key == "tutor_level" then
+      meta.level = value
+    elseif key == "tutor_topics" then
+      for topic in value:gmatch("[^,]+") do
+        meta.topics[#meta.topics + 1] = vim.trim(topic)
+      end
+    end
+  end
+  return meta
+end
+
+--- Lesson names in course order: by `#+TUTOR_ORDER:`, then by name (a
+--- lesson without one comes after those that have one).
 ---@return string[]
 function M.lesson_names()
   local names = vim.tbl_keys(M.lessons())
-  table.sort(names)
+  local order = {}
+  for _, name in ipairs(names) do
+    order[name] = (M.meta(name) or {}).order or math.huge
+  end
+  table.sort(names, function(a, b)
+    if order[a] ~= order[b] then
+      return order[a] < order[b]
+    end
+    return a < b
+  end)
   return names
 end
 
---- The checks of a lesson (`org.tutor.lessons.<name>`), {} when it has none.
+--- The lesson after `name` in course order, or nil after the last one.
+---@param name string
+---@return string|nil
+function M.next_lesson(name)
+  local names = M.lesson_names()
+  for i, n in ipairs(names) do
+    if n == name then
+      return names[i + 1]
+    end
+  end
+  return nil
+end
+
+--- The module of a lesson's checks and hints (`org.tutor.lessons.<name>`):
+--- `{ checks = {...}, hints = {...} }`, or (the older form) the checks
+--- table alone.
+---@param name string
+---@return { checks: org.tutor.Checks, hints: table<string, string> }
+local function lesson_module(name)
+  local ok, mod = pcall(require, "org.tutor.lessons." .. name)
+  if not ok or type(mod) ~= "table" then
+    return { checks = {}, hints = {} }
+  end
+  if type(mod.checks) == "table" or type(mod.hints) == "table" then
+    return { checks = mod.checks or {}, hints = mod.hints or {} }
+  end
+  return { checks = mod, hints = {} }
+end
+
+--- The checks of a lesson, by exercise number; {} when it has none.
 ---@param name string
 ---@return org.tutor.Checks
 function M.checks(name)
-  local ok, checks = pcall(require, "org.tutor.lessons." .. name)
-  return ok and type(checks) == "table" and checks or {}
+  return lesson_module(name).checks
+end
+
+--- The hints of a lesson, by exercise number: what solves the exercise,
+--- with `{{section.action}}` placeholders (`M.render_line`).
+---@param name string
+---@return table<string, string>
+function M.hints(name)
+  return lesson_module(name).hints
 end
 
 --- Where the working copy of a lesson lives.
@@ -137,13 +246,26 @@ local function examples()
   return "=examples/00-index.org= in the org.nvim directory"
 end
 
---- Replace the `{{...}}` placeholders of the lesson text.
+--- Replace the `{{...}}` placeholders of the lesson text. The
+--- `#+TUTOR_...:` metadata lines (`M.meta`) are left out.
 ---@param lines string[]
 ---@return string[]
 function M.render(lines)
   local out = {}
-  for i, line in ipairs(lines) do
-    out[i] = line:gsub("{{([%w_%.]+)}}", function(ref)
+  for _, line in ipairs(lines) do
+    if not line:match("^#%+[Tt][Uu][Tt][Oo][Rr]_[%w_]*:") then
+      out[#out + 1] = M.render_line(line)
+    end
+  end
+  return out
+end
+
+--- Replace the `{{...}}` placeholders of one line of text.
+---@param line string
+---@return string
+function M.render_line(line)
+  return (
+    line:gsub("{{([%w_%.]+)}}", function(ref)
       if ref == "leader" then
         return leader()
       elseif ref == "done" or ref == "todo" then
@@ -155,8 +277,7 @@ function M.render(lines)
       local section, name = ref:match("^([%w_]+)%.([%w_]+)$")
       return section and M.key(section, name) or nil
     end)
-  end
-  return out
+  )
 end
 
 ---------------------------------------------------------------------------
@@ -304,6 +425,33 @@ local function check_one(ctx, c)
   if c.contains ~= nil and not table.concat(ctx.lines, "\n"):find(c.contains, 1, true) then
     return false
   end
+  if c.folded ~= nil or c.cursor ~= nil then
+    local wins = vim.api.nvim_buf_is_valid(ctx.buf) and vim.fn.win_findbuf(ctx.buf) or {}
+    if c.folded ~= nil then
+      local folded = false
+      for _, win in ipairs(wins) do
+        folded = folded
+          or vim.api.nvim_win_call(win, function()
+            return vim.fn.foldclosed(hl.line) == hl.line
+          end)
+      end
+      if folded ~= c.folded then
+        return false
+      end
+    end
+    if c.cursor ~= nil then
+      local at = false
+      for _, win in ipairs(wins) do
+        local lnum = vim.api.nvim_win_get_cursor(win)[1]
+        for _, h in ipairs(ctx.file.headlines) do
+          at = at or (h.line == lnum and h:plain_title() == c.cursor)
+        end
+      end
+      if not at then
+        return false
+      end
+    end
+  end
   if c.fn ~= nil and not c.fn(ctx) then
     return false
   end
@@ -335,12 +483,150 @@ function M.exercise_id(hl)
   return hl:plain_title():match("^(%d+%.%d+)%s")
 end
 
+--- Attached buffers: bufnr -> { name, checks, seen, timer, results, all_done }
+local state = {}
+
+---------------------------------------------------------------------------
+-- Exercises done in a window's view
+---------------------------------------------------------------------------
+
+--- Where the exercises passed by a view condition (`folded`, `cursor`)
+--- are remembered: { [lesson] = { [exercise] = true } }.
+---@return string
+function M.seen_path()
+  return vim.fs.normalize(vim.fn.stdpath("data") .. "/org/tutor/seen.json")
+end
+
+---@return table<string, table<string, boolean>>
+local function read_seen()
+  local f = io.open(M.seen_path(), "r")
+  if not f then
+    return {}
+  end
+  local text = f:read("*a")
+  f:close()
+  local ok, data = pcall(vim.json.decode, text)
+  return ok and type(data) == "table" and data or {}
+end
+
+---@param data table<string, table<string, boolean>>
+local function write_seen(data)
+  local path = M.seen_path()
+  vim.fn.mkdir(vim.fn.fnamemodify(path, ":h"), "p")
+  pcall(vim.fn.writefile, { vim.json.encode(data) }, path)
+end
+
+--- The exercises of lesson `name` passed by a view condition.
+---@param name string
+---@return table<string, boolean>
+function M.seen(name)
+  local seen = read_seen()[name]
+  local out = {}
+  if type(seen) == "table" then
+    for id, v in pairs(seen) do
+      out[tostring(id)] = v == true or nil
+    end
+  end
+  return out
+end
+
+---@param name string
+---@param id string
+local function remember(name, id)
+  local data = read_seen()
+  data[name] = type(data[name]) == "table" and data[name] or {}
+  data[name][id] = true
+  write_seen(data)
+end
+
+---@param name string
+local function forget(name)
+  local data = read_seen()
+  if data[name] ~= nil then
+    data[name] = nil
+    write_seen(data)
+  end
+end
+
+--- Whether conditions test the view (`folded`, `cursor`) rather than the text.
+---@param conds org.tutor.Condition|org.tutor.Condition[]
+---@return boolean
+local function is_view(conds)
+  for _, c in ipairs(vim.islist(conds) and conds or { conds }) do
+    if c.folded ~= nil or c.cursor ~= nil then
+      return true
+    end
+  end
+  return false
+end
+
+---------------------------------------------------------------------------
+-- Lesson titles and progress
+---------------------------------------------------------------------------
+
+--- A lesson's title as the list shows it: its `#+TITLE:` without the
+--- "org.nvim tutor N:" prefix, capitalized ("Capture, agenda and
+--- clocking"); the lesson name when it has no title.
+---@param name string
+---@return string
+function M.title(name)
+  local meta = M.meta(name)
+  local title = meta and meta.title ~= "" and meta.title or name
+  title = title:gsub("^[Oo]rg%.nvim tutor%s*%d*:%s*", "")
+  return (title:gsub("^%l", string.upper))
+end
+
+--- How far the saved copy of lesson `name` is: exercises done (by their
+--- checks on the copy as saved, or as loaded in a buffer) and exercises
+--- with a check. nil when the lesson was never opened.
+---@param name string
+---@return integer|nil passed
+---@return integer|nil total
+function M.progress(name)
+  local path = M.copy_path(name)
+  local loaded = utils.find_buffer(path)
+  if not loaded and vim.fn.filereadable(path) == 0 then
+    return nil, nil
+  end
+  local file = require("org.files").get(path)
+  if not file then
+    return nil, nil
+  end
+  local checks, seen = M.checks(name), M.seen(name)
+  local passed, total, counted = 0, 0, {}
+  for _, hl in ipairs(file.headlines) do
+    local id = M.exercise_id(hl)
+    local conds = id and checks[id]
+    if id and conds and not counted[id] then
+      counted[id] = true
+      total = total + 1
+      local pass
+      if is_view(conds) then
+        pass = seen[id] or (loaded ~= nil and M.check(loaded, file, hl, conds))
+      else
+        pass = M.check(loaded or vim.api.nvim_get_current_buf(), file, hl, conds)
+      end
+      passed = passed + (pass and 1 or 0)
+    end
+  end
+  return passed, total
+end
+
 ---------------------------------------------------------------------------
 -- Marks
 ---------------------------------------------------------------------------
 
---- Attached buffers: bufnr -> { checks, timer }
-local state = {}
+--- The line shown when every exercise of lesson `name` is done.
+---@param name? string
+---@return string
+local function finished_text(name)
+  local nxt = name and M.next_lesson(name)
+  if nxt then
+    local meta = M.meta(nxt) or {}
+    return ("Next lesson: %s%s (:Org tutor %s)"):format(meta.order and (meta.order .. ". ") or "", M.title(nxt), nxt)
+  end
+  return "That was the last lesson. :Org tutor lists them all"
+end
 
 --- Run the checks of a tutor buffer now and redraw its marks.
 ---@param buf integer
@@ -359,8 +645,16 @@ function M.refresh(buf)
   for _, hl in ipairs(file.headlines) do
     local id = M.exercise_id(hl)
     local conds = id and st.checks[id]
-    if conds and results[id] == nil then
+    if id and conds and results[id] == nil then
       local pass = M.check(buf, file, hl, conds)
+      if is_view(conds) then
+        -- done once is done: nothing in the text shows it
+        if pass and st.name and not st.seen[id] then
+          st.seen[id] = true
+          remember(st.name, id)
+        end
+        pass = pass or st.seen[id] == true
+      end
       results[id] = pass
       total = total + 1
       passed = passed + (pass and 1 or 0)
@@ -380,6 +674,19 @@ function M.refresh(buf)
       priority = 200,
     })
   end
+  local all = total > 0 and passed == total
+  if all then
+    -- under the last line: where to go next
+    local text = finished_text(st.name)
+    vim.api.nvim_buf_set_extmark(buf, M.ns, vim.api.nvim_buf_line_count(buf) - 1, 0, {
+      virt_lines = { { { "" } }, { { done_mark .. " " .. text, "OrgTutorDone" } } },
+      priority = 200,
+    })
+    if st.all_done == false then
+      utils.notify(("Tutor %q done! %s"):format(st.name or "", text))
+    end
+  end
+  st.all_done = all
   st.results = results
   return results
 end
@@ -416,11 +723,13 @@ end
 --- Show the ✓ / ✗ marks of `checks` in `buf` and keep them up to date.
 ---@param buf integer
 ---@param checks org.tutor.Checks
-function M.attach(buf, checks)
+---@param name? string the lesson (default `b:org_tutor`): remembers the exercises done in the view, and names the next lesson
+function M.attach(buf, checks, name)
   buf = buf == 0 and vim.api.nvim_get_current_buf() or buf
   require("org.highlights").ensure()
   detach(buf)
-  local st = { checks = checks }
+  name = name or vim.b[buf].org_tutor
+  local st = { name = name, checks = checks, seen = name and M.seen(name) or {} }
   state[buf] = st
   -- every change, also the ones made while another buffer is current
   -- (from the agenda, capture or a clock out)
@@ -446,6 +755,21 @@ function M.attach(buf, checks)
       detach(buf)
     end,
   })
+  local view = false
+  for _, conds in pairs(checks) do
+    view = view or is_view(conds)
+  end
+  if view then
+    -- folding and moving change no text: check again when the cursor
+    -- moves or rests
+    vim.api.nvim_create_autocmd({ "CursorMoved", "CursorHold" }, {
+      group = group,
+      buffer = buf,
+      callback = function()
+        schedule(buf)
+      end,
+    })
+  end
   M.refresh(buf)
 end
 
@@ -454,6 +778,53 @@ end
 ---@return boolean
 function M.attached(buf)
   return state[buf] ~= nil
+end
+
+---------------------------------------------------------------------------
+-- Hints
+---------------------------------------------------------------------------
+
+--- The exercise headline whose subtree has line `lnum`, or nil.
+---@param file org.File
+---@param lnum integer
+---@return org.Headline|nil
+local function exercise_at(file, lnum)
+  local found
+  for _, hl in ipairs(file.headlines) do
+    if hl.line > lnum then
+      break
+    end
+    if M.exercise_id(hl) and hl.end_line >= lnum then
+      found = hl
+    end
+  end
+  return found
+end
+
+--- `:Org tutor_hint`: show the keys that solve the exercise at the
+--- cursor (the lesson's `hints`).
+---@return boolean|nil
+function M.hint()
+  local buf = vim.api.nvim_get_current_buf()
+  local name = vim.b[buf].org_tutor
+  if not name then
+    utils.warn("Not a tutor lesson: open one with :Org tutor")
+    return
+  end
+  local hl = exercise_at(require("org.files").get_buffer(buf), vim.api.nvim_win_get_cursor(0)[1])
+  if not hl then
+    utils.notify("Put the cursor in an exercise (a headline such as 1.2 and its text) for its hint")
+    return
+  end
+  local id = M.exercise_id(hl)
+  local hint = M.hints(name)[id]
+  if not hint then
+    utils.notify(("No hint for %s"):format(hl:plain_title()))
+    return
+  end
+  local text = ("Hint for %s: %s"):format(hl:plain_title(), M.render_line(hint))
+  utils.notify(text)
+  return true
 end
 
 ---------------------------------------------------------------------------
@@ -476,6 +847,10 @@ function M.open(name, reset)
   local existing = utils.find_buffer(path)
   local fresh = reset or (not existing and vim.fn.filereadable(path) == 0)
   if fresh then
+    forget(name)
+    if existing and state[existing] then
+      state[existing].seen = {}
+    end
     local lines = M.render(vim.fn.readfile(src))
     if existing then
       -- keep the buffer (and its undo history: u brings the old copy back)
@@ -495,14 +870,53 @@ function M.open(name, reset)
     vim.api.nvim_win_set_cursor(0, { 1, 0 })
   end
   vim.b[buf].org_tutor = name
-  M.attach(buf, M.checks(name))
+  M.attach(buf, M.checks(name), name)
   if not fresh then
     utils.notify(("Tutor %q resumed; `:Org tutor %s reset` starts it over"):format(name, name))
   end
   return buf
 end
 
---- `:Org tutor [lesson] [reset]`.
+--- The lesson list: each lesson's number, title, level and progress, in
+--- course order. Returns the lesson picked, or nil.
+---@return string|nil
+function M.pick()
+  local items = {}
+  for _, name in ipairs(M.lesson_names()) do
+    local meta = M.meta(name) or {}
+    local passed, total = M.progress(name)
+    local progress
+    if passed and total and total > 0 then
+      progress = passed == total and ("done %d/%d"):format(passed, total) or ("%d/%d"):format(passed, total)
+    else
+      progress = "not started"
+    end
+    items[#items + 1] = {
+      value = name,
+      label = ("%s%s"):format(meta.order and (meta.order .. ". ") or "", M.title(name)),
+      desc = table.concat(
+        vim.tbl_filter(function(s)
+          return s ~= nil and s ~= ""
+        end, { meta.level, progress, ":Org tutor " .. name }),
+        " · "
+      ),
+    }
+  end
+  return require("org.ui").choose({ prompt = "Lesson: ", title = "org.nvim tutor", items = items })
+end
+
+--- `:Org tutor` without a lesson: pick one from the list, then open it.
+---@param reset? boolean start the lesson picked over
+---@return integer|nil bufnr
+function M.start(reset)
+  local name = M.pick()
+  if not name then
+    return nil
+  end
+  return M.open(name, reset)
+end
+
+--- `:Org tutor [lesson] [reset]`: without a lesson, the lesson list.
 ---@param args? string
 function M.command(args)
   local name, reset
@@ -512,6 +926,9 @@ function M.command(args)
     else
       name = word
     end
+  end
+  if not name then
+    return M.start(reset)
   end
   return M.open(name, reset)
 end
