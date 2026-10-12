@@ -116,6 +116,9 @@ require("org.tutor").debounce_ms = 1
 -- doesn't match inside a longer one (/private/var/... on macOS)
 local utils = require("org.utils")
 local data = vim.fs.normalize(vim.fn.stdpath("data"))
+-- made now, so that its real path can be resolved (it is made later
+-- anyway, by the tutor's copy)
+vim.fn.mkdir(data, "p")
 local real = vim.fs.normalize(vim.uv.fs_realpath(data) or data)
 local forms, seen = {}, {}
 for _, p in ipairs({ real, data, vim.fn.fnamemodify(real, ":~"), vim.fn.fnamemodify(data, ":~"), utils.abbreviate(real), utils.abbreviate(data) }) do

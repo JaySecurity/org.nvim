@@ -74,10 +74,11 @@ site:
 # Re-record the playground's terminal recordings of the tutor lessons
 # (docs/playground/<lesson>.cast, played on the website's playground page;
 # scripts/playground/record.lua). Run it after changing a lesson in
-# tutor/org/ or its steps in scripts/playground/lessons/.
+# tutor/org/ or its steps in scripts/playground/lessons/. LESSON=name (or
+# several, space-separated) records only those.
 playground:
 	@d=$$(mktemp -d) && XDG_DATA_HOME=$$d XDG_STATE_HOME=$$d/state XDG_CACHE_HOME=$$d/cache \
-	nvim --headless --clean -l scripts/playground/record.lua docs/playground; \
+	nvim --headless --clean -l scripts/playground/record.lua docs/playground $(LESSON); \
 	s=$$?; rm -rf $$d; exit $$s
 
 # Re-record the README GIFs and screenshots (needs vhs and the
