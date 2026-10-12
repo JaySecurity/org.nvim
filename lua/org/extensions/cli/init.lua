@@ -104,7 +104,7 @@ function M.setup(o)
     return false
   end
   -- a stat every 2 s; the callback never raises
-  poll = vim.uv.new_fs_poll()
+  poll = assert(vim.uv.new_fs_poll())
   poll:start(path, 2000, function()
     vim.schedule(function()
       if changed() then

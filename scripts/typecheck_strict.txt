@@ -30,3 +30,4 @@ lua/org/capture
 lua/org/babel
 lua/org/extensions/init.lua
 lua/org/extensions/views_util.lua
+lua/org/extensions/cli

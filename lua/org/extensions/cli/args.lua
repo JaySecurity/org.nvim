@@ -113,9 +113,10 @@ M.arg_path = arg_path
 function M.load_config(flags)
   local config = require("org.config")
   local setup = config.setup
-  config.setup = function(opts)
+  local function forced_setup(opts)
     return setup(vim.tbl_deep_extend("force", opts or {}, M.OVERRIDES))
   end
+  config.setup = forced_setup
   local file = M.config_file(flags)
   local ok, res = true, nil
   if file then

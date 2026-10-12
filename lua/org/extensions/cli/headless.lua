@@ -66,84 +66,91 @@ end
 function M.headless()
   local utils = require("org.utils")
   local saved = {}
-  local function keep(tbl, names)
-    for _, k in ipairs(names) do
+  -- replace functions of `tbl` by those of `fns`, keeping the originals
+  local function replace(tbl, fns)
+    for k, f in pairs(fns) do
       saved[#saved + 1] = { tbl, k, rawget(tbl, k) }
+      rawset(tbl, k, f)
     end
   end
-  keep(vim.fn, { "input", "inputdialog", "inputsecret", "inputlist", "confirm", "getchar", "getcharstr" })
-  keep(vim.ui, { "input", "select" })
-  keep(utils, { "input", "input_complete", "input_note", "confirm", "getchar" })
-  keep(vim, { "notify" })
-  keep(vim.api, { "nvim_echo" })
   local notify = vim.notify
-  vim.fn.input = function(opts)
-    return ask(opts)
-  end
-  vim.fn.inputdialog = function(opts)
-    return ask(opts)
-  end
-  -- (under `nvim -l` an unanswered inputsecret() ends Neovim, exit 0)
-  vim.fn.inputsecret = no_input("passphrase")
-  vim.fn.inputlist = no_input("inputlist")
-  vim.fn.confirm = no_input("confirm")
-  vim.fn.getchar = no_input("getchar")
-  vim.fn.getcharstr = no_input("getchar")
-  vim.ui.input = function(opts, cb)
-    cb(ask(opts))
-  end
-  vim.ui.select = no_input("vim.ui.select")
-  utils.input = function(opts)
-    return ask(opts)
-  end
-  utils.input_complete = function(prompt)
-    return ask(prompt)
-  end
-  -- a log note the command records: --note, else an empty note (the
-  -- entry is logged with its time only, as C-c C-c on an empty note)
-  utils.input_note = function()
-    return state.note or ""
-  end
-  utils.confirm = no_input("confirm")
-  utils.getchar = no_input("getchar")
-  vim.notify = function(msg, level)
-    level = level or vim.log.levels.INFO
-    msg = tostring(msg)
-    state.messages[#state.messages + 1] = { msg = msg, level = level }
-    if level >= vim.log.levels.WARN then
-      state.warnings[#state.warnings + 1] = msg
-    end
-    local show
-    if state.machine then
-      show = state.verbose
-    else
-      show = (level >= vim.log.levels.WARN and not state.quiet) or state.verbose
-    end
-    if show then
-      err(msg)
-    end
-    if state.session and level >= vim.log.levels.INFO then
-      -- the session's user sees what the command line did there
-      pcall(notify, msg, level)
-    end
-  end
+  replace(vim.fn, {
+    input = function(opts)
+      return ask(opts)
+    end,
+    inputdialog = function(opts)
+      return ask(opts)
+    end,
+    -- (under `nvim -l` an unanswered inputsecret() ends Neovim, exit 0)
+    inputsecret = no_input("passphrase"),
+    inputlist = no_input("inputlist"),
+    confirm = no_input("confirm"),
+    getchar = no_input("getchar"),
+    getcharstr = no_input("getchar"),
+  })
+  replace(vim.ui, {
+    input = function(opts, cb)
+      cb(ask(opts))
+    end,
+    select = no_input("vim.ui.select"),
+  })
+  replace(utils, {
+    input = function(opts)
+      return ask(opts)
+    end,
+    input_complete = function(prompt)
+      return ask(prompt)
+    end,
+    -- a log note the command records: --note, else an empty note (the
+    -- entry is logged with its time only, as C-c C-c on an empty note)
+    input_note = function()
+      return state.note or ""
+    end,
+    confirm = no_input("confirm"),
+    getchar = no_input("getchar"),
+  })
+  replace(vim, {
+    notify = function(msg, level)
+      level = level or vim.log.levels.INFO
+      msg = tostring(msg)
+      state.messages[#state.messages + 1] = { msg = msg, level = level }
+      if level >= vim.log.levels.WARN then
+        state.warnings[#state.warnings + 1] = msg
+      end
+      local show
+      if state.machine then
+        show = state.verbose
+      else
+        show = (level >= vim.log.levels.WARN and not state.quiet) or state.verbose
+      end
+      if show then
+        err(msg)
+      end
+      if state.session and level >= vim.log.levels.INFO then
+        -- the session's user sees what the command line did there
+        pcall(notify, msg, level)
+      end
+    end,
+  })
   -- nvim_echo() writes to stderr under `nvim -l`: make its messages
   -- notifications like the others (org-crypt's "No crypt key set, ...")
-  vim.api.nvim_echo = function(chunks)
-    local text, level = {}, vim.log.levels.INFO
-    for _, c in ipairs(chunks or {}) do
-      text[#text + 1] = c[1] or ""
-      if c[2] == "ErrorMsg" then
-        level = vim.log.levels.ERROR
-      elseif c[2] == "WarningMsg" then
-        level = math.max(level, vim.log.levels.WARN)
+  replace(vim.api, {
+    nvim_echo = function(chunks)
+      local text, level = {}, vim.log.levels.INFO
+      for _, c in ipairs(chunks or {}) do
+        text[#text + 1] = c[1] or ""
+        if c[2] == "ErrorMsg" then
+          level = vim.log.levels.ERROR
+        elseif c[2] == "WarningMsg" then
+          level = math.max(level, vim.log.levels.WARN)
+        end
       end
-    end
-    local msg = table.concat(text)
-    if msg ~= "" then
-      vim.notify(msg, level)
-    end
-  end
+      local msg = table.concat(text)
+      if msg ~= "" then
+        vim.notify(msg, level)
+      end
+    end,
+  })
   return function()
     for i = #saved, 1, -1 do
       local e = saved[i]
