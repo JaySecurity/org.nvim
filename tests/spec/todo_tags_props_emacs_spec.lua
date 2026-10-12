@@ -572,3 +572,15 @@ describe("a timestamp with the wrong weekday keeps its text (make difftest)", fu
     eq({ "<2026-10-10 Sat 09:45>--<2026-10-14 Fri>" }, buf_lines(buf))
   end)
 end)
+
+describe("C-c C-t on a COMMENT headline with tags (:h org-differences)", function()
+  -- Emacs puts COMMENT back after aligning the tags, so they end 8 columns
+  -- past org-tags-column; org.nvim aligns them there
+  it("aligns the tags at tags_column", function()
+    local buf = org_buffer({ "* [#B] COMMENT Alpha :@ctx:" }, { 1, 0 })
+    todo.cycle_next()
+    local line = buf_lines(buf)[1]
+    eq("* TODO [#B] COMMENT Alpha", (line:gsub("%s+:@ctx:$", "")))
+    eq(77, vim.fn.strdisplaywidth(line))
+  end)
+end)

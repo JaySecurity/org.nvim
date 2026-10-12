@@ -8838,6 +8838,10 @@ Differences from Emacs:
     (cancel repeaters) have no count form and are the actions
     `todo_without_note` and `todo_cancel_repeaters`; a count of 4 always
     means C-u, so the 4th keyword cannot be picked by count.
+  - C-c C-t on a COMMENT headline with tags aligns the tags at
+    `tags_column`. Emacs takes COMMENT out, changes the keyword, aligns
+    the tags and puts COMMENT back without aligning them again, so they
+    end 8 columns too far right.
   - A repeated C-c C-t on a `#+TYP_TODO:` keyword (which walks the types
     instead of jumping to DONE) is one with no edit and no cursor motion
     since the previous one, rather than Emacs' `last-command` test.

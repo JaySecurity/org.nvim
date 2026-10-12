@@ -131,6 +131,15 @@ M.NORMALISE = {
       { "‘C%-u r’", "‘1 r’" },
     },
   },
+  commands = {
+    both = {
+      -- org-todo on a COMMENT headline with tags: Emacs puts COMMENT back
+      -- after aligning the tags, which end 8 columns too far right;
+      -- org.nvim aligns them (:h org-differences). The tags of a COMMENT
+      -- headline are compared after a single space.
+      { "^(%*+ .-COMMENT .-)%s+(:[%w_@#%%:\128-\255]+:)$", "%1 %2" },
+    },
+  },
   lint = {
     both = {
       -- Emacs reports a misplaced heading at a wrong place: the checker

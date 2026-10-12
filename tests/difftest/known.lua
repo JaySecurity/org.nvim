@@ -65,18 +65,4 @@ end
 
 ---@type difftest.Known[]
 return {
-  {
-    oracle = "commands",
-    reason = [[org-todo on a COMMENT headline with tags: Emacs takes COMMENT
-      out, changes the keyword, aligns the tags and puts COMMENT back
-      without aligning again, so its tags end 8 columns past
-      org-tags-column; org.nvim aligns them at tags_column. An Emacs bug,
-      not copied.]],
-    either = "%*+ %u+ [^\n]-COMMENT [^\n]-%s:[^%s]+:",
-    same = function(s)
-      return each_line(s, function(l)
-        return (l:gsub("^(%*+ .-COMMENT .-)%s+(:[^%s]+:)$", "%1 %2"))
-      end)
-    end,
-  },
 }
