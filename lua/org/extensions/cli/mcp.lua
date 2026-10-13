@@ -300,7 +300,7 @@ function M.argv(c, args)
   local cap
   for _, k in ipairs(tool_flags(c)) do
     local v = args[k]
-    local f = schema.BY_KEY[k]
+    local f = schema.flag(c, k)
     if k == "limit" and not given(v) then
       v, cap = M.LIST_LIMIT + 1, M.LIST_LIMIT
     end
