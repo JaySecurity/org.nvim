@@ -10816,6 +10816,34 @@ Writing (each saves the files it changed):
     instead. `--id` gives the new entry an ID.
 `org clock in [--pick N] TARGET`, `org clock out`, `org clock cancel`
     Clock in a heading, clock out of the running clock, or cancel it.
+`org add PARENT TITLE [--todo KW] [--priority P] [--tag TAG]...`
+      `[--scheduled DATE] [--deadline DATE] [--property NAME=VALUE]...`
+      `[--body TEXT] [--first]`
+    Add a heading TITLE as the last child of the heading PARENT (a
+    TARGET), or with `--first` as its first child. A PARENT that is an
+    org file (a path, or an agenda file's name with or without `.org`)
+    adds a top-level heading at the end of that file; use `FILE::TITLE`
+    or `id:` for a heading whose title is also a file's name. The new
+    heading is one level below PARENT (two with `odd_levels_only`), after
+    the subtree's text and before the blank lines that follow it, with a
+    blank line before it per `blank_before_new_entry.heading`. KW must be
+    a keyword of the file (a done one is set as `set todo` would); tags
+    (`--tag a,b` or repeated), the priority, the dates (read like `set
+    scheduled`), the properties and the body (split at newlines, indented
+    per `adapt_indentation`) are written as org.nvim writes them. A body
+    line starting with `*` at column 0 gets one space before it, so it
+    stays text (a list item) and doesn't start a heading.
+`org append TARGET TEXT`
+    Append TEXT to the body of the heading, after its planning, drawers
+    and text and before its first child heading; TEXT `-` reads stdin.
+    After text already there it starts a new paragraph (a blank line
+    first). Lines are indented and a `*` line is kept as text as with
+    `add --body`. On Windows, `org.cmd` runs through cmd.exe, which
+    cuts an argument at a newline: give text of several lines on stdin
+    (`-`). `org mcp` passes it whole.
+`org set title TARGET TITLE`
+    Replace the title (one line), keeping the TODO keyword, priority,
+    COMMENT and tags, like `edit_headline` (|org-structure|).
 `org set todo TARGET STATE [--note TEXT]`
     Set the TODO keyword (`none` or "" removes it), with org.nvim's
     logging, blocking and repeaters. A note the change logs gets TEXT,
@@ -10936,6 +10964,9 @@ The `data` of each command:
                   `cancel`: `{ active, title, file, minutes, duration,
                   canceled }`
   `capture`       `{ file, line, template, type, id, headline }`
+  `add`           `{ headline, parent }` (`parent` null for a heading
+                  added at the top level of a file)
+  `append`        `{ headline, text }`
   `set ...`, `note`
                   `{ headline, field, old, new }` (and `repeated` for
                   `set todo`, `name` for `set property`)
@@ -11054,17 +11085,40 @@ tool call (`"args": ["--config", "/path/cfg.lua", "mcp"]`).
 
 Every command but `schema`, `help`, `version`, `protocol` and `mcp` is a
 tool, named after it with `_` for spaces (`agenda`, `headlines`, `show`,
-`capture`, `clock_in`, `set_todo`, `note`, `refile`, `export`, ...). A
-tool's input schema is the command's `input_schema` from `org schema`,
-without `--force` (a file with unsaved changes in Neovim gives
-`file_busy`, so the agent asks you to save it), `--input`, `--list` and
-`--csv`. Its result is the command's JSON envelope
-(|org-extensions-cli-json|) as text, with `isError` set when `ok` is
-false; arguments the tool doesn't take, or a missing one, are an error
-result the agent can correct. Text arguments can't be "-": the server's
-stdin is the protocol. Each tool is annotated as read-only or not
-(`readOnlyHint`), and as replacing what is there (`destructiveHint`:
-`set_*`, `refile`, `archive`, `clock_cancel`, `export`) or not.
+`capture`, `clock_in`, `set_todo`, `note`, `refile`, `export`, ...),
+with a description written for the agent: what the tool is for and when
+to use it. The server's instructions tell the agent how targets, dates
+and errors work, and today's date. A tool's input schema is the
+command's `input_schema` from `org schema`, without `--force` (a file
+with unsaved changes in Neovim gives `file_busy`, so the agent asks you
+to save it), `--input`, `--list` and `--csv`. Arguments the tool doesn't
+take, or a missing one, are an error result the agent can correct. Text
+arguments can't be "-": the server's stdin is the protocol. Each tool is
+annotated as read-only or not (`readOnlyHint`), and as replacing what is
+there (`destructiveHint`: `set_*`, `refile`, `archive`, `clock_cancel`,
+`export`) or not.
+
+A tool's result is the command's `data` (|org-extensions-cli-json|) as
+JSON text, made shorter for the agent to read: null fields, empty lists
+and false flags are left out, a timestamp is its Org text and its ISO
+`start` and `end`, paths under your home directory start with `~/`, and
+every heading has a `target` (`id:ID`, or `FILE:LINE`) that a tool
+taking a heading reads back. A failed call is a result with `isError`
+set and the text `{ error, message, details }`, `error` being the error
+code. `search` and `headlines` return at most 50 headings when the call
+gives no `limit`, and say so when more match. Warnings come as a second
+text.
+
+Prompts ~
+The server also offers prompts, which a client shows as commands (in
+Claude Code `/mcp__org__plan_day`):
+  `plan_day`        today's agenda, deadlines and open tasks, and a plan
+                    for the day
+  `weekly_review`   a weekly review: what got done, what is coming,
+                    stale tasks, the inbox
+  `triage_inbox`    a proposed action for each captured item (`file`:
+                    the inbox, by default where the templates capture)
+Each asks the agent to propose changes and make them once you agree.
 
 Each call runs `org COMMAND ... --json` in a new Neovim, as from a shell,
 so it sees the files as they are on disk and writes them as `org` does

@@ -1027,16 +1027,19 @@ each one stands.
 - 🧪 **`cli`**: an `org` shell command (`bin/org`, a headless Neovim) that
   prints the agenda as text, CSV or JSON, captures with a template, clocks
   in and out, reports the running clock (for tmux, SketchyBar or Raycast),
-  searches, queries and exports, and changes headings (TODO state, tags,
-  priority, properties, dates, notes, refile, archive) without ever
-  prompting, from a config file of its own. With `--json` every command
+  searches, queries and exports, adds headings under a heading or in a
+  file, appends text to an entry, and changes headings (title, TODO
+  state, tags, priority, properties, dates, notes, refile, archive)
+  without ever prompting, from a config file of its own. With `--json` every command
   prints a versioned envelope with stable error codes, and `org schema`
   describes the commands as JSON Schema, so scripts and AI agents can use
   it as a tool (`:h org-extensions-cli`, `:h org-extensions-cli-json`).
   `org mcp` serves the same commands as an MCP server, so Claude Code,
   Claude Desktop and other MCP clients can read your agenda, capture and
   update headings (`claude mcp add org -- org mcp`; `--read-only` for
-  reading only; `:h org-extensions-cli-mcp`). With the
+  reading only; `:h org-extensions-cli-mcp`). Its results are compact
+  JSON in which every heading carries a `target` to pass back, and it
+  offers `plan_day`, `weekly_review` and `triage_inbox` prompts. With the
   [session server](#session-server) on, its commands run in your open
   Neovim instead of on the files.
 

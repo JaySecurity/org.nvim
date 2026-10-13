@@ -86,8 +86,8 @@ local INIT = {
 }
 local INITIALIZED = { jsonrpc = "2.0", method = "notifications/initialized" }
 
---- The envelope a tool result holds as its text.
-local function envelope(res)
+--- The JSON a tool result holds as its (first) text.
+local function result(res)
   ok(res and res.result, vim.inspect(res))
   return vim.json.decode(res.result.content[1].text)
 end
@@ -145,7 +145,11 @@ describe("cli mcp: tools and arguments", function()
       { "capture", "--template", "t", "--", "Call the dentist" },
       mcp.argv(c.capture, { template = "t", text = "Call the dentist" })
     )
-    eq({ "search", "--", "a", "b" }, mcp.argv(c.search, { query = { "a", "b" } }))
+    -- no limit: one more than LIST_LIMIT, to tell a cut list
+    local argv, cap = mcp.argv(c.search, { query = { "a", "b" } })
+    eq({ "search", "--limit", tostring(mcp.LIST_LIMIT + 1), "--", "a", "b" }, argv)
+    eq(mcp.LIST_LIMIT, cap)
+    eq(nil, select(2, mcp.argv(c.search, { query = "a", limit = 500 })))
     eq({ "clock", "status", "--" }, mcp.argv(c["clock status"], vim.empty_dict()))
     eq({ "clock", "status", "--" }, mcp.argv(c["clock status"], nil))
     -- an option that starts with "-" stays an argument
@@ -182,7 +186,9 @@ describe("cli mcp: JSON-RPC", function()
     eq("2025-06-18", r.result.protocolVersion)
     eq("org.nvim", r.result.serverInfo.name)
     eq(false, r.result.capabilities.tools.listChanged)
-    ok(r.result.instructions:match("envelope"))
+    ok(r.result.instructions:match("Targets"))
+    ok(r.result.instructions:match("Today is %d%d%d%d%-%d%d%-%d%d"))
+    eq(false, r.result.capabilities.prompts.listChanged)
     local old = vim.deepcopy(INIT)
     old.params.protocolVersion = "2024-11-05"
     eq("2024-11-05", reply(vim.json.encode(old)).result.protocolVersion)
@@ -239,6 +245,112 @@ describe("cli mcp: JSON-RPC", function()
   end)
 end)
 
+describe("cli mcp: results", function()
+  it("leaves out nulls, empty lists and false flags, and names each heading's target", function()
+    local home = vim.fs.normalize(vim.uv.os_homedir())
+    local hl = {
+      file = home .. "/org/a.org",
+      line = 3,
+      end_line = 5,
+      level = 1,
+      id = vim.NIL,
+      todo = "TODO",
+      title = "Task",
+      raw_title = "Task",
+      tags = { "x" },
+      local_tags = { "x" },
+      outline_path = {},
+      archived = false,
+      scheduled = {
+        raw = "<2026-10-02 Fri 10:00 +1w>",
+        date = "2026-10-02",
+        time = "10:00",
+        end_time = vim.NIL,
+        start = "2026-10-02T10:00",
+        ["end"] = vim.NIL,
+        active = true,
+        repeater = "+1w",
+        warning = vim.NIL,
+      },
+    }
+    eq({
+      file = "~/org/a.org",
+      line = 3,
+      end_line = 5,
+      level = 1,
+      todo = "TODO",
+      title = "Task",
+      tags = { "x" },
+      scheduled = { raw = "<2026-10-02 Fri 10:00 +1w>", start = "2026-10-02T10:00" },
+      target = "~/org/a.org:3",
+    }, mcp.compact(hl))
+    hl.id = "abc"
+    hl.local_tags = {}
+    local c = mcp.compact(hl)
+    eq("id:abc", c.target)
+    eq(nil, c.local_tags)
+    -- the result's own list stays, even empty
+    eq({}, mcp.compact({}))
+    eq({ items = {}, view = "todo" }, mcp.compact({ items = {}, view = "todo", start = vim.NIL }))
+  end)
+
+  it("gives the data on success, the error on failure, and says when a list was cut", function()
+    local r = mcp.result({ ok = true, data = { 1, 2, 3 }, warnings = {}, errors = {} }, 2)
+    eq(false, r.isError)
+    eq({ 1, 2 }, vim.json.decode(r.content[1].text))
+    ok(r.content[2].text:match("first 2 results"))
+    r = mcp.result({ ok = true, data = { 1, 2 }, warnings = { "careful" }, errors = {} }, 2)
+    eq(2, #r.content)
+    eq("Warnings: careful", r.content[2].text)
+    r = mcp.result({
+      ok = false,
+      data = vim.NIL,
+      warnings = {},
+      errors = { { code = "no_clock", message = "no running clock", details = vim.NIL } },
+    })
+    eq(true, r.isError)
+    eq({ error = "no_clock", message = "no running clock" }, vim.json.decode(r.content[1].text))
+  end)
+
+  it("describes the tools for an agent, without the command line's flags", function()
+    for _, t in ipairs(mcp.tools(false)) do
+      ok(not t.description:match("%(org "), t.name)
+      for k, p in pairs(t.inputSchema.properties) do
+        ok(not p.description:match("^%-%-"), t.name .. "." .. k)
+        ok(not p.description:match("stdin"), t.name .. "." .. k)
+      end
+    end
+  end)
+end)
+
+describe("cli mcp: prompts", function()
+  local server = { global_argv = { "--json" }, read_only = false }
+  local function reply(msg)
+    return vim.json.decode(mcp.handle_line(server, vim.json.encode(msg)))
+  end
+
+  it("lists the prompts and fills one in", function()
+    local list = reply({ jsonrpc = "2.0", id = 1, method = "prompts/list" }).result.prompts
+    eq(
+      { "plan_day", "weekly_review", "triage_inbox" },
+      vim.tbl_map(function(p)
+        return p.name
+      end, list)
+    )
+    local got = reply({
+      jsonrpc = "2.0",
+      id = 2,
+      method = "prompts/get",
+      params = { name = "triage_inbox", arguments = { file = "~/org/inbox.org" } },
+    }).result
+    eq("user", got.messages[1].role)
+    ok(got.messages[1].content.text:match("inbox %(~/org/inbox%.org%)"), got.messages[1].content.text)
+    local plain = reply({ jsonrpc = "2.0", id = 3, method = "prompts/get", params = { name = "triage_inbox" } })
+    ok(plain.result.messages[1].content.text:match("^Help me empty my Org inbox%."))
+    eq(-32602, reply({ jsonrpc = "2.0", id = 4, method = "prompts/get", params = { name = "nope" } }).error.code)
+  end)
+end)
+
 describe("cli mcp: org mcp", function()
   it("runs the handshake and read and write tools on the files", function()
     local dir = workspace()
@@ -260,30 +372,35 @@ describe("cli mcp: org mcp", function()
     eq("2025-06-18", by_id[1].result.protocolVersion)
     ok(vim.tbl_contains(names(by_id[2].result.tools), "set_todo"))
 
-    local hl = envelope(by_id[3])
-    eq(true, hl.ok)
+    local hl = result(by_id[3])
     eq(
       { "Buy milk", "Garden", "Garden" },
       vim.tbl_map(function(h)
         return h.title
-      end, hl.data)
+      end, hl)
     )
     eq(false, by_id[3].result.isError)
+    -- each heading names its target; nulls and empty lists are left out
+    eq(dir .. "/home.org:1", vim.fs.normalize(vim.fn.expand(hl[1].target)))
+    eq(nil, hl[1].id)
+    eq(nil, hl[2].tags)
 
-    local cap = envelope(by_id[4])
-    eq(true, cap.ok)
+    eq(false, by_id[4].result.isError)
     eq({ "* TODO Call the dentist" }, vim.fn.readfile(dir .. "/inbox.org"))
 
-    eq(true, envelope(by_id[5]).ok)
+    eq(false, by_id[5].result.isError)
+    eq("DONE", result(by_id[5]).new)
     ok(vim.fn.readfile(dir .. "/home.org")[1]:match("^%* DONE Buy milk"))
 
-    local missing = envelope(by_id[6])
+    local missing = result(by_id[6])
     eq(true, by_id[6].result.isError)
-    eq("not_found", missing.errors[1].code)
+    eq("not_found", missing.error)
+    ok(missing.message:match("no heading matches"))
 
-    local amb = envelope(by_id[7])
-    eq("ambiguous", amb.errors[1].code)
-    eq(2, #amb.errors[1].details.candidates)
+    local amb = result(by_id[7])
+    eq("ambiguous", amb.error)
+    eq(2, #amb.details.candidates)
+    ok(amb.details.candidates[1].target:match(":3$"))
 
     eq(vim.empty_dict(), by_id[8].result)
   end)
@@ -301,9 +418,9 @@ describe("cli mcp: org mcp", function()
     eq(nil, vim.tbl_contains(names(by_id[2].result.tools), "set_todo") or nil)
     eq(true, by_id[3].result.isError)
     eq(before, vim.fn.readfile(dir .. "/home.org"))
-    local ag = envelope(by_id[4])
-    eq(true, ag.ok)
-    eq(3, #ag.data.items)
+    local ag = result(by_id[4])
+    eq(false, by_id[4].result.isError)
+    eq(3, #ag.items)
   end)
 
   it("takes read_only from the configuration", function()
