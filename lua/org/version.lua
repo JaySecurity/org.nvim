@@ -3,11 +3,13 @@
 local M = {}
 
 --- The directory of org.nvim's Lua modules: `lua/` of a checkout, or
---- `share/lua/5.1/` of the LuaRocks tree it was installed into.
+--- `share/lua/5.1/` of the LuaRocks tree it was installed into (symlinks
+--- resolved: rocks.nvim puts that directory on 'runtimepath' as a link
+--- named `lua`).
 ---@return string
 function M.lua_dir()
-  local src = debug.getinfo(1, "S").source:sub(2)
-  return vim.fs.normalize(vim.fn.fnamemodify(src, ":p:h:h"))
+  local dir = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
+  return vim.fs.normalize(vim.uv.fs_realpath(dir) or dir)
 end
 
 --- The directory of the rock in a LuaRocks tree (`plugin/`, `doc/`,
