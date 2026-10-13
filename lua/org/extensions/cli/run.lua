@@ -13,7 +13,8 @@
 --- by query), save (guarding and saving files), read (agenda, search,
 --- headlines, show), info (templates, files, tags, keywords, schema,
 --- version), capture (capture and protocol), clock, export and session
---- (the session server). The write commands are in write.lua.
+--- (the session server). The write commands are in write.lua, the MCP
+--- server (`org mcp`) in mcp.lua.
 
 local schema = require("org.extensions.cli.schema")
 local shared = require("org.extensions.cli.shared")
@@ -53,6 +54,9 @@ Write (never prompt; --force writes over unsaved changes in a running Neovim):
   refile TARGET DESTINATION
   archive TARGET
   id TARGET [--create]
+
+  mcp [--read-only]   the commands as the tools of an MCP server for AI
+                      agents (JSON-RPC on stdin and stdout)
 
   schema [COMMAND] | help [--json] | version
 
@@ -225,6 +229,9 @@ M.COMMANDS = {
   refile = write_cmd("cmd_refile"),
   archive = write_cmd("cmd_archive"),
   export = M.cmd_export,
+  mcp = function(...)
+    return require("org.extensions.cli.mcp").cmd_mcp(...)
+  end,
   schema = M.cmd_schema,
   version = M.cmd_version,
 }

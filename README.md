@@ -88,7 +88,7 @@ return {
 ```
 
 Not using lazy.nvim? The [guide](docs/guide.md#installation) covers
-`vim.pack`, plain Vim packages, a local checkout and blink.cmp completion.
+`vim.pack`, rocks.nvim (`:Rocks install org.nvim`), plain Vim packages, a local checkout and blink.cmp completion.
 Neovim **0.11+** on Linux, macOS or Windows is all it needs; pandoc, LaTeX
 and Babel's interpreters are optional ([requirements](docs/guide.md#requirements)).
 

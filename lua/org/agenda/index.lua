@@ -175,8 +175,7 @@ local function code_signature()
   if not code_sig then
     local parts = { tostring(VERSION), jit and jit.version or _VERSION, table.concat(thread.DICT, ",") }
     for _, f in ipairs({ "parser", "date", "agenda/index", "agenda/index/thread", "todo_keywords", "keywords" }) do
-      local src = vim.api.nvim_get_runtime_file("lua/org/" .. f .. ".lua", false)[1]
-      local st = src and uv.fs_stat(src)
+      local st = uv.fs_stat(require("org.version").lua_dir() .. "/org/" .. f .. ".lua")
       parts[#parts + 1] = st and (st.size .. ":" .. st.mtime.sec .. ":" .. st.mtime.nsec) or "-"
     end
     code_sig = table.concat(parts, "|")

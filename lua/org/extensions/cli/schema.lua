@@ -140,6 +140,7 @@ M.FLAGS = {
   },
   { key = "output", names = { "-o", "--output" }, value = "FILE", desc = "export to FILE" },
   { key = "stdout", names = { "--stdout" }, desc = "export to stdout" },
+  { key = "read_only", names = { "--read-only" }, desc = "no tools that change files" },
 }
 
 M.BY_NAME = {}
@@ -558,6 +559,12 @@ M.COMMANDS = {
     output = obj({ file = S, backend = S, output = NS, text = NS }),
   },
   {
+    name = "mcp",
+    summary = "Serve the commands as the tools of an MCP server (JSON-RPC on stdin and stdout) for AI agents",
+    flags = { "read_only" },
+    output = { type = "object" },
+  },
+  {
     name = "schema",
     summary = "This description of the command line, as JSON",
     args = { { name = "command", variadic = true, desc = "only this command" } },
@@ -622,6 +629,8 @@ local function flag_doc(f)
 end
 
 --- JSON Schema of a command's arguments (keys: args by name, flags by key).
+---@param c table an entry of M.COMMANDS
+---@return { type: string, properties: table, required: string[] }
 local function input_schema(c)
   local props, required = vim.empty_dict(), {}
   for _, a in ipairs(c.args or {}) do
@@ -646,6 +655,8 @@ local function input_schema(c)
   end
   return { type = "object", properties = props, required = required }
 end
+
+M.input_schema = input_schema
 
 local function usage_of(c)
   local parts = { "org", c.name }

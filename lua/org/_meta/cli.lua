@@ -16,3 +16,10 @@
 ---Follow `org clock in/out/cancel` run from a shell: rereads the files and
 ---takes up or drops the running clock. (default: `true`)
 ---@field watch_clock? boolean
+---`org mcp`, the MCP server for AI agents (`:h org-extensions-cli-mcp`).
+---@field mcp? org.Config.Extensions.Cli.Mcp
+
+---@class org.Config.Extensions.Cli.Mcp
+---List only the tools that don't change files, as `org mcp --read-only`.
+---(default: `false`)
+---@field read_only? boolean

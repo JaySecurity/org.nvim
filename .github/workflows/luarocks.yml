@@ -1,0 +1,55 @@
+name: LuaRocks
+
+# Uploads the org.nvim rock to luarocks.org. release.yml starts this
+# workflow on the new vX.Y.Z tag (--ref vX.Y.Z) after tagging a release:
+# the tag made with GITHUB_TOKEN doesn't start workflows by itself. The
+# version is the tag without its "v". Run it by hand on a tag to upload a
+# release that was missed. Needs the LUAROCKS_API_KEY secret (an API key
+# of the luarocks.org account that owns the rock).
+#
+# A pull request that changes this workflow or how org.nvim finds its
+# files (lua/org/version.lua) builds and installs the rock without
+# uploading it.
+#
+# The rock installs lua/ into the tree's share/lua/5.1/ and the other
+# directories (plugin/, doc/, etc/, tutor/, ...) into
+# lib/luarocks/rocks-5.1/org.nvim/<version>/; org.version.root() finds
+# the second from the first.
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [dev]
+    paths:
+      - .github/workflows/luarocks.yml
+      - lua/org/version.lua
+
+jobs:
+  luarocks:
+    name: luarocks
+    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: nvim-neorocks/luarocks-tag-release@v7
+        env:
+          LUAROCKS_API_KEY: ${{ secrets.LUAROCKS_API_KEY }}
+        with:
+          name: org.nvim
+          # a pull request has no release tag: build an scm rock
+          version: ${{ github.event_name == 'pull_request' && 'scm' || github.ref_name }}
+          labels: |
+            neovim
+            orgmode
+            org-mode
+          summary: Emacs Org mode, rebuilt for Neovim in pure Lua
+          detailed_description: |
+            Outlines, TODOs, an agenda, capture, refile, tables, Babel,
+            clocking and export, measured against Emacs Org 9.8. No
+            dependencies. Neovim 0.11+.
+          license: MIT
+          copy_directories: |
+            {{ neovim.plugin.dirs }}
+            etc
+            tutor

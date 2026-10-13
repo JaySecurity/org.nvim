@@ -138,3 +138,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref main -f ref="${HEAD_REF#release/}"
+      # Upload the rock to luarocks.org (luarocks.yml), run on the tag so
+      # its version is the release's.
+      - name: Publish to LuaRocks
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run luarocks.yml --repo "$GITHUB_REPOSITORY" --ref "${HEAD_REF#release/}"

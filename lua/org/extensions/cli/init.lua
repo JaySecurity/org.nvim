@@ -30,6 +30,11 @@ M.defaults = {
   --- Follow `org clock in/out/cancel` run from a shell: this Neovim rereads
   --- the files and takes up (or drops) the running clock.
   watch_clock = true,
+  --- `org mcp`, the MCP server for AI agents.
+  mcp = {
+    --- List only the tools that don't change files (as `--read-only`).
+    read_only = false,
+  },
 }
 
 M.actions = {
