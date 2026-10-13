@@ -5,7 +5,7 @@ local M = {}
 --- class -> { fields = { name -> type }, parent?, open? (any key) }.
 local function meta_classes()
   local classes = {}
-  for _, f in ipairs(vim.api.nvim_get_runtime_file("lua/org/_meta/*.lua", true)) do
+  for _, f in ipairs(vim.fn.glob(require("org.version").lua_dir() .. "/org/_meta/*.lua", false, true)) do
     local cur
     for _, line in ipairs(vim.fn.readfile(f)) do
       local cls, parent = line:match("^%-%-%-@class%s+([%w%._]+)%s*:?%s*([%w%._]*)")

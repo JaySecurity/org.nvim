@@ -861,8 +861,6 @@ local function serialize(v, seen)
 end
 M._serialize = serialize
 
-local PLUGIN_ROOT = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h:h:h")
-
 --- The script run by the export process: set up org.nvim with the
 --- session's options (without Lua functions, like the -Q Emacs of
 --- org-export-async-start), answer no to every prompt (Babel blocks that
@@ -871,7 +869,7 @@ local CHILD_SCRIPT = [[
 local job = dofile(_G.arg[1])
 vim.opt.rtp:prepend(job.root)
 vim.opt.swapfile = false
-package.path = job.root .. "/lua/?.lua;" .. job.root .. "/lua/?/init.lua;" .. package.path
+package.path = job.lua_dir .. "/?.lua;" .. job.lua_dir .. "/?/init.lua;" .. package.path
 local utils = require("org.utils")
 utils.input = function() return nil end
 utils.input_complete = function() return nil end
@@ -967,7 +965,8 @@ function M.export_async(format, opts)
     vim.fn.mkdir(dir, "p")
     local src = vim.api.nvim_buf_get_name(opts.bufnr)
     local job = {
-      root = PLUGIN_ROOT,
+      root = require("org.version").root(),
+      lua_dir = require("org.version").lua_dir(),
       config = require("org.config").opts,
       init_file = cfg().async_init_file,
       shell = {

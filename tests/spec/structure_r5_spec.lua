@@ -251,6 +251,30 @@ describe("version", function()
     vim.fn.delete(dir, "rf")
   end)
 
+  it("finds the rock's directory and version of a LuaRocks install", function()
+    local v = require("org.version")
+    local tree = vim.fs.normalize(vim.fn.tempname())
+    local lua_dir = tree .. "/share/lua/5.1"
+    vim.fn.mkdir(lua_dir, "p")
+    -- the newest version that has plugin/org.lua; 2.10.0 sorts after 2.9.1
+    for _, ver in ipairs({ "2.9.1-1", "2.10.0-1", "3.0.0-1" }) do
+      local dir = tree .. "/lib/luarocks/rocks-5.1/org.nvim/" .. ver
+      vim.fn.mkdir(dir .. "/plugin", "p")
+      if ver ~= "3.0.0-1" then
+        vim.fn.writefile({}, dir .. "/plugin/org.lua")
+      end
+    end
+    local rock = tree .. "/lib/luarocks/rocks-5.1/org.nvim/2.10.0-1"
+    eq(rock, v.rock_dir(lua_dir))
+    eq("2.10.0", v.release_of(rock))
+    -- a checkout's lua/ is not a LuaRocks tree
+    eq(nil, v.rock_dir(tree .. "/lua"))
+    -- this checkout: lua/'s parent, where plugin/org.lua is
+    eq(vim.fs.dirname(v.lua_dir()), v.root())
+    ok(vim.uv.fs_stat(v.root() .. "/etc/csl"))
+    vim.fn.delete(tree, "rf")
+  end)
+
   it("inserts it at the cursor with a count", function()
     local buf = org_buffer({ "x" }, { 1, 0 })
     vim.keymap.set("n", "<F9>", function()
