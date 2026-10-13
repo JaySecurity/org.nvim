@@ -8,6 +8,17 @@ pull request, by its [Conventional Commits](https://www.conventionalcommits.org/
 This file is generated from the git history by `make changelog`
 (`scripts/changelog.lua`); edit the pull request titles, not this file.
 
+## [v2.13.0] - 2026-10-13
+
+### Features
+
+- Publish releases to LuaRocks ([#262](https://github.com/xheisenbugx/org.nvim/pull/262))
+- **cli:** MCP server (org mcp) ([#261](https://github.com/xheisenbugx/org.nvim/pull/261))
+
+### Fixes
+
+- **capture:** C-c C-k waits for its second key in Insert mode ([#260](https://github.com/xheisenbugx/org.nvim/pull/260))
+
 ## [v2.12.2] - 2026-10-12
 
 ### Fixes
@@ -465,6 +476,7 @@ This file is generated from the git history by `make changelog`
 
 </details>
 
+[v2.13.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.12.2...v2.13.0
 [v2.12.2]: https://github.com/xheisenbugx/org.nvim/compare/v2.12.1...v2.12.2
 [v2.12.1]: https://github.com/xheisenbugx/org.nvim/compare/v2.12.0...v2.12.1
 [v2.12.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.11.0...v2.12.0
