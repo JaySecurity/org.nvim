@@ -10816,6 +10816,32 @@ Writing (each saves the files it changed):
     instead. `--id` gives the new entry an ID.
 `org clock in [--pick N] TARGET`, `org clock out`, `org clock cancel`
     Clock in a heading, clock out of the running clock, or cancel it.
+`org add PARENT TITLE [--todo KW] [--priority P] [--tag TAG]...`
+      `[--scheduled DATE] [--deadline DATE] [--property NAME=VALUE]...`
+      `[--body TEXT] [--first]`
+    Add a heading TITLE as the last child of the heading PARENT (a
+    TARGET), or with `--first` as its first child. A PARENT that is an
+    org file (a path, or an agenda file's name with or without `.org`)
+    adds a top-level heading at the end of that file; use `FILE::TITLE`
+    or `id:` for a heading whose title is also a file's name. The new
+    heading is one level below PARENT (two with `odd_levels_only`), after
+    the subtree's text and before the blank lines that follow it, with a
+    blank line before it per `blank_before_new_entry.heading`. KW must be
+    a keyword of the file (a done one is set as `set todo` would); tags
+    (`--tag a,b` or repeated), the priority, the dates (read like `set
+    scheduled`), the properties and the body (split at newlines, indented
+    per `adapt_indentation`) are written as org.nvim writes them. A body
+    line starting with `*` at column 0 gets one space before it, so it
+    stays text (a list item) and doesn't start a heading.
+`org append TARGET TEXT`
+    Append TEXT to the body of the heading, after its planning, drawers
+    and text and before its first child heading; TEXT `-` reads stdin.
+    After text already there it starts a new paragraph (a blank line
+    first). Lines are indented and a `*` line is kept as text as with
+    `add --body`.
+`org set title TARGET TITLE`
+    Replace the title (one line), keeping the TODO keyword, priority,
+    COMMENT and tags, like `edit_headline` (|org-structure|).
 `org set todo TARGET STATE [--note TEXT]`
     Set the TODO keyword (`none` or "" removes it), with org.nvim's
     logging, blocking and repeaters. A note the change logs gets TEXT,
@@ -10936,6 +10962,9 @@ The `data` of each command:
                   `cancel`: `{ active, title, file, minutes, duration,
                   canceled }`
   `capture`       `{ file, line, template, type, id, headline }`
+  `add`           `{ headline, parent }` (`parent` null for a heading
+                  added at the top level of a file)
+  `append`        `{ headline, text }`
   `set ...`, `note`
                   `{ headline, field, old, new }` (and `repeated` for
                   `set todo`, `name` for `set property`)

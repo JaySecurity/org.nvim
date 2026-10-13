@@ -1027,9 +1027,10 @@ each one stands.
 - 🧪 **`cli`**: an `org` shell command (`bin/org`, a headless Neovim) that
   prints the agenda as text, CSV or JSON, captures with a template, clocks
   in and out, reports the running clock (for tmux, SketchyBar or Raycast),
-  searches, queries and exports, and changes headings (TODO state, tags,
-  priority, properties, dates, notes, refile, archive) without ever
-  prompting, from a config file of its own. With `--json` every command
+  searches, queries and exports, adds headings under a heading or in a
+  file, appends text to an entry, and changes headings (title, TODO
+  state, tags, priority, properties, dates, notes, refile, archive)
+  without ever prompting, from a config file of its own. With `--json` every command
   prints a versioned envelope with stable error codes, and `org schema`
   describes the commands as JSON Schema, so scripts and AI agents can use
   it as a tool (`:h org-extensions-cli`, `:h org-extensions-cli-json`).
