@@ -23,9 +23,17 @@ local function workspace(lines, extra_config)
   return dir
 end
 
---- Run bin/org: exit code, stdout, stderr.
+local MAIN = vim.api.nvim_get_runtime_file("lua/org/extensions/cli/main.lua", false)[1]
+
+--- Run bin/org: exit code, stdout, stderr. An argument of several lines
+--- runs main.lua directly, as `org mcp` does: cmd.exe (bin/org.cmd on
+--- Windows) cuts an argument at a newline.
 local function run(dir, args, stdin)
-  local cmd = { require("org.extensions.cli").bin(), "--config", dir .. "/cfg.lua", "--no-server" }
+  local multiline = vim.iter(args):any(function(a)
+    return a:find("\n", 1, true) ~= nil
+  end)
+  local cmd = multiline and { vim.v.progpath, "--headless", "-l", MAIN } or { require("org.extensions.cli").bin() }
+  vim.list_extend(cmd, { "--config", dir .. "/cfg.lua", "--no-server" })
   vim.list_extend(cmd, args)
   local env = {
     ORG_NVIM_CONFIG = "",

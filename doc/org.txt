@@ -10838,7 +10838,9 @@ Writing (each saves the files it changed):
     and text and before its first child heading; TEXT `-` reads stdin.
     After text already there it starts a new paragraph (a blank line
     first). Lines are indented and a `*` line is kept as text as with
-    `add --body`.
+    `add --body`. On Windows, `org.cmd` runs through cmd.exe, which
+    cuts an argument at a newline: give text of several lines on stdin
+    (`-`). `org mcp` passes it whole.
 `org set title TARGET TITLE`
     Replace the title (one line), keeping the TODO keyword, priority,
     COMMENT and tags, like `edit_headline` (|org-structure|).
