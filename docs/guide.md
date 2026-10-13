@@ -1036,7 +1036,9 @@ each one stands.
   `org mcp` serves the same commands as an MCP server, so Claude Code,
   Claude Desktop and other MCP clients can read your agenda, capture and
   update headings (`claude mcp add org -- org mcp`; `--read-only` for
-  reading only; `:h org-extensions-cli-mcp`). With the
+  reading only; `:h org-extensions-cli-mcp`). Its results are compact
+  JSON in which every heading carries a `target` to pass back, and it
+  offers `plan_day`, `weekly_review` and `triage_inbox` prompts. With the
   [session server](#session-server) on, its commands run in your open
   Neovim instead of on the files.
 

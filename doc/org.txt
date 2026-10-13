@@ -11054,17 +11054,40 @@ tool call (`"args": ["--config", "/path/cfg.lua", "mcp"]`).
 
 Every command but `schema`, `help`, `version`, `protocol` and `mcp` is a
 tool, named after it with `_` for spaces (`agenda`, `headlines`, `show`,
-`capture`, `clock_in`, `set_todo`, `note`, `refile`, `export`, ...). A
-tool's input schema is the command's `input_schema` from `org schema`,
-without `--force` (a file with unsaved changes in Neovim gives
-`file_busy`, so the agent asks you to save it), `--input`, `--list` and
-`--csv`. Its result is the command's JSON envelope
-(|org-extensions-cli-json|) as text, with `isError` set when `ok` is
-false; arguments the tool doesn't take, or a missing one, are an error
-result the agent can correct. Text arguments can't be "-": the server's
-stdin is the protocol. Each tool is annotated as read-only or not
-(`readOnlyHint`), and as replacing what is there (`destructiveHint`:
-`set_*`, `refile`, `archive`, `clock_cancel`, `export`) or not.
+`capture`, `clock_in`, `set_todo`, `note`, `refile`, `export`, ...),
+with a description written for the agent: what the tool is for and when
+to use it. The server's instructions tell the agent how targets, dates
+and errors work, and today's date. A tool's input schema is the
+command's `input_schema` from `org schema`, without `--force` (a file
+with unsaved changes in Neovim gives `file_busy`, so the agent asks you
+to save it), `--input`, `--list` and `--csv`. Arguments the tool doesn't
+take, or a missing one, are an error result the agent can correct. Text
+arguments can't be "-": the server's stdin is the protocol. Each tool is
+annotated as read-only or not (`readOnlyHint`), and as replacing what is
+there (`destructiveHint`: `set_*`, `refile`, `archive`, `clock_cancel`,
+`export`) or not.
+
+A tool's result is the command's `data` (|org-extensions-cli-json|) as
+JSON text, made shorter for the agent to read: null fields, empty lists
+and false flags are left out, a timestamp is its Org text and its ISO
+`start` and `end`, paths under your home directory start with `~/`, and
+every heading has a `target` (`id:ID`, or `FILE:LINE`) that a tool
+taking a heading reads back. A failed call is a result with `isError`
+set and the text `{ error, message, details }`, `error` being the error
+code. `search` and `headlines` return at most 50 headings when the call
+gives no `limit`, and say so when more match. Warnings come as a second
+text.
+
+Prompts ~
+The server also offers prompts, which a client shows as commands (in
+Claude Code `/mcp__org__plan_day`):
+  `plan_day`        today's agenda, deadlines and open tasks, and a plan
+                    for the day
+  `weekly_review`   a weekly review: what got done, what is coming,
+                    stale tasks, the inbox
+  `triage_inbox`    a proposed action for each captured item (`file`:
+                    the inbox, by default where the templates capture)
+Each asks the agent to propose changes and make them once you agree.
 
 Each call runs `org COMMAND ... --json` in a new Neovim, as from a shell,
 so it sees the files as they are on disk and writes them as `org` does
