@@ -2,10 +2,46 @@
 
 local M = {}
 
---- The plugin's root directory.
-function M.root()
+--- The directory of org.nvim's Lua modules: `lua/` of a checkout, or
+--- `share/lua/5.1/` of the LuaRocks tree it was installed into.
+---@return string
+function M.lua_dir()
   local src = debug.getinfo(1, "S").source:sub(2)
-  return vim.fs.normalize(vim.fn.fnamemodify(src, ":p:h:h:h"))
+  return vim.fs.normalize(vim.fn.fnamemodify(src, ":p:h:h"))
+end
+
+--- The directory of the rock in a LuaRocks tree (`plugin/`, `doc/`,
+--- `etc/`, `tutor/`), when `lua_dir` is one's `share/lua/5.1/`: the
+--- rock's Lua modules go there, its other directories to
+--- `lib/luarocks/rocks-5.1/org.nvim/<version>/`.
+---@param lua_dir string
+---@return string?
+function M.rock_dir(lua_dir)
+  local tree = lua_dir:match("^(.*)/share/lua/[%d.]+$")
+  if not tree then
+    return nil
+  end
+  local dirs = vim.fn.glob(tree .. "/lib/luarocks/rocks-*/org.nvim/*", false, true)
+  table.sort(dirs, function(a, b)
+    return vim.version.lt(vim.fs.basename(a):match("^[^-]*"), vim.fs.basename(b):match("^[^-]*"))
+  end)
+  for i = #dirs, 1, -1 do
+    if vim.uv.fs_stat(dirs[i] .. "/plugin/org.lua") then
+      return vim.fs.normalize(dirs[i])
+    end
+  end
+end
+
+--- The plugin's root directory: the checkout, or the rock's directory of
+--- a LuaRocks install (see `rock_dir`).
+---@return string
+function M.root()
+  local lua_dir = M.lua_dir()
+  local parent = vim.fs.dirname(lua_dir)
+  if vim.uv.fs_stat(parent .. "/plugin/org.lua") then
+    return parent
+  end
+  return M.rock_dir(lua_dir) or parent
 end
 
 --- Output of `git -C dir <args>`, or nil when git fails or isn't installed.
@@ -25,11 +61,16 @@ local function git(dir, args)
   return vim.trim(res.stdout or "")
 end
 
---- The release of the checkout in `dir`: its latest vX.Y.Z tag without
+--- The release in `dir`: the version of a rock's directory
+--- (`.../org.nvim/X.Y.Z-1`), else the checkout's latest vX.Y.Z tag without
 --- the "v", or "unreleased" when it has none (or isn't a git checkout).
 ---@param dir string
 ---@return string
 function M.release_of(dir)
+  local rock = vim.fs.normalize(dir):match("/rocks%-[%d.]+/org%.nvim/(%d+%.%d+%.%d+)%-%d+$")
+  if rock then
+    return rock
+  end
   local tag = git(dir, { "describe", "--tags", "--abbrev=0", "--match", "v[0-9]*" })
   return tag and tag:match("^v(%d.*)") or "unreleased"
 end

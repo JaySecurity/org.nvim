@@ -347,6 +347,18 @@ require("org").setup({
 
 `:lua vim.pack.update()` updates it later.
 
+**[rocks.nvim](https://github.com/lumen-oss/rocks.nvim) (LuaRocks)**:
+each release is published to [luarocks.org](https://luarocks.org/modules/xheisenbugx/org.nvim)
+as `org.nvim`:
+
+```vim
+:Rocks install org.nvim
+```
+
+Then call `require("org").setup({ … })` as above. `:Rocks update` takes
+the next release. The `org` and `org-merge` command line scripts (`bin/`)
+aren't in the rock; use a git checkout for those.
+
 **No plugin manager (Vim packages)**: put the repository in a `start`
 package directory, which Neovim loads at startup:
 

@@ -32,11 +32,7 @@ local function copt(name, default)
   return v
 end
 
-local ETC_DIR = (function()
-  local src = debug.getinfo(1, "S").source:sub(2)
-  local root = vim.fn.fnamemodify(src, ":p:h:h:h:h")
-  return root .. "/etc/csl"
-end)()
+local ETC_DIR = require("org.version").root() .. "/etc/csl"
 P.ETC_DIR = ETC_DIR
 
 P.DEFAULT_LATEX_PREAMBLE = [[\usepackage{calc}

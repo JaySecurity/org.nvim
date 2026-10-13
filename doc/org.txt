@@ -228,6 +228,14 @@ Neovim 0.12+ built-in manager (`vim.pack`), in |init.lua|: >lua
     vim.pack.add({ "https://github.com/xheisenbugx/org.nvim" })
     require("org").setup({ ... })
 <
+rocks.nvim (LuaRocks): each release is published to luarocks.org as
+`org.nvim`: >vim
+    :Rocks install org.nvim
+<
+Then call `require("org").setup({ ... })`. The rock doesn't include the
+`org` and `org-merge` command line scripts (`bin/`); use a git checkout
+for those.
+
 No plugin manager (|packages|): clone the repository into a `start`
 directory, which Neovim loads at startup: >sh
     # Linux / macOS

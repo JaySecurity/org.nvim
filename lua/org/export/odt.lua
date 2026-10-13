@@ -37,8 +37,7 @@ end
 --- Directory of OrgOdtStyles.xml and OrgOdtContentTemplate.xml
 --- (org-odt-styles-dir): etc/styles/ of the plugin.
 function M.styles_dir()
-  local src = debug.getinfo(1, "S").source:sub(2)
-  return vim.fn.fnamemodify(src, ":p:h:h:h:h") .. "/etc/styles/"
+  return require("org.version").root() .. "/etc/styles/"
 end
 
 local function read_file(path, binary)
