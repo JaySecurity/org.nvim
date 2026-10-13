@@ -1033,8 +1033,12 @@ each one stands.
   prints a versioned envelope with stable error codes, and `org schema`
   describes the commands as JSON Schema, so scripts and AI agents can use
   it as a tool (`:h org-extensions-cli`, `:h org-extensions-cli-json`).
-  With the [session server](#session-server) on, its commands run in your
-  open Neovim instead of on the files.
+  `org mcp` serves the same commands as an MCP server, so Claude Code,
+  Claude Desktop and other MCP clients can read your agenda, capture and
+  update headings (`claude mcp add org -- org mcp`; `--read-only` for
+  reading only; `:h org-extensions-cli-mcp`). With the
+  [session server](#session-server) on, its commands run in your open
+  Neovim instead of on the files.
 
   ![The org command line: the day agenda as text, the agenda as JSON through jq, capturing a task into the inbox, and clocking in, checking the clock for a status line and clocking out](https://raw.githubusercontent.com/xheisenbugx/org.nvim/media/org-cli.gif)
 

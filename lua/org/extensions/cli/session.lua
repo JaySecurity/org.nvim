@@ -14,10 +14,11 @@ local state = shared.state
 local err = shared.err
 
 --- Commands a running Neovim (the session server, |org-remote|) runs for
---- the command line: all but export, schema and version.
+--- the command line: all but export, schema, version and mcp (whose tool
+--- calls each run `org`, and so go there one by one).
 M.SESSION_COMMANDS = {}
 for name in pairs(M.COMMANDS) do
-  if name ~= "export" and name ~= "schema" and name ~= "version" then
+  if name ~= "export" and name ~= "schema" and name ~= "version" and name ~= "mcp" then
     M.SESSION_COMMANDS[name] = true
   end
 end

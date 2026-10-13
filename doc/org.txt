@@ -10851,6 +10851,10 @@ Writing (each saves the files it changed):
     Neovim running, a capture is stored at once with its template, as
     `org capture` does, and `store-link` and `open-source` fail.
 
+`org mcp [--read-only]`
+    Serve the commands to an AI agent as an MCP server, on stdin and
+    stdout (|org-extensions-cli-mcp|).
+
 `org schema [COMMAND]`, `org help [--json]`, `org version`
 
 Every command writes its result to stdout and messages to stderr (`-v`
@@ -11022,17 +11026,66 @@ The tool's handler runs `org set todo TARGET STATE [--note NOTE] --json`
 (the arguments as separate words, not through a shell) and returns the
 envelope. To generate one tool per command:
 >sh
-    org schema | jq '[.commands[] | select(.name != "help") | {
+    org schema | jq '[.commands[]
+      | select(.name != "help" and .name != "mcp") | {
       name: ("org_" + (.name | gsub(" "; "_"))),
       description: .summary, input_schema: .input_schema }]'
 <
-A read-only agent gets the commands whose `writes` is false.
+A read-only agent gets the commands whose `writes` is false. An agent
+that speaks MCP needs none of this: `org mcp` serves the same tools.
+
+MCP server                                           *org-extensions-cli-mcp*
+`org mcp` is a Model Context Protocol server for AI agents and the apps
+that run them (Claude Code, Claude Desktop, editors with an MCP client):
+it reads JSON-RPC 2.0 messages from stdin, one per line, and writes its
+answers to stdout, until stdin closes. Add it to a client as a stdio
+server whose command is `org mcp`. For Claude Code:
+>sh
+    claude mcp add org -- org mcp
+<
+or, in a project's `.mcp.json` (Claude Desktop's
+`claude_desktop_config.json` takes the same `mcpServers` object):
+>json
+    { "mcpServers": { "org": { "command": "org", "args": ["mcp"] } } }
+<
+A desktop app may not see your shell's $PATH: give `command` the full
+path of `bin/org` then. Global options go before `mcp` and apply to every
+tool call (`"args": ["--config", "/path/cfg.lua", "mcp"]`).
+
+Every command but `schema`, `help`, `version`, `protocol` and `mcp` is a
+tool, named after it with `_` for spaces (`agenda`, `headlines`, `show`,
+`capture`, `clock_in`, `set_todo`, `note`, `refile`, `export`, ...). A
+tool's input schema is the command's `input_schema` from `org schema`,
+without `--force` (a file with unsaved changes in Neovim gives
+`file_busy`, so the agent asks you to save it), `--input`, `--list` and
+`--csv`. Its result is the command's JSON envelope
+(|org-extensions-cli-json|) as text, with `isError` set when `ok` is
+false; arguments the tool doesn't take, or a missing one, are an error
+result the agent can correct. Text arguments can't be "-": the server's
+stdin is the protocol. Each tool is annotated as read-only or not
+(`readOnlyHint`), and as replacing what is there (`destructiveHint`:
+`set_*`, `refile`, `archive`, `clock_cancel`, `export`) or not.
+
+Each call runs `org COMMAND ... --json` in a new Neovim, as from a shell,
+so it sees the files as they are on disk and writes them as `org` does
+(the swap-file guard, the write hooks); with the session server on
+(|org-remote|) the call runs in that Neovim instead, unless `--config`,
+`--files`, `--dir` or `--no-server` came before `mcp`. Calls are answered
+in order, one at a time. Nothing but protocol messages goes to stdout;
+`-v` copies each call's messages to stderr, which clients log.
+
+`--read-only` (or the `mcp.read_only` option) leaves out the tools that
+change files (every `writes` command, and `export`, which writes its
+output file); calling one anyway gives an error result. The server
+speaks MCP protocol versions 2025-06-18, 2025-03-26 and 2024-11-05.
 
 Options (`extensions.cli`) ~
   `install_dir`        where `cli_install` links `org` ("~/.local/bin")
   `capture_template`   template key of `org capture` without `-t` (nil)
   `status_format`      format of `org clock status --short` ("%e %t")
   `watch_clock`        a running Neovim follows the shell's clock (true)
+  `mcp.read_only`      `org mcp` lists only the tools that don't change
+                       files, as `--read-only` (false)
 
 Clock in the shell and in Neovim ~
 Every write (`org clock in`, `out` and `cancel`, `capture`, `set`, ...)
