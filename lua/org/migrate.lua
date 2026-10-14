@@ -369,7 +369,7 @@ local function convert_template(res, out, key, t, path)
           )
         end
         if v.reversed then
-          warn("datetree `reversed` has no equivalent: date nodes are kept in ascending order, as in Emacs")
+          o.datetree = { reversed = true }
         end
       elseif v ~= nil and v ~= false then
         o.datetree = v

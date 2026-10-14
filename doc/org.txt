@@ -3042,11 +3042,16 @@ Template fields:
                      created at the end of the file when missing
   olp                file+olp: outline path, e.g. { "Projects", "Neovim" }
                      or "Projects/Neovim"; every node must exist
-  datetree           file+olp+datetree: true or { tree_type = ... }, under
-                     `olp`/`headline` when given. The date is the capture
-                     date (agenda day, `time_prompt`, C-1) or today.
-                     Existing nodes are recognized by their date
-                     ("2026-09 Sept" is the September node)
+  datetree           file+olp+datetree: true or { tree_type = ...,
+                     reversed = ... }, under `olp`/`headline` when given.
+                     The date is the capture date (agenda day,
+                     `time_prompt`, C-1) or today. Existing nodes are
+                     recognized by their date ("2026-09 Sept" is the
+                     September node). Nodes are kept oldest first, as in
+                     Emacs; `reversed = true` keeps them newest first (a
+                     new node goes before the first earlier one, as the
+                     org-reverse-datetree package does). `prepend` only
+                     places the entry inside its day's node
   tree_type          "day" (default), "week", "month", a list of "year",
                      "quarter", "month", "week", "day", or a function(date)
                      returning { { title, compare } ... } (:tree-type)
@@ -8650,7 +8655,9 @@ Differences from Emacs:
   The `hook` template function doesn't run for `immediate_finish`. With C-0
   (`:Org capture_here`) Emacs splits the line at point; the Neovim cursor
   sits on a character, so the text goes before the cursor line at column
-  0 and after it otherwise.
+  0 and after it otherwise. A template's `datetree = { reversed = true }`
+  keeps date nodes newest first, which Emacs Org itself can't do (the
+  org-reverse-datetree package adds it).
 - The ID database can be Emacs's `org-id-locations-file` (|org-links|),
   but Emacs keeps it in memory and writes it on exit, so the last editor
   to save wins; files are sorted by name where Emacs keeps its hash order.
@@ -12663,7 +12670,7 @@ are the same (|org-capture-templates|). The others:
                                   datetree = true, time_prompt = true
   datetree = { tree_type = "month" }
                                   datetree = true, tree_type = "month"
-  datetree = { reversed = true }  none: date nodes stay in date order
+  datetree = { reversed = true }  the same
   tree_type = "custom"            tree_type = function(date) returning {
                                   { title, compare } ... }
   properties = { empty_lines = N }

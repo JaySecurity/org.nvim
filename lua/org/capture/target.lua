@@ -146,10 +146,11 @@ end
 
 --- Find or create the headline `title` of `level` among the headlines in
 --- lines [s, e] (org-datetree--find-create-subheading): the first one
---- comparing equal is used, a new one goes before the first later one.
+--- comparing equal is used, a new one goes before the first later one
+--- (`reversed`: the first earlier one, for a newest-first tree).
 ---@return integer line
 ---@return boolean created
-local function dt_subheading(bufnr, s, e, level, title, cmp)
+local function dt_subheading(bufnr, s, e, level, title, cmp, reversed)
   local file = files.get_buffer(bufnr)
   -- something follows the parent's subtree
   local followed = e < vim.api.nvim_buf_line_count(bufnr)
@@ -157,7 +158,7 @@ local function dt_subheading(bufnr, s, e, level, title, cmp)
   for _, hl in ipairs(file.headlines) do
     if hl.line >= s and hl.line <= e and hl.level == level then
       local r = cmp(hl.title, title)
-      if r == true or (type(r) == "number" and r >= 0) then
+      if r == true or (type(r) == "number" and (reversed and r <= 0 or not reversed and r >= 0)) then
         sibling = hl
         break
       end
@@ -219,9 +220,11 @@ end
 
 --- Create/find the date tree for `d` under `parent_lnum` (nil = top level,
 --- or under the headline with a DATE_TREE / WEEK_TREE property); returns
---- the line of the innermost node.
+--- the line of the innermost node. `reversed` keeps the nodes newest
+--- first.
 ---@param tree_type? "day"|"week"|"month"|string[]|fun(d: org.Date): table
-function M.ensure_datetree(bufnr, parent_lnum, d, tree_type)
+---@param reversed? boolean
+function M.ensure_datetree(bufnr, parent_lnum, d, tree_type, reversed)
   tree_type = tree_type or "day"
   local hier
   if type(tree_type) == "function" then
@@ -267,7 +270,7 @@ function M.ensure_datetree(bufnr, parent_lnum, d, tree_type)
       local hl = assert(files.get_buffer(bufnr):headline_at(line)) -- a datetree node's heading
       level, s, e = hl.level + 1, hl.line + 1, hl.end_line
     end
-    line, created = dt_subheading(bufnr, s, e, level, h[1], h[2])
+    line, created = dt_subheading(bufnr, s, e, level, h[1], h[2], reversed)
   end
   local stamp = config.opts.datetree_add_timestamp
   local grouping = type(tree_type) == "table" and tree_type or GROUPINGS[tree_type]
@@ -435,8 +438,9 @@ function M.resolve_target(tpl, ctx)
   end
   before = before or vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
   if tpl.datetree and not ctx.here then
-    local tt = type(tpl.datetree) == "table" and tpl.datetree.tree_type or tpl.tree_type or "day"
-    line = M.ensure_datetree(bufnr, entry_p and line or nil, ctx.date or date.today(), tt)
+    local dt = type(tpl.datetree) == "table" and tpl.datetree or {}
+    local tt = dt.tree_type or tpl.tree_type or "day"
+    line = M.ensure_datetree(bufnr, entry_p and line or nil, ctx.date or date.today(), tt, dt.reversed == true)
     col, entry_p, loc.exact = 0, true, false
   end
   if entry_p and not line then

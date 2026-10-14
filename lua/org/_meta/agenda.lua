@@ -717,7 +717,8 @@
 ---location, or nothing for the cursor position in the current buffer.
 ---@field location? fun(): (integer?, integer?, integer?)
 ---File the entry in a date tree (file+olp+datetree), under the location above if any.
----@field datetree? boolean|{ tree_type?: "day"|"week"|"month"|string[]|fun(date: table): table }
+---`reversed` keeps the date nodes newest first (not in Emacs Org).
+---@field datetree? boolean|{ tree_type?: ("day"|"week"|"month"|string[]|fun(date: table): table), reversed?: boolean }
 ---Date tree type (:tree-type): `"day"`, `"week"`, `"month"`, a list of
 ---`"year"`, `"quarter"`, `"month"`, `"week"`, `"day"`, or a function of the
 ---date returning `{ { title, compare } ... }`. (default: `"day"`)
