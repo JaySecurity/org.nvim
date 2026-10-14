@@ -8,6 +8,12 @@ pull request, by its [Conventional Commits](https://www.conventionalcommits.org/
 This file is generated from the git history by `make changelog`
 (`scripts/changelog.lua`); edit the pull request titles, not this file.
 
+## [v2.14.1] - 2026-10-14
+
+### Fixes
+
+- C-RET blank line and repeat SCHEDULED removal match Emacs ([#271](https://github.com/xheisenbugx/org.nvim/pull/271))
+
 ## [v2.14.0] - 2026-10-14
 
 ### Features
@@ -487,6 +493,7 @@ This file is generated from the git history by `make changelog`
 
 </details>
 
+[v2.14.1]: https://github.com/xheisenbugx/org.nvim/compare/v2.14.0...v2.14.1
 [v2.14.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.13.0...v2.14.0
 [v2.13.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.12.2...v2.13.0
 [v2.12.2]: https://github.com/xheisenbugx/org.nvim/compare/v2.12.1...v2.12.2
