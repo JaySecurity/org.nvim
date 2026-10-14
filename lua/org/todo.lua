@@ -383,9 +383,48 @@ local function shift_repeaters(bufnr, hl, now, today)
     local ts = hl.planning[kind]
     if has_repeater(ts) then
       edit.set_planning(bufnr, hl.line, kind, date.apply_repeater(ts, now, today), { in_place = true })
-    elseif kind == "scheduled" and ts and not ts.repeater then
-      -- a SCHEDULED date without repeater is no longer relevant
-      edit.set_planning(bufnr, hl.line, kind, nil)
+    end
+  end
+end
+
+--- Remove every `SCHEDULED: <...>` of the entry at `lnum`
+--- (org-remove-timestamp-with-keyword): only the text the pattern covers,
+--- so the end of a range stays, with a space before it on the line; a
+--- line left blank goes. The entry ends at the next heading of any level.
+local function remove_scheduled(bufnr, lnum)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, lnum, -1, false)
+  local n = #lines
+  for i, l in ipairs(lines) do
+    if l:match("^%*+ ") then
+      n = i - 1
+      break
+    end
+  end
+  for i = n, 1, -1 do
+    local l = lines[i]
+    local starts = {}
+    for s in l:gmatch("()SCHEDULED: +<[^>]+>") do
+      -- \< : not inside a word
+      if s == 1 or not l:sub(s - 1, s - 1):match("[%w_]") then
+        starts[#starts + 1] = s
+      end
+    end
+    local blank = false
+    for j = #starts, 1, -1 do
+      local s = starts[j]
+      local e = l:match("^SCHEDULED: +<[^>]+>[ \t]*()", s)
+      l = l:sub(1, s - 1) .. l:sub(e)
+      if l:sub(1, s - 1):match("%S") and l:sub(s - 1, s - 1) == " " then
+        l = l:sub(1, s - 2) .. l:sub(s)
+      elseif l:match("^[ \t]*$") then
+        blank = true
+        break
+      end
+    end
+    if blank then
+      vim.api.nvim_buf_set_lines(bufnr, lnum + i - 1, lnum + i, false, {})
+    elseif #starts > 0 then
+      vim.api.nvim_buf_set_lines(bufnr, lnum + i - 1, lnum + i, false, { l })
     end
   end
 end
@@ -595,6 +634,7 @@ function M.change_state(target, new, opts)
     end
     local final = repeat_to_state(hl, todo_cfg, old)
     local has_clock = #hl.clocks > 0
+    local sched = hl.planning.scheduled
     shift_repeaters(bufnr, hl, date.now(), today)
     lnum = trigger_tags(bufnr, lnum, todo_cfg, new)
     edit.update_headline(bufnr, lnum, { todo = final or false })
@@ -604,6 +644,11 @@ function M.change_state(target, new, opts)
     lnum = trigger_tags(bufnr, lnum, todo_cfg, final)
     if log_repeat or has_clock then
       edit.set_property(bufnr, lnum, "LAST_REPEAT", now_inactive:to_string())
+    end
+    -- a SCHEDULED date without repeater is no longer relevant; removed
+    -- after LAST_REPEAT, as Emacs does
+    if sched and not sched.repeater then
+      remove_scheduled(bufnr, lnum)
     end
     if rep_log == "note" and purpose == "done" then
       edit.add_log_entry(bufnr, lnum, edit.log_entry("done", note, new, old, now_eff))
