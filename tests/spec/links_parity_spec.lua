@@ -587,6 +587,10 @@ describe("links parity", function()
           got[lead] = links._complete_file(lead)
         end
         got["file:../"] = links._complete("file:../")
+        -- getcompletion()'s order depends on the platform (case folding)
+        for _, v in pairs(got) do
+          table.sort(v)
+        end
       end)
       links._complete_bufnr = nil
       vim.env.HOME, vim.env.ORG_TEST_NOTES = home, nil
@@ -596,12 +600,12 @@ describe("links parity", function()
       eq({ "~/a.txt", "~/notes/" }, got["~/"])
       eq({ "~/notes/TODO.md" }, got["~/notes/T"])
       eq({ "../" }, got[".."])
-      eq({ "../daily/", "../TODO.md" }, got["../"])
+      eq({ "../TODO.md", "../daily/" }, got["../"])
       eq({ "../TODO.md" }, got["../T"])
       eq({ "../../a.txt", "../../notes/" }, got["../../"])
       eq({ "./2026-01-01.org" }, got["./"])
       eq({ "$ORG_TEST_NOTES/TODO.md" }, got["$ORG_TEST_NOTES/T"])
-      eq({ "file:../daily/", "file:../TODO.md" }, got["file:../"])
+      eq({ "file:../TODO.md", "file:../daily/" }, got["file:../"])
       -- a completed `../` name outside the buffer's directory is made
       -- absolute by file_path_type = "adaptive", as in Emacs
       answer({ ["File: "] = "../TODO.md", ["Description: "] = "" })
