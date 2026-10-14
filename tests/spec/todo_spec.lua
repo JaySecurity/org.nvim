@@ -195,6 +195,73 @@ describe("todo", function()
     end)
   end)
 
+  -- org-remove-timestamp-with-keyword removes the text "SCHEDULED: <...>"
+  -- in the whole entry, after LAST_REPEAT is set (difftest #265; the
+  -- expected buffers come from Emacs 9.8.11)
+  it("repeating: removes SCHEDULED text as Emacs does", function()
+    with_opts({ log_done = false, log_repeat = false }, function()
+      for _, c in ipairs({
+        {
+          { "* TODO a", "SCHEDULED: <2026-09-01 Tue>--<2026-09-03 Thu>", "<2026-09-02 Wed +1d>" },
+          { "* TODO a", "--<2026-09-03 Thu>", "<" },
+        },
+        {
+          { "* TODO a", "SCHEDULED: <2026-09-01 Tue>", "<2026-09-02 Wed +1d>", "see SCHEDULED: <2026-01-01 Thu> here" },
+          { "* TODO a", "<", "seehere" },
+        },
+        {
+          { "* TODO a", "SCHEDULED: <2026-09-01 Tue> DEADLINE: <2026-09-02 Wed +1w>" },
+          { "* TODO a", "DEADLINE: <" },
+        },
+        {
+          { "* TODO a", "  SCHEDULED: <2026-09-01 Tue>  DEADLINE: <2026-09-02 Wed +1d>" },
+          { "* TODO a", "  DEADLINE: <" },
+        },
+        {
+          { "* TODO a", "SCHEDULED: <2026-09-01 Tue +1d>", "x SCHEDULED: <2026-01-01 Thu>" },
+          { "* TODO a", "SCHEDULED: <", "x SCHEDULED: <2026-01-01 Thu>" },
+        },
+        {
+          {
+            "* TODO a",
+            "SCHEDULED: <2026-09-01 Tue>",
+            "<2026-09-02 Wed +1d>",
+            "** sub",
+            "SCHEDULED: <2026-01-01 Thu>",
+          },
+          { "* TODO a", "<", "** sub", "SCHEDULED: <2026-01-01 Thu>" },
+        },
+      }) do
+        local buf = org_buffer(c[1], { 1, 0 })
+        todo.change_state(nil, "DONE")
+        local got = buf_lines(buf)
+        eq(#c[2], #got, vim.inspect(got))
+        for i, want in ipairs(c[2]) do
+          -- "<" stands for a shifted timestamp: its date depends on today
+          eq(want, got[i]:sub(1, #want), vim.inspect(got))
+        end
+      end
+    end)
+    -- the issue's entry: the drawer stays after what is left of the
+    -- planning line, and the note goes right under the headline
+    with_opts({ log_done = "time", log_repeat = "time", log_into_drawer = false }, function()
+      local buf = org_buffer({
+        "#+TODO: WAITING DONE",
+        "* WAITING [#B]",
+        "SCHEDULED: <2026-09-29 18:15>--<2026-09-27 Sun 17:30>",
+        "<2026-09-28 +2d>",
+      }, { 2, 0 })
+      todo.change_state(nil, "DONE")
+      local l = buf_lines(buf)
+      eq("* WAITING [#B]", l[2])
+      ok(l[3]:match('^%- State "DONE"%s+from "WAITING"%s+%['), l[3])
+      eq({ "--<2026-09-27 Sun 17:30>", ":PROPERTIES:" }, { l[4], l[5] })
+      ok(l[6]:match("^:LAST_REPEAT: %["), l[6])
+      eq(":END:", l[7])
+      ok(l[8]:match("^<%d+%-%d+%-%d+ %a+ %+2d>$"), l[8])
+    end)
+  end)
+
   it("honours the LOGGING property", function()
     local buf = org_buffer({ "* Project", ":PROPERTIES:", ":LOGGING: nil", ":END:", "** TODO Task" }, { 5, 0 })
     todo.change_state(nil, "DONE")
