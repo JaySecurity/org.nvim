@@ -205,6 +205,269 @@ function M.cmd_note(words, flags)
   return changed(flags, bufnr, lnum, "note", nil, text)
 end
 
+---------------------------------------------------------------------------
+-- add, append, set title
+---------------------------------------------------------------------------
+
+local function blank(line)
+  return line == nil or not line:match("%S")
+end
+
+--- The lines of `text` as body lines of a heading of `level`: split at
+--- newlines, without the blank lines around them, indented as planning
+--- lines are (adapt_indentation). A line that would read as a heading
+--- (`* ...` at column 0) gets one space: a plain list item with a `*`
+--- bullet has to be indented.
+---@param text string
+---@param level integer
+---@return string[]
+local function body_lines(text, level)
+  local lines = vim.split((text:gsub("\r\n?", "\n")), "\n", { plain = true })
+  while #lines > 0 and blank(lines[1]) do
+    table.remove(lines, 1)
+  end
+  while #lines > 0 and blank(lines[#lines]) do
+    table.remove(lines)
+  end
+  local indent = require("org.edit").body_indent(level)
+  return vim.tbl_map(function(l)
+    if blank(l) then
+      return ""
+    end
+    l = indent .. l:gsub("%s+$", "")
+    if l:match("^%*+%s") or l:match("^%*+$") then
+      l = " " .. l
+    end
+    return l
+  end, lines)
+end
+
+--- One line of text: no newline in it.
+local function one_line(s, what)
+  s = vim.trim(s)
+  if s:find("[\r\n]") then
+    fail(what .. " must be one line", "bad_value", { [what] = s })
+  end
+  if s == "" then
+    fail(what .. " is empty", "usage")
+  end
+  return s
+end
+
+--- blank_before_new_entry.heading (org-blank-before-new-entry): is the
+--- new heading preceded by a blank line? "auto": when `ref` (a sibling,
+--- or the parent) is.
+local function blank_before(lines, ref)
+  local b = require("org.config").opts.blank_before_new_entry
+  local v = type(b) == "table" and b.heading or b
+  if v ~= "auto" then
+    return v == true
+  end
+  return ref ~= nil and ref > 1 and blank(lines[ref - 1])
+end
+
+--- The org file PARENT names when it is a file: a readable path, or an
+--- agenda file by name (not FILE::TITLE nor FILE:LINE).
+---@return string|nil
+local function parent_file(spec)
+  if spec:find("::", 1, true) or spec:match(":%d+$") or spec:match("^id:") then
+    return nil
+  end
+  local found = run.files_named(spec, require("org.files").agenda_files())
+  if #found > 1 then
+    fail("several agenda files are named " .. spec, "bad_value", {
+      file = spec,
+      candidates = vim.tbl_map(function(f)
+        return data.path(f.filename)
+      end, found),
+    })
+  end
+  return found[1] and found[1].filename or nil
+end
+
+function M.cmd_add(words, flags)
+  need(words, 2, "org add PARENT TITLE")
+  local title = one_line(table.concat(words, " ", 2), "title")
+  local todo_kw = flags.todo or {}
+  if #todo_kw > 1 then
+    fail("--todo takes one keyword", "usage")
+  end
+  local kw = todo_kw[1]
+  for _, t in ipairs(flags.tag) do
+    if not valid_tag(t) then
+      fail("invalid tag " .. t .. " (letters, digits, _ @ # %)", "bad_value", { tag = t })
+    end
+  end
+  local props = {}
+  for _, p in ipairs(flags.property) do
+    local name, value = p:match("^([^=%s]+)=(.*)$")
+    if not name then
+      fail("--property needs NAME=VALUE, not " .. p, "bad_value", { property = p })
+    end
+    props[#props + 1] = { name, value }
+  end
+  local dates = {}
+  for _, kind in ipairs({ "deadline", "scheduled" }) do
+    if flags[kind] and vim.trim(flags[kind]) ~= "" then
+      dates[kind] = read_planning_date(flags[kind])
+    end
+  end
+
+  -- where: under a heading, or at the end of a file
+  local spec = words[1]
+  local path = parent_file(spec)
+  local parent, bufnr, plnum
+  if path then
+    run.guard(path, flags)
+    bufnr = run.load_buffer(path)
+  else
+    parent = run.resolve_target(spec, flags)
+    bufnr, plnum = run.open_target(parent, flags)
+  end
+  local file = require("org.files").get_buffer(bufnr)
+  local todo_cfg = file.settings.todo
+  if kw and not todo_cfg:is_keyword(kw) then
+    fail("unknown TODO keyword " .. kw, "bad_value", { keyword = kw, keywords = todo_cfg:names() })
+  end
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local step = require("org.structure").odd_levels_only(bufnr) and 2 or 1
+  local level, at, ref, floor
+  local following = false
+  if parent then
+    local ph = run.headline_at(bufnr, plnum)
+    level = ph.level + step
+    floor = ph.line
+    local kids = ph.children or {}
+    if flags.first and #kids > 0 then
+      at, ref, following = kids[1].line, kids[1].line, true
+    else
+      at = ph.end_line + 1
+      ref = #kids > 0 and kids[#kids].line or ph.line
+    end
+  else
+    level, floor = 1, 0
+    at = #lines + 1
+    local tops = file.children or {}
+    ref = #tops > 0 and tops[#tops].line or nil
+  end
+  if not following then
+    -- after the last text of the subtree, before the blank lines that
+    -- separate it from what follows
+    while at - 1 > floor and blank(lines[at - 1]) do
+      at = at - 1
+    end
+  end
+  local sep = blank_before(lines, ref)
+  local new = {}
+  if sep and at > 1 and not blank(lines[at - 1]) then
+    new[#new + 1] = ""
+  end
+  local edit = require("org.edit")
+  local done = kw and todo_cfg:is_done(kw)
+  local heading = edit.build_headline({
+    level = level,
+    todo = not done and kw or nil,
+    title = title,
+    tags = #flags.tag > 0 and require("org.tags").sort(vim.deepcopy(flags.tag)) or nil,
+  })
+  new[#new + 1] = heading
+  local lnum = at + #new - 1
+  if flags.body and vim.trim(flags.body) ~= "" then
+    vim.list_extend(new, body_lines(flags.body, level))
+  end
+  if following and sep then
+    new[#new + 1] = ""
+  end
+  run.mark_messages()
+  if #lines == 1 and lines[1] == "" then
+    -- an empty file
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new)
+  else
+    vim.api.nvim_buf_set_lines(bufnr, at - 1, at - 1, false, new)
+  end
+  local target = { bufnr = bufnr, lnum = lnum }
+  if flags.priority then
+    local priority = require("org.priority")
+    if not priority.enabled() then
+      run.fail_with_messages("priority commands are disabled")
+    end
+    if not priority.set(target, flags.priority) then
+      run.fail_with_messages("invalid priority " .. flags.priority, "bad_value")
+    end
+  end
+  if done then
+    if not require("org.todo").change_state(target, kw) then
+      run.fail_with_messages("could not set the TODO state to " .. kw)
+    end
+  end
+  for _, kind in ipairs({ "deadline", "scheduled" }) do
+    if dates[kind] and not require("org.timestamps").plan_date(target, kind, dates[kind], { note = false }) then
+      run.fail_with_messages("could not set the " .. kind .. " date", "failed")
+    end
+  end
+  for _, p in ipairs(props) do
+    if require("org.properties").set_property(target, p[1], p[2]) == nil then
+      run.fail_with_messages("could not set " .. p[1], "bad_value")
+    end
+  end
+  run.check_prompted()
+  run.save_all(flags)
+  local hl = run.headline_at(bufnr, lnum)
+  local ph = plnum and run.headline_at(bufnr, plnum)
+  return {
+    data = { headline = data.headline(hl), parent = ph and data.headline(ph) or vim.NIL },
+    text = { "Added " .. run.headline_line(hl) },
+  }
+end
+
+function M.cmd_append(words, flags)
+  need(words, 2, "org append TARGET TEXT")
+  local text = table.concat(words, " ", 2)
+  if vim.trim(text) == "-" then
+    text = run.read_stdin()
+  end
+  if vim.trim(text) == "" then
+    fail("the text is empty", "usage")
+  end
+  local hl, bufnr, lnum = open(words, flags)
+  local h = run.headline_at(bufnr, lnum)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local kids = h.children or {}
+  -- the end of the heading's own text: before its first child, without
+  -- the blank lines before that
+  local at = (#kids > 0 and kids[1].line or h.end_line + 1)
+  local floor = require("org.edit").meta_end(h)
+  while at - 1 > floor and blank(lines[at - 1]) do
+    at = at - 1
+  end
+  local new = body_lines(text, h.level)
+  -- a new paragraph after text already there (planning and the property
+  -- drawer are not text)
+  if at - 1 > floor then
+    table.insert(new, 1, "")
+  end
+  vim.api.nvim_buf_set_lines(bufnr, at - 1, at - 1, false, new)
+  run.check_prompted()
+  run.save_all(flags)
+  local now = run.headline_at(bufnr, lnum)
+  return {
+    data = { headline = data.headline(now), text = vim.trim(text) },
+    text = { "Appended to " .. run.headline_line(now or hl) },
+  }
+end
+
+function M.cmd_set_title(words, flags)
+  need(words, 2, "org set title TARGET TITLE")
+  local title = one_line(table.concat(words, " ", 2), "title")
+  local hl, bufnr, lnum = open(words, flags)
+  local old = hl:plain_title()
+  vim.api.nvim_set_current_buf(bufnr)
+  vim.api.nvim_win_set_cursor(0, { lnum, 0 })
+  require("org.structure").edit_headline(title)
+  local now = run.headline_at(bufnr, lnum)
+  return changed(flags, bufnr, lnum, "title", old, now and now:plain_title() or nil)
+end
+
 function M.cmd_refile(words, flags)
   need(words, 2, "org refile TARGET DESTINATION")
   local spec = words[2]

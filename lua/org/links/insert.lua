@@ -38,17 +38,31 @@ local PREFIXES = {
 }
 
 --- File name completion relative to the directory of buffer `bufnr`.
+--- Candidates keep the directory part as typed (`~/`, `../`, `$HOME/`),
+--- as read-file-name does: only the last component is completed.
 local function complete_files(lead, bufnr)
-  local expanded = vim.fs.normalize(expand_text(lead))
-  if utils.is_absolute(expanded) or lead:match("^~") then
-    return utils.complete_path(lead, "file")
+  local win = vim.fn.has("win32") == 1
+  if lead == "~" or lead:match("^~[^/\\]*$") then
+    -- `~` or `~user`: the home directory itself
+    local home = expand_text(lead)
+    return home ~= lead and vim.fn.isdirectory(home) == 1 and { lead .. "/" } or {}
   end
-  local base = vim.fs.normalize(base_dir(bufnr)) .. "/"
+  local typed_dir = lead:match("^(.*[/\\])") or ""
+  local dir = expand_text(typed_dir)
+  if not utils.is_absolute(vim.fs.normalize(dir)) then
+    dir = vim.fs.normalize(base_dir(bufnr)) .. "/" .. dir
+  end
+  -- not vim.fs.normalize(): it would resolve the `..` this prefix keeps
+  local prefix = win and dir:gsub("\\", "/") or dir
   local out = {}
-  for _, f in ipairs(utils.complete_path(base .. lead, "file")) do
-    local head = f:sub(1, #base)
-    local inside = head == base or (vim.fn.has("win32") == 1 and head:lower() == base:lower())
-    out[#out + 1] = inside and f:sub(#base + 1) or f
+  for _, f in ipairs(vim.fn.getcompletion(dir .. lead:sub(#typed_dir + 1), "file")) do
+    if win then
+      f = f:gsub("\\", "/")
+    end
+    local head = f:sub(1, #prefix)
+    if head == prefix or (win and head:lower() == prefix:lower()) then
+      out[#out + 1] = typed_dir .. f:sub(#prefix + 1)
+    end
   end
   return out
 end

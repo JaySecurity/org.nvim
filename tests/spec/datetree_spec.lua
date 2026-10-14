@@ -166,3 +166,85 @@ describe("datetree_cleanup (org-datetree-cleanup)", function()
     eq(lines, buf_lines(buf))
   end)
 end)
+
+describe("datetree reversed (newest first, as org-reverse-datetree)", function()
+  local utils = require("org.utils")
+
+  it("keeps day, month and year nodes newest first", function()
+    config.setup({})
+    local buf = org_buffer({ "" }, { 1, 0 })
+    capture.ensure_datetree(buf, nil, D(2025, 12, 31), "day", true)
+    capture.ensure_datetree(buf, nil, D(2026, 9, 25), "day", true)
+    capture.ensure_datetree(buf, nil, D(2026, 10, 11), "day", true)
+    capture.ensure_datetree(buf, nil, D(2026, 10, 14), "day", true)
+    capture.ensure_datetree(buf, nil, D(2026, 10, 13), "day", true)
+    capture.ensure_datetree(buf, nil, D(2026, 10, 13), "day", true)
+    eq({
+      "",
+      "* 2026",
+      "** 2026-10 October",
+      "*** 2026-10-14 Wednesday",
+      "*** 2026-10-13 Tuesday",
+      "*** 2026-10-11 Sunday",
+      -- a node added at the end of a parent followed by more keeps one
+      -- blank line before it, as in an oldest-first tree
+      "",
+      "** 2026-09 September",
+      "*** 2026-09-25 Friday",
+      "",
+      "* 2025",
+      "** 2025-12 December",
+      "*** 2025-12-31 Wednesday",
+    }, buf_lines(buf))
+  end)
+
+  -- issue #267: `prepend` alone doesn't reverse the tree (Emacs inserts the
+  -- 14th after the 11th here too); `datetree = { reversed = true }` does
+  for _, case in ipairs({
+    {
+      datetree = { tree_type = "day" },
+      want = { "*** 2026-10-13 Tuesday", "*** 2026-10-11 Sunday", "*** 2026-10-14 Wednesday" },
+    },
+    {
+      datetree = { tree_type = "day", reversed = true },
+      want = { "*** 2026-10-14 Wednesday", "*** 2026-10-13 Tuesday", "*** 2026-10-11 Sunday" },
+    },
+  }) do
+    it("captures with prepend into a newest-first journal, reversed = " .. tostring(case.datetree.reversed), function()
+      config.setup({})
+      local p = vim.fn.tempname() .. ".org"
+      utils.writefile(p, {
+        "* 2026",
+        "** 2026-10 October",
+        "*** 2026-10-13 Tuesday",
+        "",
+        "Some note.",
+        "",
+        "*** 2026-10-11 Sunday",
+        "",
+        "Another note.",
+        "",
+      })
+      local tpl = {
+        target = p,
+        type = "plain",
+        template = "Newest note",
+        datetree = case.datetree,
+        prepend = true,
+        empty_lines = 1,
+        immediate_finish = true,
+      }
+      ok(utils.run(function()
+        capture.capture(tpl, { date = D(2026, 10, 14) })
+      end))
+      local b = utils.find_buffer(p)
+      local lines = b and vim.api.nvim_buf_get_lines(b, 0, -1, false) or utils.readfile(p)
+      local days = vim.tbl_filter(function(l)
+        return l:match("^%*%*%* ") ~= nil
+      end, lines)
+      eq(case.want, days)
+      local i = assert(vim.tbl_contains(lines, "Newest note") and vim.fn.index(lines, "Newest note"))
+      eq("*** 2026-10-14 Wednesday", lines[i - 1])
+    end)
+  end
+end)

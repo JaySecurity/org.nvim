@@ -329,8 +329,8 @@ describe("migrate: capture templates", function()
     local t = res.out.capture.templates
     eq({ template = "* %?", datetree = true }, t.a)
     eq({ template = "* %?", datetree = true, time_prompt = true, tree_type = "week" }, t.b)
-    eq({ template = "* %?", datetree = true }, t.c)
-    ok(res.notes["capture.templates.c"][1]:find("reversed", 1, true))
+    eq({ template = "* %?", datetree = { reversed = true } }, t.c)
+    eq(nil, res.notes["capture.templates.c"])
     ok(res.notes["capture.templates.d"][1]:find("custom", 1, true))
   end)
 

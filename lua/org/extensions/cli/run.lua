@@ -44,6 +44,11 @@ Write (never prompt; --force writes over unsaved changes in a running Neovim):
           (TEXT "-" reads stdin; --list lists the templates)
   protocol URL   an org-protocol:// URL (capture, store-link, open-source)
   clock in [--pick N] TARGET | clock out | clock cancel
+  add PARENT TITLE [--todo KW] [--priority P] [--tag TAG] [--scheduled DATE]
+         [--deadline DATE] [--property NAME=VALUE] [--body TEXT] [--first]
+         (PARENT: a heading, or an org file for a top-level heading)
+  append TARGET TEXT   text at the end of the body (TEXT "-" reads stdin)
+  set title TARGET TITLE
   set todo TARGET STATE [--note TEXT]
   set tags TARGET [TAGS] [--add TAG] [--remove TAG]
   set priority TARGET PRIORITY
@@ -219,6 +224,9 @@ M.COMMANDS = {
   keywords = M.cmd_keywords,
   capture = M.cmd_capture,
   protocol = M.cmd_protocol,
+  add = write_cmd("cmd_add"),
+  append = write_cmd("cmd_append"),
+  ["set title"] = write_cmd("cmd_set_title"),
   ["set todo"] = write_cmd("cmd_set_todo"),
   ["set tags"] = write_cmd("cmd_set_tags"),
   ["set priority"] = write_cmd("cmd_set_priority"),
@@ -249,7 +257,11 @@ local function find_command(words)
   if first == "set" then
     local c = words[2] and schema.BY_COMMAND["set " .. words[2]]
     if not c then
-      fail("set needs what to set: todo, tags, priority, property, scheduled or deadline", "usage", { command = "set" })
+      fail(
+        "set needs what to set: title, todo, tags, priority, property, scheduled or deadline",
+        "usage",
+        { command = "set" }
+      )
     end
     return c, vim.list_slice(words, 3)
   end

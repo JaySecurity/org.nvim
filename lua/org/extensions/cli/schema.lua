@@ -141,6 +141,14 @@ M.FLAGS = {
   { key = "output", names = { "-o", "--output" }, value = "FILE", desc = "export to FILE" },
   { key = "stdout", names = { "--stdout" }, desc = "export to stdout" },
   { key = "read_only", names = { "--read-only" }, desc = "no tools that change files" },
+  { key = "priority", names = { "--priority" }, value = "P", desc = "priority of the new heading (A, B, C, ...)" },
+  {
+    key = "body",
+    names = { "--body" },
+    value = "TEXT",
+    desc = "body text of the new heading (lines split at newlines)",
+  },
+  { key = "first", names = { "--first" }, desc = "insert as the first child instead of the last" },
 }
 
 M.BY_NAME = {}
@@ -306,6 +314,16 @@ local TARGET = {
 -- a TARGET with nothing after it, which takes all the words
 local TARGET_REST = vim.tbl_extend("force", TARGET, { rest = true })
 
+-- the flags `add` shares with the filters of `headlines`, as `add` takes
+-- them (a command's `flag_overrides` replace keys of a flag for it)
+local ADD_FLAGS = {
+  todo = { repeatable = false, desc = "TODO keyword of the new heading" },
+  tag = { desc = "a tag of the new heading (repeatable, or a,b)" },
+  property = { desc = "a property of the new heading (repeatable)" },
+  scheduled = { value = "DATE", desc = "SCHEDULED date of the new heading, as the date prompt reads it" },
+  deadline = { value = "DATE", desc = "DEADLINE date of the new heading, as the date prompt reads it" },
+}
+
 local function change(field, value_schema)
   return {
     allOf = {
@@ -453,6 +471,38 @@ M.COMMANDS = {
     flags = { "field", "force" },
     writes = true,
     output = obj({ url = S, protocol = S, session = B, file = NS, line = NI }),
+  },
+  {
+    name = "add",
+    summary = "Add a heading under a heading (as its last child, or --first), or at the end of a file",
+    args = {
+      {
+        name = "parent",
+        required = true,
+        desc = "the parent heading (as TARGET), or an org file (a path, or an agenda file's name) for a top-level heading",
+      },
+      { name = "title", required = true, rest = true, desc = "the title of the new heading" },
+    },
+    flags = { "todo", "priority", "tag", "scheduled", "deadline", "property", "body", "first", "pick", "force" },
+    flag_overrides = ADD_FLAGS,
+    writes = true,
+    output = obj({ headline = ref("Headline"), parent = nullable(ref("Headline")) }),
+  },
+  {
+    name = "append",
+    summary = 'Append text to the body of a heading, before its child headings (TEXT "-" reads stdin)',
+    args = { TARGET, { name = "text", required = true, variadic = true, desc = "the text (lines split at newlines)" } },
+    flags = { "pick", "force" },
+    writes = true,
+    output = obj({ headline = ref("Headline"), text = S }),
+  },
+  {
+    name = "set title",
+    summary = "Set the title, keeping the TODO keyword, priority and tags",
+    args = { TARGET, { name = "title", required = true, rest = true, desc = "the new title" } },
+    flags = { "pick", "force" },
+    writes = true,
+    output = change("title", S),
   },
   {
     name = "set todo",
@@ -618,6 +668,15 @@ function M.max_words(cmd)
   return #args
 end
 
+--- Flag `key` as command `c` takes it: its `flag_overrides` applied.
+---@param c table|nil an entry of M.COMMANDS
+---@param key string
+---@return table
+function M.flag(c, key)
+  local o = c and c.flag_overrides and c.flag_overrides[key]
+  return o and vim.tbl_extend("force", M.BY_KEY[key], o) or M.BY_KEY[key]
+end
+
 local function flag_doc(f)
   return {
     name = f.names[#f.names],
@@ -641,7 +700,7 @@ local function input_schema(c)
     end
   end
   for _, k in ipairs(c.flags or {}) do
-    local f = M.BY_KEY[k]
+    local f = M.flag(c, k)
     local t
     if not f.value then
       t = { type = "boolean" }
@@ -665,7 +724,7 @@ local function usage_of(c)
     parts[#parts + 1] = a.required and n or ("[" .. n .. "]")
   end
   for _, k in ipairs(c.flags or {}) do
-    local f = M.BY_KEY[k]
+    local f = M.flag(c, k)
     parts[#parts + 1] = "[" .. f.names[#f.names] .. (f.value and (" " .. f.value) or "") .. "]"
   end
   return table.concat(parts, " ")
@@ -674,7 +733,7 @@ end
 local function command_doc(c)
   local flags = {}
   for _, k in ipairs(c.flags or {}) do
-    flags[#flags + 1] = flag_doc(M.BY_KEY[k])
+    flags[#flags + 1] = flag_doc(M.flag(c, k))
   end
   local args = {}
   for _, a in ipairs(c.args or {}) do

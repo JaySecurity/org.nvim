@@ -305,6 +305,20 @@ preview` shows a live HTML preview.
 
 ![Exporting an Org file to a Markdown buffer](https://raw.githubusercontent.com/xheisenbugx/org.nvim/media/export-md.gif)
 
+### Your notes, for your AI assistant
+
+The `cli` extension's `org mcp` is an MCP server: Claude Code, Claude
+Desktop and other MCP clients can read your agenda, find and show
+entries, capture, add headings, mark tasks done, reschedule, refile and
+clock in, with your own templates and keywords, through the same code
+as the editor. Results are compact JSON with a ready-to-use target for
+every heading, and `/mcp__org__plan_day`, `weekly_review` and
+`triage_inbox` come as prompts. `--read-only` keeps it to reading.
+
+```sh
+claude mcp add org -- org mcp
+```
+
 ### Every key, one press away
 
 Press `g?` in any org or agenda buffer to list every keymap there, grouped
