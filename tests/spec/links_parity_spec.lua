@@ -568,6 +568,53 @@ describe("links parity", function()
       vim.bo.modified = false
     end)
 
+    it("completes ~, .. and $VAR file names keeping what was typed (#266)", function()
+      -- read-file-name completes the last component only: `~` gives
+      -- `~/`, `../` lists the parent directory as `../...`
+      local dir = tmpdir()
+      write(dir, "home/a.txt", { "" })
+      write(dir, "home/notes/TODO.md", { "" })
+      local p = write(dir, "home/notes/daily/2026-01-01.org", { "* Test" })
+      edit(p, { 1, 0 })
+      local home, cwd = vim.env.HOME, vim.fn.getcwd()
+      vim.env.HOME = dir .. "/home"
+      vim.env.ORG_TEST_NOTES = dir .. "/home/notes"
+      vim.cmd("cd /")
+      links._complete_bufnr = vim.api.nvim_get_current_buf()
+      local got = {}
+      local okc, err = pcall(function()
+        for _, lead in ipairs({ "~", "~/", "~/notes/T", "..", "../", "../T", "../../", "./", "$ORG_TEST_NOTES/T" }) do
+          got[lead] = links._complete_file(lead)
+        end
+        got["file:../"] = links._complete("file:../")
+        -- getcompletion()'s order depends on the platform (case folding)
+        for _, v in pairs(got) do
+          table.sort(v)
+        end
+      end)
+      links._complete_bufnr = nil
+      vim.env.HOME, vim.env.ORG_TEST_NOTES = home, nil
+      vim.cmd("cd " .. vim.fn.fnameescape(cwd))
+      ok(okc, err)
+      eq({ "~/" }, got["~"])
+      eq({ "~/a.txt", "~/notes/" }, got["~/"])
+      eq({ "~/notes/TODO.md" }, got["~/notes/T"])
+      eq({ "../" }, got[".."])
+      eq({ "../TODO.md", "../daily/" }, got["../"])
+      eq({ "../TODO.md" }, got["../T"])
+      eq({ "../../a.txt", "../../notes/" }, got["../../"])
+      eq({ "./2026-01-01.org" }, got["./"])
+      eq({ "$ORG_TEST_NOTES/TODO.md" }, got["$ORG_TEST_NOTES/T"])
+      eq({ "file:../TODO.md", "file:../daily/" }, got["file:../"])
+      -- a completed `../` name outside the buffer's directory is made
+      -- absolute by file_path_type = "adaptive", as in Emacs
+      answer({ ["File: "] = "../TODO.md", ["Description: "] = "" })
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, { "" })
+      links.insert_link(4)
+      eq("[[file:" .. require("org.utils").abbreviate(dir .. "/home/notes/TODO.md") .. "]]", buf_lines()[1])
+      vim.bo.modified = false
+    end)
+
     it("uses custom type completion, descriptions and export", function()
       config.opts.links.types = {
         jira = {
