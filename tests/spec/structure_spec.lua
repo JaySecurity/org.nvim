@@ -64,6 +64,26 @@ describe("structure: inserting headings", function()
     eq({ "* A", "", "* B", "text", "", "* " }, buf_lines(buf))
   end)
 
+  -- org--blank-before-heading-p: with no heading after the first one,
+  -- `auto` looks at the buffer's last line (difftest #265; Emacs 9.8.11)
+  it("C-RET keeps a blank last line before the new heading with auto", function()
+    for _, c in ipairs({
+      { { "* note", "" }, { "* note", "", "* " } },
+      { { "* note", "", "" }, { "* note", "", "", "* " } },
+      { { "* note", "  " }, { "* note", "  ", "* " } },
+      { { "* note", "body", "" }, { "* note", "body", "", "* " } },
+      { { "* note" }, { "* note", "* " } },
+      { { "* a", "** b", "" }, { "* a", "** b", "* " } },
+      { { "#+T: x", "* note", "" }, { "#+T: x", "* note", "* " } },
+    }) do
+      local buf = org_buffer(c[1], { 1, 0 })
+      vim.api.nvim_win_set_cursor(0, { vim.fn.search("^\\*", "cw"), 0 })
+      structure.meta_return_heading({ respect_content = true })
+      vim.cmd("stopinsert")
+      eq(c[2], buf_lines(buf))
+    end
+  end)
+
   -- Emacs org-back-to-heading and org-end-of-subtree search with limited
   -- levels: an inline task above point is not the current entry
   it("M-RET after an inline task uses the entry's level", function()

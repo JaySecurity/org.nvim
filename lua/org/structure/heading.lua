@@ -167,6 +167,11 @@ local function heading_blank_p(tb, parent)
       res = tb:line_empty_p(-1)
     elseif tb_next_heading(tb) then
       res = tb:line_empty_p(-1)
+    else
+      -- no next heading: point is at the end of the buffer, and a blank
+      -- last line (trailing spaces ignored) asks for one
+      tb:skip_backward(" \t")
+      res = tb:bolp() and tb:line_empty_p(-1)
     end
   end
   tb:goto_char(save)

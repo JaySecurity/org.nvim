@@ -282,8 +282,12 @@ describe("ol-bibtex", function()
       vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "" })
       vim.api.nvim_win_set_cursor(0, { vim.api.nvim_buf_line_count(buf), 0 })
       bibtex.write(true)
+      -- blank_before_new_entry.heading = auto: the buffer's last line is
+      -- blank, so each new headline gets a blank line before it (checked
+      -- with org-bibtex-write in Emacs 9.8.11)
       eq({
         "* Existing",
+        "",
         "* The {Big} Title",
         ":PROPERTIES:",
         ":TITLE:    The {Big} Title",
@@ -296,6 +300,7 @@ describe("ol-bibtex", function()
         ":KEYWORDS: Machine learning, graphs, a:b",
         ':NOTE:     A " # "note',
         ":END:",
+        "",
         "* Book",
         ":PROPERTIES:",
         ":TITLE: Book",
@@ -326,6 +331,7 @@ describe("ol-bibtex", function()
       end
       eq({
         "* Top",
+        "",
         "* The {Big} Title                            :Machine_learning:graphs:ab:bib:",
         ":PROPERTIES:",
         ":B_TITLE:  The {Big} Title",
@@ -337,6 +343,7 @@ describe("ol-bibtex", function()
         ":B_MONTH:  jan",
         ':B_NOTE:   A " # "note',
         ":END:",
+        "",
         "* Book                                                                  :bib:",
         ":PROPERTIES:",
         ":B_TITLE:  Book",
@@ -353,8 +360,10 @@ describe("ol-bibtex", function()
       local buf = org_buffer({ "* Top", "" }, { 2, 0 })
       vim.fn.setreg('"', "@misc{m1, title={Yanked}, howpublished={web}}")
       bibtex.yank(false)
+      -- a blank line before it, as org-bibtex-yank in Emacs 9.8.11
       eq({
         "* Top",
+        "",
         "* Yanked",
         ":PROPERTIES:",
         ":TITLE:    Yanked",
@@ -374,8 +383,9 @@ describe("ol-bibtex", function()
         ":CUSTOM_ID: m2",
         ":YEAR:     2001",
         ":END:",
+        "",
         "* Yanked",
-      }, vim.list_slice(buf_lines(buf), 1, 8))
+      }, vim.list_slice(buf_lines(buf), 1, 9))
       vim.fn.setreg('"', "no entry here")
       eq(
         { "Yanked text does not appear to contain a BibTeX entry" },
