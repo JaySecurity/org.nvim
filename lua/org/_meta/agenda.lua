@@ -226,9 +226,10 @@
 ---`{ { vim_regexp, icon_text }, ... }` for `%i` (org-agenda-category-icon-alist).
 ---(default: `{}`)
 ---@field category_icons? { [1]: string, [2]: string }[]
----Echo the outline path of the entry at point (org-agenda-show-outline-path).
----(default: `true`)
----@field show_outline_path? boolean
+---Echo the file name and outline path of the entry at point after a line
+---motion (org-agenda-show-outline-path); `"title"`: the file's #+TITLE
+---instead of its name. (default: `true`)
+---@field show_outline_path? boolean|"title"
 ---Separator of `%b` breadcrumbs (org-agenda-breadcrumbs-separator). (default: `"->"`)
 ---@field breadcrumbs_separator? string
 ---Sorting strategies per view type (org-agenda-sorting-strategy).

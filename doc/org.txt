@@ -2243,8 +2243,10 @@ actions and the entry-text mode (`E`) rebuild the view.
 
 Options: `agenda.start_with_log_mode` (true, "all" or "clockcheck"),
 `start_with_follow_mode`, `start_with_clockreport_mode`,
-`start_with_entry_text_mode`, `show_outline_path` (echo the outline path
-of the entry at point).
+`start_with_entry_text_mode`, `show_outline_path` (after a line motion,
+echo the file name and parent headings of the entry at point, as in
+`a.org/Project/Phase one`; `"title"` puts the file's `#+TITLE` in place of
+its name).
 
 User autocmds (the Emacs hooks): `OrgAgendaFinalize` after the agenda
 buffer is built or rebuilt (org-agenda-finalize-hook), `OrgAgendaFilter`
