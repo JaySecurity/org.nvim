@@ -8,6 +8,12 @@ pull request, by its [Conventional Commits](https://www.conventionalcommits.org/
 This file is generated from the git history by `make changelog`
 (`scripts/changelog.lua`); edit the pull request titles, not this file.
 
+## [v2.14.3] - 2026-10-19
+
+### Fixes
+
+- **agenda:** Outline path echo matches Emacs ([#278](https://github.com/xheisenbugx/org.nvim/pull/278))
+
 ## [v2.14.2] - 2026-10-18
 
 ### Fixes
@@ -499,6 +505,7 @@ This file is generated from the git history by `make changelog`
 
 </details>
 
+[v2.14.3]: https://github.com/xheisenbugx/org.nvim/compare/v2.14.2...v2.14.3
 [v2.14.2]: https://github.com/xheisenbugx/org.nvim/compare/v2.14.1...v2.14.2
 [v2.14.1]: https://github.com/xheisenbugx/org.nvim/compare/v2.14.0...v2.14.1
 [v2.14.0]: https://github.com/xheisenbugx/org.nvim/compare/v2.13.0...v2.14.0
