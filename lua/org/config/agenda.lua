@@ -148,7 +148,9 @@ local defaults = {
     tags_column = "auto",
     --- { { vim_regexp, icon_text }, ... } for %i (org-agenda-category-icon-alist).
     category_icons = {},
-    --- Echo the outline path of the entry at point (org-agenda-show-outline-path).
+    --- Echo the file name and outline path of the entry at point after a line
+    --- motion (org-agenda-show-outline-path); "title": the file's #+TITLE
+    --- instead of its name.
     show_outline_path = true,
     breadcrumbs_separator = "->", -- org-agenda-breadcrumbs-separator
     --- Sorting strategies per view (org-agenda-sorting-strategy).

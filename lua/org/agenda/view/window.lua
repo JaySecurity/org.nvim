@@ -20,19 +20,80 @@ local use = shared.use
 -- Buffer & window
 ---------------------------------------------------------------------------
 
---- Echo the outline path of the entry at point (org-agenda-show-outline-path).
-local function show_outline_path()
-  if not config.opts.agenda.show_outline_path or #vim.api.nvim_list_uis() == 0 then
+--- The outline path of an agenda entry as echo chunks, like
+--- (org-display-outline-path org-agenda-show-outline-path): the file name
+--- (`"title"`: its #+TITLE, else the file name), then the parent headings
+--- in their level faces, cut to `width` cells with "..".
+---@param item table agenda item
+---@param mode true|"title"
+---@param width integer
+---@return [string, string?][]?
+function M.outline_path_chunks(item, mode, width)
+  local hl = item.headline
+  if not hl then
+    return nil
+  end
+  local chunks = {}
+  local title = mode == "title" and hl.file.settings and hl.file.settings.title
+  local filename = hl.file.filename
+  if title then
+    chunks[1] = { title }
+  elseif filename then
+    chunks[1] = { vim.fn.fnamemodify(filename, ":t") }
+  end
+  for n, head in ipairs(hl:outline_path()) do
+    if #chunks > 0 then
+      chunks[#chunks + 1] = { "/" }
+    end
+    chunks[#chunks + 1] = { (head:gsub("%s+$", "")), "OrgHeadlineLevel" .. ((n - 1) % 8 + 1) }
+  end
+  local total = 0
+  for _, c in ipairs(chunks) do
+    total = total + vim.fn.strdisplaywidth(c[1])
+  end
+  if total > width and width > 0 then
+    -- org-format-outline-path: keep width - 2 cells and end with ".."
+    local keep = width < 7 and width or width - 2
+    local out = {}
+    for _, c in ipairs(chunks) do
+      local w = vim.fn.strdisplaywidth(c[1])
+      if w > keep then
+        if keep > 0 then
+          out[#out + 1] = { vim.fn.strcharpart(c[1], 0, keep), c[2] }
+        end
+        break
+      end
+      out[#out + 1] = c
+      keep = keep - w
+    end
+    if width >= 7 then
+      out[#out + 1] = { ".." }
+    end
+    chunks = out
+  end
+  return chunks
+end
+
+-- the agenda line whose outline path was echoed last, per buffer
+local echoed_line = {}
+
+--- Echo the outline path of the entry at point after a line motion
+--- (org-agenda-show-outline-path).
+local function show_outline_path(buf)
+  local mode = config.opts.agenda.show_outline_path
+  local lnum = vim.api.nvim_win_get_cursor(0)[1]
+  if echoed_line[buf] == lnum then
+    return
+  end
+  echoed_line[buf] = lnum
+  if not mode or #vim.api.nvim_list_uis() == 0 then
     return
   end
   local item = M.item_at_cursor()
-  if not (item and item.headline) then
-    return
+  local chunks = item and M.outline_path_chunks(item, mode, vim.v.echospace)
+  if chunks then
+    vim.api.nvim_echo(chunks, false, {})
   end
-  local path = item.headline:outline_path()
-  path[#path + 1] = item.headline:plain_title()
-  local text = table.concat(path, "/")
-  vim.api.nvim_echo({ { text } }, false, {})
 end
 
 local function ensure_buf(name)
@@ -83,12 +144,13 @@ local function ensure_buf(name)
           M.follow_show()
         end)
       end
-      show_outline_path()
+      show_outline_path(buf)
     end,
   })
   vim.api.nvim_create_autocmd("BufWipeout", {
     buffer = buf,
     callback = function()
+      echoed_line[buf] = nil
       local st2 = states[buf]
       states[buf] = nil
       if st2 then
