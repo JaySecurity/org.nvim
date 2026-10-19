@@ -18,6 +18,35 @@ local T = shared.T
 local caption_above_p = shared.caption_above_p
 local wrap_label = shared.wrap_label
 
+--- Replace each "\\\n" followed by one or more empty "\\\n" lines with REP
+--- (Emacs' (seq "\\\n" (1+ line-start (0+ space) "\\\n"))).
+local function stanza_breaks(s, rep)
+  local out, i = {}, 1
+  while true do
+    local a, b = s:find("\\\\\n", i, true)
+    if not a then
+      break
+    end
+    local j = b + 1
+    while true do
+      local _, e = s:find("^[ \t]*\\\\\n", j)
+      if not e then
+        break
+      end
+      j = e + 1
+    end
+    if j > b + 1 then
+      out[#out + 1] = s:sub(i, a - 1) .. rep
+      i = j
+    else
+      out[#out + 1] = s:sub(i, b)
+      i = b + 1
+    end
+  end
+  out[#out + 1] = s:sub(i)
+  return table.concat(out)
+end
+
 --- Verse block plain text rules (org-latex--plain-text-verse-block).
 local function verse_text(output, node)
   local verse = node and element.lineage(node, "verse-block")
@@ -26,12 +55,20 @@ local function verse_text(output, node)
   end
   local lin = ox.read_attribute("attr_latex", verse, "lines")
   local lit = ox.read_attribute("attr_latex", verse, "literal")
-  local s = output:gsub("[ \t]*\\\\[ \t]*\n", "\\\\\n"):gsub("[ \t]*\n", "\\\\\n")
+  -- every newline ends a verse line: \(?:[ \t]*\\\\\)?[ \t]*\n => \\\n
+  local s = output:gsub("([^\n]*)\n", function(line)
+    line = line:gsub("[ \t]*$", "")
+    if line:sub(-2) == "\\\\" then
+      line = line:sub(1, -3):gsub("[ \t]*$", "")
+    end
+    return line .. "\\\\\n"
+  end)
+  -- with :literal, Emacs replaces ^[ \t]*\\$ (a line holding a single
+  -- backslash, which escaped text never has), so blank lines stay \\ and
+  -- the verse-block filter empties them
   if not lit then
-    -- several empty lines: a single stanza break
-    s = s:gsub("\\\\\n([ \t]*\\\\\n)+", lin and "\\\\!\n\n" or "\n\n")
-  else
-    s = s:gsub("\n[ \t]*\\\\\n", "\n\\vspace*{\\baselineskip}\n"):gsub("^[ \t]*\\\\\n", "\\vspace*{\\baselineskip}\n")
+    -- a line break followed by empty lines: a single stanza break
+    s = stanza_breaks(s, lin and "\\\\!\n\n" or "\n\n")
   end
   s = s:gsub("\n([ \t]+)", function(ws)
     return fmt("\n\\hspace*{%d\\fontdimen2\\font}", #ws)

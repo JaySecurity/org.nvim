@@ -639,6 +639,33 @@ describe("export: Emacs parity (difftest #243)", function()
   end)
 end)
 
+describe("export: Emacs parity (difftest #273)", function()
+  local function latex(lines)
+    return export.to_string("latex", { lines = lines, body_only = true })
+  end
+
+  it("blank lines after the last verse line are dropped (seed 8155455)", function()
+    local out = latex({ "#+begin_verse", "<https://example.com/angle>", "", "#+end_verse" })
+    eq("\\begin{verse}\n\\url{https://example.com/angle}\n\\end{verse}\n", out)
+  end)
+
+  it("several blank lines in a verse make one stanza break", function()
+    local out = latex({ "#+begin_verse", "a", "b", "", "", "c *x*", "", "", "d", "#+end_verse" })
+    eq("\\begin{verse}\na\\\\\nb\n\nc \\textbf{x}\n\nd\\\\\n\\end{verse}\n", out)
+  end)
+
+  it("with :lines a stanza ends with \\\\!", function()
+    local out =
+      latex({ "#+attr_latex: :lines 5", "#+begin_verse", "a", "", "", "b *x*", "", "", "c", "", "#+end_verse" })
+    has(out, "a\\\\!\n\nb \\textbf{x}\\\\!\n\nc\\\\!\n\\end{verse}")
+  end)
+
+  it("with :literal blank lines stay empty lines", function()
+    local out = latex({ "#+attr_latex: :literal t", "#+begin_verse", "", "a *x*", "", "", "  d", "", "#+end_verse" })
+    eq("\\begin{verse}\n\na \\textbf{x}\\\\\n\n\n\\hspace*{2\\fontdimen2\\font}d\\\\\n\n\\end{verse}\n", out)
+  end)
+end)
+
 describe("export: Emacs parity (difftest known differences)", function()
   local function latex(lines)
     return ox.export_as("latex", lines, { body_only = true })
