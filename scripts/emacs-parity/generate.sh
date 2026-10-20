@@ -5,8 +5,8 @@
 #                                                  export clocktable lint)
 #
 # EMACS   the Emacs binary (default: emacs)
-# ORG_DIR an Org 9.8.11 checkout/ELPA dir put first on the load-path
-#         (default: the Org bundled with Emacs, which must then be 9.8.11)
+# ORG_DIR an Org 9.8.12 checkout/ELPA dir put first on the load-path
+#         (default: the Org bundled with Emacs, which must then be 9.8.12)
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
