@@ -564,9 +564,9 @@ end
 
 --- The Org release the parity scripts measure against (ORG_VERSION in
 --- .github/workflows/difftest.yml).
-M.ORG_VERSION = "9.8.11"
+M.ORG_VERSION = "9.8.12"
 
---- Emacs and Org 9.8.11, for the maintainers' `make difftest` and
+--- Emacs and Org 9.8.12, for the maintainers' `make difftest` and
 --- `make parity-fixtures` (shown only when Emacs is around). Emacs isn't
 --- started: that takes seconds.
 function M.check_emacs(h)

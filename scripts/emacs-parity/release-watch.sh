@@ -92,11 +92,13 @@ fetch_org() {
     echo "Org $ver: GNU ELPA's org-$ver.tar" >&2
     echo "$tmp/org-$ver"
   else
-    git clone -q --depth 1 --branch "release_$ver" "$ORG_GIT_URL" "$tmp/org-mode" >&2 ||
+    # one checkout per version, so fetching two into one DIR works
+    rm -rf "$tmp/org-mode-$ver"
+    git clone -q --depth 1 --branch "release_$ver" "$ORG_GIT_URL" "$tmp/org-mode-$ver" >&2 ||
       die "Org $ver is neither on GNU ELPA nor tagged release_$ver"
-    make -s -C "$tmp/org-mode" EMACS="${ORG_EMACS:-emacs}" autoloads >&2
+    make -s -C "$tmp/org-mode-$ver" EMACS="${ORG_EMACS:-emacs}" autoloads >&2
     echo "Org $ver: the release_$ver git tag" >&2
-    echo "$tmp/org-mode/lisp"
+    echo "$tmp/org-mode-$ver/lisp"
   fi
 }
 
