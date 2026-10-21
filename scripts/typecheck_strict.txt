@@ -43,3 +43,4 @@ lua/org/id.lua
 lua/org/config
 lua/org/org_mouse.lua
 lua/org/org_mouse
+lua/org/todo.lua
