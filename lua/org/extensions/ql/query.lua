@@ -223,6 +223,15 @@ local function lower(s)
   return tostring(s):lower()
 end
 
+-- Lower-case `s`, non-ASCII letters too (as Emacs' case folding does).
+local function fold(s)
+  s = tostring(s)
+  if s:find("[\128-\255]") then
+    return vim.fn.tolower(s)
+  end
+  return s:lower()
+end
+
 local function regex(re)
   return require("org.agenda.search").compile_emacs_regexp(tostring(re))
 end
@@ -294,8 +303,18 @@ local function date_arg(v)
   end
   local y, mo, d, rest = s:match("^(%d%d%d%d)%-(%d%d)%-(%d%d)(.*)$")
   if y then
+    y, mo, d = tonumber(y), tonumber(mo), tonumber(d)
     local h, mi = rest:match("(%d%d?):(%d%d)")
-    local dt = date.from_days(date.days_from_civil(tonumber(y), tonumber(mo), tonumber(d)))
+    if
+      mo < 1
+      or mo > 12
+      or d < 1
+      or d > date.days_in_month(y, mo)
+      or (h and (tonumber(h) > 23 or tonumber(mi) > 59))
+    then
+      error("invalid date in query: " .. s, 0)
+    end
+    local dt = date.from_days(date.days_from_civil(y, mo, d))
     if h then
       dt = dt:clone({ hour = tonumber(h), min = tonumber(mi) })
     end
@@ -400,9 +419,11 @@ local function any_ts(list, test)
   return false
 end
 
--- Priority as a number where higher is more important (A > B).
+-- Priority as a number where higher is more important (A > B, and 1 > 10
+-- with numeric priorities).
 local function prio_num(p)
-  return p and -(tostring(p):byte()) or nil
+  local v = p and require("org.priority").to_value(p)
+  return v and -v or nil
 end
 
 local COMPARATORS = {
@@ -480,7 +501,10 @@ local function plain_title(hl)
 end
 
 local function contains_ci(hay, needle)
-  return lower(hay):find(lower(needle), 1, true) ~= nil
+  needle = fold(needle)
+  -- an ASCII needle only matches ASCII letters: no need to fold the rest
+  hay = needle:find("[\128-\255]") and fold(hay) or lower(hay)
+  return hay:find(needle, 1, true) ~= nil
 end
 
 local function all_strings(pos, fn)
@@ -975,12 +999,21 @@ P.link = function(pos, kw)
   local any = pos[1]
   local desc, target = kw.description, kw.target
   local regexp_p = kw.regexp_p
+  -- regexps are compiled once, here, so a bad one is a query error
+  local compiled = {}
+  if regexp_p then
+    for _, pat in ipairs({ any, desc, target }) do
+      if pat ~= nil then
+        compiled[pat] = regex(pat)
+      end
+    end
+  end
   local function test(s, pat)
     if pat == nil then
       return true
     end
     if regexp_p then
-      return matches(regex(pat), s)
+      return matches(compiled[pat], s)
     end
     return contains_ci(s, pat)
   end
@@ -1177,7 +1210,7 @@ local SORTERS = {
     return planning_day(hl, { "closed" })
   end),
   priority = by_key(function(hl)
-    return hl.priority and hl.priority:byte() or nil
+    return hl.priority and require("org.priority").to_value(hl.priority) or nil
   end),
   todo = by_key(function(hl)
     if not hl.todo then

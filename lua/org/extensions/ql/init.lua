@@ -369,6 +369,9 @@ function M.view(name)
   if not v then
     utils.error("No org-ql view: " .. name)
     return
+  elseif type(v) ~= "table" or v.query == nil then
+    utils.error("org-ql view " .. name .. " has no query")
+    return
   end
   M.search(v.query, {
     files = v.files,

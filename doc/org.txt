@@ -9363,8 +9363,13 @@ Date arguments (`:from`, `:to`, `:on`) are a number of days from today,
 `:with-time t` (or `nil`) keeps only timestamps with (without) a time.
 A repeating timestamp matches a range when one of its occurrences falls in
 it (`expand_repeaters`). Regexps are Emacs regexps and match
-case-insensitively. Results are cached per entry until its file changes
-(`cache`), except for queries with Lua functions or `now`.
+case-insensitively, as do the strings of `heading`, `rifle` and
+`outline-path` (accented letters too). Priority comparisons and the
+`priority` sort follow the priority's value, so with numeric priorities
+(`#+PRIORITIES: 1 20 10`) `(priority '> "10")` matches `[#9]`. An
+impossible date (`2026-02-30`) is a query error. Results are cached per
+entry until its file changes (`cache`), except for queries with Lua
+functions or `now`.
 
 Sorting ~
 `sort` is one of `date` (the deadline, else the scheduled date),
