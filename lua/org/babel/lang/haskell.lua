@@ -53,9 +53,7 @@ local function joined(v)
 end
 
 --- `org-strip-quotes`
-local function strip_quotes(s)
-  return s:match('^"(.*)"$') or s
-end
+local strip_quotes = require("org.utils").strip_quotes
 
 --- `org-babel-haskell-execute`: ghc, then the program.
 local function compiled(body, args, ctx)

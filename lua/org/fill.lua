@@ -15,9 +15,7 @@ local parser = require("org.parser")
 
 local M = {}
 
-local function is_blank(l)
-  return l == nil or l:match("^%s*$") ~= nil
-end
+local is_blank = require("org.utils").is_blank
 
 --- The fill column: 'textwidth', or 79 (like `gq`) when it is 0.
 local function fill_column()
@@ -290,7 +288,7 @@ local function section(bufnr, lnum)
   local lines = vim.api.nvim_buf_get_lines(bufnr, from - 1, to, false)
   local i = 1
   local first = lines[1] or ""
-  if hl and (first:match("^%s*SCHEDULED:") or first:match("^%s*DEADLINE:") or first:match("^%s*CLOSED:")) then
+  if hl and parser.is_planning_line(first) then
     i = 2
   end
   local els = i <= #lines and require("org.element").parse(lines, i, #lines) or {}

@@ -586,7 +586,7 @@ function M.edit_object(bufnr, lnum, col)
     end
   end
   -- planning line: org-deadline and/or org-schedule
-  if line:match("^%s*SCHEDULED:") or line:match("^%s*DEADLINE:") or line:match("^%s*CLOSED:") then
+  if require("org.parser").is_planning_line(line) then
     local ts = require("org.timestamps")
     local done = false
     if line:find("DEADLINE:", 1, true) then

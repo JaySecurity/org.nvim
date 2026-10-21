@@ -84,6 +84,48 @@ function M.dir_from_id(id, base, existing)
   return first
 end
 
+--- The DIR (or deprecated ATTACH_DIR) directory of an entry, else its ID
+--- folder: `get(name)` reads the entry's property values. Also returns the
+--- ID, nil when the entry has no ID.
+---@param get fun(name: string): string|nil
+---@param base string
+---@return string|nil dir, string|nil id
+local function entry_dir(get, base)
+  local dir = get("DIR") or get("ATTACH_DIR")
+  if dir and dir ~= "" then
+    return absolute(dir, base), nil
+  end
+  local id = get("ID")
+  if id and id:match("%S") then
+    return M.dir_from_id(id, base, true), id
+  end
+  return nil, nil
+end
+
+--- Full path of the attachment `name` of `hl` in `file` (org-attach-expand,
+--- as org-attach-expand-links uses it on export): `name` inside the
+--- entry's attachment directory when that exists, otherwise relative to
+--- the directory of the file. Without `hl` (text before the first
+--- heading) the file-level properties count.
+---@param name string
+---@param file org.File
+---@param hl? org.Headline
+---@return string
+function M.expand(name, file, hl)
+  local base = file_dir(file)
+  local get = function(key)
+    if hl then
+      return hl:get_property(key, inherit())
+    end
+    return (file.settings.properties or {})[key]
+  end
+  local dir = entry_dir(get, base)
+  if not (dir and utils.is_dir(dir)) then
+    dir = base
+  end
+  return absolute(name, dir)
+end
+
 --- Attachment directory for the entry at target (org-attach-dir), whether
 --- it exists or not.
 ---@param target? org.Target
@@ -95,13 +137,12 @@ function M.dir_for(target, create_id)
     return nil
   end
   local base = file_dir(file, bufnr)
-  local dir = hl:get_property("DIR", inherit()) or hl:get_property("ATTACH_DIR", inherit())
-  if dir and dir ~= "" then
-    return absolute(dir, base), hl
+  local get = function(name)
+    return hl:get_property(name, inherit())
   end
-  local id = hl:get_property("ID", inherit())
-  if id and id:match("%S") then
-    return M.dir_from_id(id, base, true), hl
+  local dir, id = entry_dir(get, base)
+  if dir then
+    return dir, hl
   end
   if not create_id then
     return nil, hl

@@ -333,6 +333,12 @@ S.todo = {
   end,
 }
 
+--- `s` in lower case, non-ASCII letters too (cl-equalp ignores case).
+local function fold_case(s)
+  s = tostring(s)
+  return s:find("[\128-\255]") and vim.fn.tolower(s) or s:lower()
+end
+
 S.tag = {
   name = function(arg)
     return "Tags: " .. table.concat(list_of(arg), " OR ")
@@ -340,11 +346,11 @@ S.tag = {
   test = function(arg)
     local want = {}
     for _, t in ipairs(list_of(arg)) do
-      want[tostring(t):lower()] = true
+      want[fold_case(t)] = true
     end
     return function(it)
       for _, t in ipairs(it.tags or {}) do
-        if want[t:lower()] then
+        if want[fold_case(t)] then
           return true
         end
       end
@@ -955,7 +961,9 @@ function M.group(items, groups)
     end
   end
   for _, g in ipairs(expanded) do
-    local order = g.order or 0
+    -- an order that isn't a number counts as none (0): a string among
+    -- numbers would break the sort below
+    local order = tonumber(g.order) or 0
     if g.discard then
       local test = compile_group(g.discard)
       rest = vim.tbl_filter(function(it)
@@ -997,7 +1005,10 @@ function M.group(items, groups)
       end
       if plain then
         local name = g.name
-        if name == nil then
+        if type(name) == "number" then
+          name = tostring(name)
+        elseif name ~= false and type(name) ~= "string" then
+          -- nil, or not a name (a table, a function): the selectors' name
           name = table.concat(names, " and ")
         end
         sections[#sections + 1] =
@@ -1008,7 +1019,11 @@ function M.group(items, groups)
   end
   -- the unmatched items go first, then a stable sort by order (equal
   -- non-zero orders sort by name), as org-super-agenda does
-  table.insert(sections, 1, { name = o.unmatched_name or "Other items", items = rest, order = o.unmatched_order or 99 })
+  local unmatched = o.unmatched_name
+  if type(unmatched) ~= "string" then
+    unmatched = unmatched ~= nil and unmatched ~= false and tostring(unmatched) or "Other items"
+  end
+  table.insert(sections, 1, { name = unmatched, items = rest, order = tonumber(o.unmatched_order) or 99 })
   local indexed = {}
   for i, sec in ipairs(sections) do
     indexed[i] = { sec, i }

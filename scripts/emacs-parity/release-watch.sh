@@ -13,7 +13,8 @@
 #   release-watch.sh inventory VER OUTDIR    fetch Org VER (GNU ELPA, else the
 #                                            git tag) and run inventory.el of
 #                                            docs/parity/ on it, into
-#                                            OUTDIR/{commands,options}.tsv
+#                                            OUTDIR/{commands,options,executors,
+#                                            links,transcoders}.tsv
 #   release-watch.sh fetch VER DIR           fetch Org VER (GNU ELPA, else the
 #                                            git tag) into DIR and print its
 #                                            Lisp directory, DIR/org-VER
@@ -139,18 +140,25 @@ md_list() {
 }
 
 report() {
-  local old=$1 new=$2 oldv=$3 newv=$4 kind tmp
+  local old=$1 new=$2 oldv=$3 newv=$4 kind kinds tmp
   tmp=$(mktemp -d)
   cut -f1,2 "$root/docs/parity/inventory.tsv" | awk -F'\t' '{ print $2 }' | sort -u >"$tmp/tracked"
   echo "Org $newv is out. org.nvim is measured against Org $oldv (the parity"
   echo "inventory, the parity fixtures and the nightly difftest)."
   echo
   echo "Run by \`scripts/emacs-parity/release-watch.sh\`: \`docs/parity/inventory.el\`"
-  echo "listed the interactive commands and user options of both releases."
+  echo "listed the interactive commands, user options, Babel executors, link types"
+  echo "and export transcoders of both releases."
   echo
   echo "| | Org $oldv | Org $newv | Added | Removed | Moved |"
   echo "| --- | --- | --- | --- | --- | --- |"
-  for kind in commands options; do
+  # the kinds both inventories have (an older inventory.el wrote only the
+  # first two)
+  kinds=""
+  for kind in commands options executors links transcoders; do
+    [ -f "$old/$kind.tsv" ] && [ -f "$new/$kind.tsv" ] && kinds="$kinds $kind"
+  done
+  for kind in $kinds; do
     by_symbol "$old/$kind.tsv" >"$tmp/old-$kind"
     by_symbol "$new/$kind.tsv" >"$tmp/new-$kind"
     join -t "$(printf '\t')" -v 2 "$tmp/old-$kind" "$tmp/new-$kind" >"$tmp/added-$kind"
@@ -161,7 +169,7 @@ report() {
       "$(wc -l <"$tmp/old-$kind")" "$(wc -l <"$tmp/new-$kind")" "$(wc -l <"$tmp/added-$kind")" \
       "$(wc -l <"$tmp/removed-$kind")" "$(wc -l <"$tmp/moved-$kind")"
   done
-  for kind in commands options; do
+  for kind in $kinds; do
     echo
     echo "### Added $kind"
     echo
@@ -178,7 +186,7 @@ report() {
     fi
   done
   # what docs/parity/inventory.tsv doesn't list yet: a status to decide
-  cat "$tmp/new-commands" "$tmp/new-options" | sort -t "$(printf '\t')" -k1,1 >"$tmp/new-all"
+  for kind in $kinds; do cat "$tmp/new-$kind"; done | sort -t "$(printf '\t')" -k1,1 >"$tmp/new-all"
   join -t "$(printf '\t')" -v 1 "$tmp/new-all" "$tmp/tracked" >"$tmp/untracked"
   echo
   echo "### Not in \`docs/parity/inventory.tsv\` yet"
@@ -187,7 +195,7 @@ report() {
   echo
   echo "To move to Org $newv: bump \`ORG_VERSION\` in \`.github/workflows/difftest.yml\`"
   echo "and the version checks in \`scripts/emacs-parity/\`, regenerate the fixtures"
-  echo "(\`make parity-fixtures\`), give every new command and option a status in"
+  echo "(\`make parity-fixtures\`), give every new item a status in"
   echo "\`docs/parity/inventory.tsv\`, and run \`make difftest\` against it (\"Watching for"
   echo "Org releases\" in CONTRIBUTING.md)."
   rm -rf "$tmp"
@@ -234,5 +242,5 @@ case "$cmd" in
   inventory) [ $# -eq 2 ] || die "usage: inventory VERSION OUTDIR"; inventory "$1" "$2" ;;
   report) [ $# -eq 4 ] || die "usage: report OLDDIR NEWDIR OLD NEW"; report "$1" "$2" "$3" "$4" ;;
   issue) [ $# -eq 3 ] || die "usage: issue NEW PINNED REPORT"; issue "$1" "$2" "$3" ;;
-  *) sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2 ;;
+  *) sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2 ;;
 esac

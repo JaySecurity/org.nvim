@@ -24,9 +24,7 @@ local function get_line(lnum)
   return vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, false)[1]
 end
 
-local function is_blank(line)
-  return line == nil or line:match("^%s*$") ~= nil
-end
+local is_blank = utils.is_blank
 
 local function lines_range(s, e)
   return { mode = "V", s = { s, 0 }, e = { e, 0 } }
@@ -394,27 +392,9 @@ end
 --- The objects whose count selects an ancestor.
 local NESTING = { heading = true, subtree = true, element = true, item = true }
 
---- Text object names in display order: { config name, object, inner }.
-M.list = {
-  { "inner_heading", "heading", true },
-  { "around_heading", "heading", false },
-  { "inner_subtree", "subtree", true },
-  { "around_subtree", "subtree", false },
-  { "inner_element", "element", true },
-  { "around_element", "element", false },
-  { "inner_item", "item", true },
-  { "around_item", "item", false },
-  { "inner_cell", "cell", true },
-  { "around_cell", "cell", false },
-  { "inner_row", "row", true },
-  { "around_row", "row", false },
-  { "inner_column", "column", true },
-  { "around_column", "column", false },
-  { "inner_link", "link", true },
-  { "around_link", "link", false },
-  { "inner_timestamp", "timestamp", true },
-  { "around_timestamp", "timestamp", false },
-}
+--- Text object names in display order: { config name, object, inner }
+--- (kept in org.mappings, which binds them without loading this module).
+M.list = require("org.mappings").text_objects
 
 --- The current Visual selection as a range, or nil outside Visual mode.
 ---@return org.TextObjectRange|nil

@@ -302,21 +302,15 @@ local function block_languages()
   return out
 end
 
-local function all_tags(file)
-  local ok, tags = pcall(function()
-    return require("org.tags").all_tags()
-  end)
-  local list = ok and tags or {}
-  local seen = {}
-  for _, t in ipairs(list) do
-    seen[t] = true
+--- Tags to complete, like pcomplete/org-mode/tag: the buffer's tag
+--- definitions (`#+TAGS` or the `tags` option) when it has any, else the
+--- tags used in the buffer (org.tags.all_tags).
+local function all_tags(file, bufnr)
+  local ok, tags = pcall(require("org.tags").all_tags, bufnr)
+  if ok then
+    return tags
   end
-  for _, def in ipairs(file:tag_definitions()) do
-    if def.name and not seen[def.name] then
-      seen[def.name] = true
-      list[#list + 1] = def.name
-    end
-  end
+  local seen, list = {}, {}
   for _, hl in ipairs(file.headlines) do
     for _, t in ipairs(hl.tags) do
       if not seen[t] then
@@ -328,10 +322,15 @@ local function all_tags(file)
   return list
 end
 
+--- Heading titles, each once (pcomplete/org-mode/searchhead).
 local function headline_titles(file)
-  local out = {}
+  local seen, out = {}, {}
   for _, hl in ipairs(file.headlines) do
-    out[#out + 1] = hl:plain_title()
+    local t = hl:plain_title()
+    if not seen[t] then
+      seen[t] = true
+      out[#out + 1] = t
+    end
   end
   return out
 end
@@ -399,7 +398,8 @@ end
 ---@return org.CompletionContext|nil
 function M.get(line, col, bufnr)
   local before = line:sub(1, col)
-  local file = require("org.files").get_buffer(bufnr or 0)
+  bufnr = (bufnr == nil or bufnr == 0) and vim.api.nvim_get_current_buf() or bufnr
+  local file = require("org.files").get_buffer(bufnr)
   local function items(list, kind, prefix)
     local out = {}
     for _, w in ipairs(list) do
@@ -432,8 +432,8 @@ function M.get(line, col, bufnr)
   if ct_lead then
     return { start = col - #ct_lead, items = items(M.clocktable_params, "parameter") }
   end
-  -- \entity (org-entities)
-  local tex_lead = before:match("\\(%a*)$")
+  -- \entity (org-entities): letters, then digits as in \frac12
+  local tex_lead = before:match("\\(%a*%d*)$")
   if tex_lead and not before:match("^%s*#%+") then
     local set = {}
     for _, e in ipairs(require("org.entities").list) do
@@ -451,7 +451,7 @@ function M.get(line, col, bufnr)
   -- #+TODO / #+FILETAGS values
   local ft_lead = before:match("^%s*#%+[Ff][Ii][Ll][Ee][Tt][Aa][Gg][Ss]:.-:?([^:%s]*)$")
   if ft_lead then
-    return { start = col - #ft_lead, items = items(all_tags(file), "tag") }
+    return { start = col - #ft_lead, items = items(all_tags(file, bufnr), "tag") }
   end
   -- #+KEYWORD
   local kw_lead = before:match("^%s*#%+(%S*)$")
@@ -509,14 +509,16 @@ function M.get(line, col, bufnr)
     local tag_lead = before:match("%s:([^%s]*)$")
     if tag_lead then
       local last = tag_lead:match("([^:]*)$")
-      -- tags already on the headline are not offered again
+      -- tags already on the headline are not offered again (only the
+      -- tags field: a colon in the title, as in 10:30, is not a tag)
       local set = {}
-      for t in line:gmatch(":([^:%s]+)") do
+      local field = tag_lead .. (line:sub(col + 1):match("^[^%s]*") or "")
+      for t in (":" .. field):gmatch(":([^:%s]+)") do
         set[t] = true
       end
       local list = vim.tbl_filter(function(t)
         return not set[t] or t == last
-      end, all_tags(file))
+      end, all_tags(file, bufnr))
       return {
         start = col - #last,
         items = items(

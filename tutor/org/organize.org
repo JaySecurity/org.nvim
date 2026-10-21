@@ -1,5 +1,5 @@
-#+TITLE: org.nvim tutor 7: organize and find
-#+TUTOR_ORDER: 7
+#+TITLE: org.nvim tutor 9: organize and find
+#+TUTOR_ORDER: 9
 #+TUTOR_LEVEL: Daily workflow
 #+TUTOR_TOPICS: refile, archive, sparse trees, jump to a heading, narrowing, tag search
 #+STARTUP: showall nologdone

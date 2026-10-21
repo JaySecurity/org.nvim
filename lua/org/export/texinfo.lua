@@ -529,11 +529,9 @@ end
 -- Template
 ---------------------------------------------------------------------------
 
+--- `s` unquoted when it is a string; anything else (nil, a table) as is.
 local function strip_quotes(s)
-  if type(s) ~= "string" then
-    return s
-  end
-  return s:match('^"(.*)"$') or s
+  return type(s) == "string" and require("org.utils").strip_quotes(s) or s
 end
 
 local function sans_extension(f)

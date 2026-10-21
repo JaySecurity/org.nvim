@@ -1,0 +1,126 @@
+#+TITLE: org.nvim tutor 3: the agenda
+#+TUTOR_ORDER: 3
+#+TUTOR_LEVEL: Daily workflow
+#+TUTOR_TOPICS: dispatcher, TODO list, week view, rescheduling, tag search, filters, bulk actions, custom commands
+#+STARTUP: showall nologdone
+#+TODO: TODO | DONE
+
+The agenda gathers the TODO items, dates and tags of your org files into
+one list you can act on: change a state, reschedule, search and filter,
+and do the same to many entries at once. It builds on the agenda part of
+the second lesson (=:Org tutor workflow=).
+
+- As before, a {{done}} at the end of an exercise's headline means it is
+  done, and {{todo}} that it is not yet. Keys are shown as mapped in your
+  config; =<leader>= is ={{leader}}=.
+- This is a working copy: =:w= saves your progress and =:Org tutor
+  agenda reset= starts over. In the menu, =<= restricts the agenda to
+  this file, so your notes stay out of it.
+- Stuck? =:Org tutor_hint= shows the keys that solve the exercise at
+  the cursor, and =:Org tutor= lists every lesson.
+
+* Lesson 1: the dispatcher
+={{global.agenda}}= opens the agenda menu, the dispatcher. Each key in it
+is a view: =a= the week, =t= every TODO item, =m= a tags search, =s= a
+word search. =<= first restricts the view to this file (twice: to the
+subtree at the cursor). In a view, ={{agenda.quit}}= closes it and ={{agenda.help}}= lists its keys.
+
+** 1.1 The TODO list
+Press ={{global.agenda}}=, =<= and =t=: every TODO item of this file. On
+=Renew the passport= press ={{agenda.priority_up}}=: it gets priority B, in the file
+too. Press it again for A; ={{agenda.priority_down}}= lowers it.
+
+*** TODO Renew the passport
+
+** 1.2 The week
+Press ={{global.agenda}}=, =<=, =a=. =Pay the rent= is overdue, so it
+shows on today. ={{agenda.later}}= and ={{agenda.earlier}}= go a week forward and back, ={{agenda.today}}= comes
+back to today, and ={{agenda.day_view}}= / ={{agenda.week_view}}= show one day or the week. On
+=Pay the rent= press ={{agenda.todo}}=: it is DONE.
+
+*** TODO Pay the rent
+DEADLINE: <2026-10-05 Mon>
+
+* Lesson 2: dates from the agenda
+The agenda changes the entries themselves: every key below edits the
+headline in its file, wherever that file is.
+
+** 2.1 Reschedule
+=Call the bank= was scheduled a week ago. Open the week
+(={{global.agenda}}=, =<=, =a=) and on it press ={{agenda.schedule}}=:
+the calendar opens on its date. =.= goes to today and =<CR>= picks it.
+={{agenda.date_later}}= moves a date one day later, without a prompt.
+
+*** TODO Call the bank
+SCHEDULED: <2026-10-05 Mon>
+
+* Lesson 3: searching
+=m= matches tags (and properties): =home= is every entry tagged
+=:home:=, =work+errand= both tags, =work-errand= work but not errand.
+=s= searches words in the headlines and their text.
+
+** 3.1 Match a tag
+Press ={{global.agenda}}=, =<=, =m=, type =errand= and =<CR>=. On
+=Buy stamps= press ={{agenda.todo}}= to mark it DONE.
+
+*** TODO Buy stamps                                             :errand:
+*** TODO Water the garden                                         :home:
+
+** 3.2 Search words
+Press ={{global.agenda}}=, =<=, =s=, type =invoice= and =<CR>=: the
+entry that mentions it in its text. ={{agenda.switch_to}}= on it opens it in place of the
+agenda (={{agenda.goto}}= opens it in another window).
+
+*** Ask the plumber
+Send the invoice for the new boiler.
+
+* Lesson 4: many entries at once
+={{agenda.mark}}= marks the line at the cursor (={{agenda.unmark}}= unmarks it), ={{agenda.mark_all}}= marks every
+line shown, and ={{agenda.bulk_action}}= acts on all the marked entries: change their
+state, add a tag, schedule, set a deadline, archive or refile them.
+
+** 4.1 Mark and bulk schedule
+In the TODO list (={{global.agenda}}=, =<=, =t=), press ={{agenda.mark}}= on
+=Tidy the shed= and on =Fix the bike=, then ={{agenda.bulk_action}}= and =s=, type
+=+1d= and =<CR>=: both are scheduled for tomorrow. (=<CR>= alone opens
+the calendar.)
+
+*** TODO Tidy the shed                                              :home:
+*** TODO Fix the bike                                               :home:
+
+** 4.2 Filter, then act on what is left
+In the TODO list, press ={{agenda.filter}}=, type =+work= and =<CR>=: only the
+=:work:= entries are left (=-work= hides them instead, and ={{agenda.filter_remove}}=
+removes the filter). Then ={{agenda.mark_all}}=, ={{agenda.bulk_action}}= and =d=, type =fri= and
+=<CR>=: each gets a deadline on Friday.
+
+*** TODO Send the report                                            :work:
+*** TODO Book the train                                             :work:
+
+* Lesson 5: your own views
+=n= in the dispatcher is a block agenda: the week, then every TODO item,
+in one buffer. Your own views go in =agenda.custom_commands= in
+=setup()=, under a key of the menu, such as this one on =h=:
+
+#+begin_src lua
+agenda = {
+  custom_commands = {
+    h = { description = "Home", types = {
+      { type = "agenda", span = "day" },
+      { type = "tags_todo", match = "home" },
+    } },
+  },
+},
+#+end_src
+
+** 5.1 A block agenda
+Press ={{global.agenda}}=, =<=, =n=. ={{agenda.next_item}}= and ={{agenda.prev_item}}= move from entry to
+entry. On =Read the manual=, in the TODO block, press ={{agenda.todo}}=.
+
+*** TODO Read the manual
+
+* What next
+- ={{agenda.help}}= in an agenda lists every key; =:h org-agenda= is the
+  manual, and =:h org-agenda-custom-commands= shows every kind of block.
+- =agenda_files= in =setup()= says which files the agenda reads.
+- {{examples}} links to one file per feature, the agenda among them.

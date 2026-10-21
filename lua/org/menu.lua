@@ -220,6 +220,7 @@ end
 --- Update and show the menu `root` as a popup menu.
 ---@param root string
 function M.popup(root)
+  M.activate()
   M.update(root)
   M._popup(root)
 end
@@ -227,8 +228,8 @@ end
 --- Menus that belong in the current buffer: root -> builder.
 ---@return table<string, fun(): (org.MenuEntry|string)[]>
 function M.wanted()
-  -- org.menu_defs is loaded only once a buffer wants a menu (not on
-  -- setup() or entering any other buffer)
+  -- org.menu_defs is loaded only once a menu is built (not on setup() or
+  -- on opening a buffer before a menu can be used, see `activate`)
   local defs = setmetatable({}, {
     __index = function(_, k)
       return require("org.menu_defs")[k]
@@ -256,10 +257,50 @@ function M.wanted()
   return want
 end
 
+--- Whether the mode-local menus are built. They are not until a menu can
+--- be used (a GUI, which may show a menu bar, a menu command on the
+--- command line, `popup`), so that opening an org buffer doesn't load
+--- org.menu_defs.
+M._live = false
+
+--- Whether a GUI is attached.
+local function gui_attached()
+  return vim.fn.has("gui_running") == 1
+end
+
+--- Build the mode-local menus from now on and add those of the current
+--- buffer (the first time a menu can be used).
+function M.activate()
+  if M._live then
+    return
+  end
+  M._live = true
+  M.sync()
+end
+
+--- Whether the command line `line` runs a menu command (|:menu|,
+--- |:emenu|, |:popup|, |:aunmenu|, ...; abbreviated or with modifiers).
+---@param line string
+---@return boolean
+function M.is_menu_cmdline(line)
+  if not line:find("[mp]") then
+    return false
+  end
+  local ok, cmd = pcall(vim.api.nvim_parse_cmd, line, {})
+  local name = ok and type(cmd) == "table" and cmd.cmd or ""
+  return name:find("menu$") ~= nil or name == "popup"
+end
+
 --- The mode-local menus: add the menus of the current buffer and remove
 --- the others. Floating windows (prompts, the calendar) leave them alone.
 ---@param force? boolean rebuild the wanted menus too
 function M.sync(force)
+  if not M._live then
+    if not gui_attached() then
+      return
+    end
+    M._live = true
+  end
   if vim.api.nvim_win_get_config(0).relative ~= "" then
     return
   end
@@ -289,6 +330,25 @@ function M.setup()
     pattern = "OrgtblMode",
     callback = function()
       vim.schedule(M.sync)
+    end,
+  })
+  -- the menus are built once they can be used: a GUI attaches, or a menu
+  -- command is typed (before <Tab> completes `:emenu Org.`) or run
+  vim.api.nvim_create_autocmd("UIEnter", {
+    group = group,
+    callback = function()
+      if gui_attached() then
+        M.activate()
+      end
+    end,
+  })
+  vim.api.nvim_create_autocmd({ "CmdlineChanged", "CmdlineLeave" }, {
+    group = group,
+    pattern = ":",
+    callback = function()
+      if not M._live and M.is_menu_cmdline(vim.fn.getcmdline()) then
+        M.activate()
+      end
     end,
   })
   vim.api.nvim_create_autocmd("MenuPopup", {

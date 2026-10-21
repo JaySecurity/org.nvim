@@ -263,6 +263,16 @@ local defaults = {
         default_header_args = { results = "file", exports = "results" },
         terms = { eps = "postscript eps" }, -- *org-babel-gnuplot-terms*
       },
+      -- evaluated on the Calc of table formulas (org.table.calc)
+      calc = {},
+      -- cmd: the default of :cmd (Emacs: "dot"); the diagrams extension
+      -- replaces this port while it handles dot
+      dot = { cmd = "dot", default_header_args = { results = "file", exports = "results" } },
+      sed = { cmd = "sed" }, -- org-babel-sed-command
+      sass = { cmd = "sass" },
+      octave = { cmd = "octave -q" }, -- org-babel-octave-shell-command
+      matlab = { cmd = "matlab -nosplash" }, -- org-babel-matlab-shell-command
+      forth = { cmd = "gforth", default_header_args = { session = "yes" } },
     },
     -- emacs-lisp blocks, elisp: links and the Lisp forms the interpreter of
     -- table formulas can't evaluate (macros, capture, diary sexps, headers)

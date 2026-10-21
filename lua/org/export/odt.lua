@@ -40,15 +40,7 @@ function M.styles_dir()
   return require("org.version").root() .. "/etc/styles/"
 end
 
-local function read_file(path, binary)
-  local f = io.open(path, binary and "rb" or "r")
-  if not f then
-    return nil
-  end
-  local s = f:read("*a")
-  f:close()
-  return s
-end
+local read_file = require("org.utils").read_text
 
 ---------------------------------------------------------------------------
 -- Constants (ox-odt.el)

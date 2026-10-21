@@ -5,6 +5,7 @@
 --- Part of org.ui.images, which loads it.
 
 local M = require("org.ui.images")
+local parser = require("org.parser")
 
 ---------------------------------------------------------------------------
 -- The elements of a buffer (just enough of org-element)
@@ -147,8 +148,13 @@ function M.scan(lines)
       end
       other(li)
       i = stop
-    elseif l:match("^%*+%s") or l:match("^%s*|") or l:match("^%s*SCHEDULED:") or l:match("^%s*DEADLINE:") then
-      -- headlines and table rows hold objects but no paragraph
+    elseif
+      l:match("^%*+%s")
+      or l:match("^%s*|")
+      or (i > 1 and lines[i - 1]:match("^%*+%s") and parser.is_planning_line(l))
+    then
+      -- headlines, table rows and planning lines hold objects but no
+      -- paragraph; a planning line only right below its headline
       other(li)
     elseif l:match("^%s*[-+]%s") or l:match("^%s+%*%s") or l:match("^%s*%d+[.)]%s") or l:match("^%s*%a[.)]%s") then
       -- a list item starts a paragraph of its own; the keywords above

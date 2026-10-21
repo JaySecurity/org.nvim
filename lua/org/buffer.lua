@@ -52,6 +52,18 @@ function M.custom_times(bufnr)
   return config.opts.display_custom_times == true
 end
 
+--- Whether the buffer starts with org-beamer-mode on
+--- (`startup_with_beamer_mode`, `#+STARTUP: beamer`).
+---@param bufnr integer
+---@return boolean
+function M.beamer_startup(bufnr)
+  if config.opts.startup_with_beamer_mode == true then
+    return true
+  end
+  local ok, file = pcall(require("org.files").get_buffer, bufnr)
+  return ok and file and file.settings and file.settings.startup and file.settings.startup.beamer and true or false
+end
+
 -- The crypt write hook (org-crypt-use-before-save-magic) until org.crypt
 -- loads and registers its own under the same name: it loads org.crypt only
 -- when `crypt.encrypt_on_save` is on at the time of a write.
@@ -147,20 +159,33 @@ function M.attach(bufnr)
   require("org.mappings").attach(bufnr)
   try("org.ui.decorations", "attach", bufnr)
   try("org.ui.src_highlight", "attach", bufnr)
-  try("org.cite", "attach", bufnr)
+  try("org.cite.attach", "attach", bufnr)
   -- (the attach parts of the larger modules, which load on first use)
   try("org.table.attach", "attach", bufnr)
   try("org.clock.attach", "attach", bufnr)
   register_crypt_hook()
-  try("org.speed", "attach", bufnr)
+  -- speed commands (org.speed.attach): the module loads on a character
+  -- typed while `use_speed_commands` is on
+  vim.api.nvim_create_autocmd("InsertCharPre", {
+    buffer = bufnr,
+    group = vim.api.nvim_create_augroup("org.speed." .. bufnr, { clear = true }),
+    callback = function()
+      if config.opts.use_speed_commands then
+        require("org.speed").on_insert_char()
+      end
+    end,
+  })
   -- reload_on_change: watch the file for changes made by other programs
   if config.opts.reload_on_change ~= false and vim.api.nvim_buf_get_name(bufnr) ~= "" then
     try("org.reload", "attach", bufnr)
   end
   -- #+STARTUP: linkpreviews / latexpreview, ui.images.startup
   try("org.ui.images.startup", "setup_buffer", bufnr)
-  -- startup_with_beamer_mode, #+STARTUP: beamer
-  try("org.export.beamer_mode", "setup_buffer", bufnr)
+  -- startup_with_beamer_mode, #+STARTUP: beamer (org.export.beamer_mode
+  -- loads only for a buffer that starts with the mode)
+  if M.beamer_startup(bufnr) then
+    try("org.export.beamer_mode", "setup_buffer", bufnr)
+  end
   -- custom timestamp display (display_custom_times, #+STARTUP: customtime)
   if M.custom_times(bufnr) then
     try("org.timestamps", "attach_custom_display", bufnr)

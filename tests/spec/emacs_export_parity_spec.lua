@@ -11,12 +11,7 @@ local EXT = { ascii = "txt", html = "html", latex = "tex", md = "md" }
 
 -- "<file> <backend>" cases that still differ from Emacs, with the reason.
 -- A case listed here must keep failing (remove it once it matches).
-local ATTACH = "attachment: links are not expanded to file: links on export "
-  .. "(Emacs: org-attach-expand-links in org-export-before-parsing-functions)"
-local KNOWN = {
-  ["21-images-latex ascii"] = ATTACH,
-  ["21-images-latex md"] = ATTACH,
-}
+local KNOWN = {}
 
 describe("export matches Emacs", function()
   P.freeze_time()

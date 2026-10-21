@@ -9,6 +9,8 @@ CONTENTS                                                        *org-contents*
 
    1. Introduction .............................. |org-introduction|
    2. Installation .............................. |org-installation|
+        Health check ............................ |org-health|
+        Windows ................................. |org-windows|
    3. Document structure ........................ |org-structure|
    4. Visibility and folding .................... |org-folding|
    5. Plain lists and checkboxes ................ |org-lists|
@@ -18,30 +20,133 @@ CONTENTS                                                        *org-contents*
    9. Dates and times ........................... |org-dates|
   10. Clocking and effort ....................... |org-clock|
   11. Agenda .................................... |org-agenda|
+        Agenda index ............................ |org-agenda-index|
+        Agenda contents ......................... |org-agenda-contents|
+        Line format ............................. |org-agenda-prefix|
+        Sorting ................................. |org-agenda-sorting|
+        Agenda keys ............................. |org-agenda-keys|
+        Filtering ............................... |org-agenda-filter|
+        Bulk actions ............................ |org-agenda-bulk|
+        Column view ............................. |org-agenda-columns|
+        Exporting agenda views .................. |org-agenda-export|
+        Custom commands ......................... |org-agenda-custom-commands|
+        Stuck projects .......................... |org-stuck-projects|
+        Search view ............................. |org-agenda-search|
+        Diary sexp entries ...................... |org-agenda-diary-sexp|
+        Holidays ................................ |org-agenda-holidays|
   12. Match syntax (tags/properties) ............ |org-match-syntax|
   13. Sparse trees .............................. |org-sparse-tree|
   14. Capture ................................... |org-capture|
+        Templates ............................... |org-capture-templates|
+        Template expansions ..................... |org-capture-expansions|
+        Contexts ................................ |org-capture-contexts|
+        Hooks ................................... |org-capture-hooks|
+        Session server .......................... |org-remote|
+        RSS and Atom feeds ...................... |org-feed|
   15. Refile and archive ........................ |org-refile|
   16. Links, IDs and attachments ................ |org-links|
+        Inserting links ......................... |org-insert-link|
+        Pasting images and files ................ |org-yank-media|
+        BibTeX entries .......................... |org-bibtex|
+        MobileOrg ............................... |org-mobile|
   17. Footnotes ................................. |org-footnotes|
   18. Tables and formulas ....................... |org-tables|
+        Formulas ................................ |org-table-formulas|
+        Calc .................................... |org-table-calc|
+        Formula editor .......................... |org-table-formula-editor|
+        Shrinking columns ....................... |org-table-shrink|
+        Orgtbl and translators .................. |org-table-translators|
+        Radio tables ............................ |org-radio-tables|
+        Plotting ................................ |org-plot|
   19. Source blocks (Babel) ..................... |org-babel|
+        Running in the background ............... |org-babel-async|
+        Languages ............................... |org-babel-languages|
+        Editing source blocks ................... |org-babel-edit-special|
+        Highlighting ............................ |org-src-highlight|
   20. Dynamic blocks ............................ |org-dblocks|
   21. Export .................................... |org-export|
+        Asynchronous export ..................... |org-export-stack|
+        Live HTML preview ....................... |org-preview|
+        Export settings ......................... |org-export-settings|
+        Back-ends ............................... |org-export-backends|
+        ASCII ................................... |org-export-ascii|
+        Beamer .................................. |org-export-beamer|
+        Texinfo ................................. |org-export-texinfo|
+        ODT ..................................... |org-export-odt|
+        KOMA-Script letters ..................... |org-export-koma-letter|
+        Man pages ............................... |org-export-man|
+        Citations ............................... |org-export-cite|
+        Publishing .............................. |org-publish|
+        Not supported ........................... |org-export-unsupported|
   22. Timers and notifications .................. |org-timers|
   23. Encryption (org-crypt) .................... |org-crypt|
   24. Phone and sync ............................ |org-sync|
   25. Completion ................................ |org-completion|
   26. Appearance and highlights ................. |org-appearance|
+        Images and LaTeX previews ............... |org-images|
+        Where images work ....................... |org-images-troubleshooting|
+        Highlight groups ........................ |org-highlights|
   27. Configuration reference ................... |org-config|
+        Recommended options ..................... |org-config-recommended|
+        Export options .......................... |org-config-export|
   28. Keymaps reference ......................... |org-keymaps|
   29. Commands .................................. |org-commands|
   30. Lua API ................................... |org-api|
+        Versioning .............................. |org-api-version|
+        Files ................................... |org-api-files|
+        Headlines ............................... |org-api-headlines|
+        Saving .................................. |org-api-saving|
+        Document symbols ........................ |org-api-symbols|
+        Agenda .................................. |org-api-agenda|
+        Capture ................................. |org-api-capture|
+        Links ................................... |org-api-links|
+        Clock ................................... |org-api-clock|
+        Session server .......................... |org-api-remote|
+        Events .................................. |org-api-events|
   31. In-buffer settings ........................ |org-in-buffer-settings|
   32. Linting ................................... |org-lint|
   33. Differences from Emacs .................... |org-differences|
+        Structure editing ....................... |org-structure-differences|
   34. Extensions ................................ |org-extensions|
+        Stability ............................... |org-extensions-stability|
+        org-ql .................................. |org-extensions-ql|
+        org-super-agenda ....................... |org-extensions-super-agenda|
+        Presentations ........................... |org-extensions-present|
+        org-roam ................................ |org-extensions-roam|
+        Quick add ............................... |org-extensions-quickadd|
+        Weekly review ........................... |org-extensions-review|
+        Pomodoro ................................ |org-extensions-pomodoro|
+        Spaced repetition ....................... |org-extensions-drill|
+        Structural git merges ................... |org-extensions-merge|
+        Hugo export ............................. |org-extensions-hugo|
+        iCalendar subscriptions ................. |org-extensions-ics|
+        Command line ............................ |org-extensions-cli|
+        Diagrams ................................ |org-extensions-diagrams|
+        Code and notes .......................... |org-extensions-code|
+        Literate Neovim config .................. |org-extensions-literate|
+        Language server ......................... |org-extensions-lsp|
+        Transclusion ........................... |org-extensions-transclusion|
+        Kanban, timeline, heatmap, sidebar ...... |org-extensions-views|
+        Journal ................................. |org-extensions-journal|
   35. Migrating from nvim-orgmode ............... |org-migrate|
+        Swapping the plugin ..................... |org-migrate-install|
+        Converting a setup ...................... |org-migrate-config|
+        Options ................................. |org-migrate-options|
+        Capture ................................. |org-migrate-capture|
+        Agenda .................................. |org-migrate-agenda|
+        Keys .................................... |org-migrate-keys|
+        Other differences ....................... |org-migrate-differences|
+  36. FAQ and troubleshooting ................... |org-faq|
+        Key clashes and the prefix .............. |org-faq-prefix|
+        An empty agenda ......................... |org-faq-agenda|
+        nvim-orgmode and Neorg .................. |org-faq-other-plugins|
+        Babel interpreters ...................... |org-faq-babel|
+        Export programs ......................... |org-faq-export|
+        Captures in ~/.notes .................... |org-faq-capture|
+        Windows ................................. |org-faq-windows|
+        Differences from Emacs .................. |org-faq-emacs|
+        Images don't show ....................... |org-faq-images|
+        Terminal keys ........................... |org-faq-terminal-keys|
 
 ==============================================================================
 1. INTRODUCTION                                             *org-introduction*
@@ -258,8 +363,9 @@ so this manual is found. Update with `git pull` in that directory.
 - `:checkhealth org` runs once the plugin is found.
 
 Option defaults follow Emacs Org 9.8 (see |org-config|): with no
-`agenda_files` the agenda and refile see only the current file until you
-add some (`<C-c>[` adds the current file), `todo_keywords` is `TODO | DONE`,
+`agenda_files` the agenda reads no file and refile sees only the current
+file until you add some (`<C-c>[` adds the current file; see
+|org-faq-agenda|), `todo_keywords` is `TODO | DONE`,
 nothing is logged on DONE and files open fully expanded. A common starting
 point closer to many Emacs setups: >lua
     require("org").setup({
@@ -291,7 +397,8 @@ org.nvim ~
 - that `*.org` files get the `org` filetype (a |vim.filetype.add()| in
   your config could change that)
 - other plugins that also act on org buffers: nvim-orgmode (a warning:
-  remove one of the two) and headlines.nvim; and ftplugin, syntax or indent
+  remove one of the two, and convert its setup with `:Org migrate_config`,
+  |org-migrate|) and headlines.nvim; and ftplugin, syntax or indent
   files for the org filetype from other plugins (a warning) or your own
   config (shown, not a warning). Neovim's own `org.vim` files are ignored.
 
@@ -314,6 +421,11 @@ org.nvim files ~
 - the agenda index (|org-agenda-index|)
 - `default_notes_file` exists and is writable (else it is created on the
   first capture)
+- `default_notes_file` is inside `org_directory`: a warning otherwise, as
+  captures without a target then land outside your notes. Its default,
+  `~/.notes` (as in Emacs), is a hidden file in your home directory, while
+  `org_directory` defaults to `~/org`; set it to a file there, for example
+  `default_notes_file = "~/org/refile.org"` (|org-capture|)
 - `mobile.directory`, when set, exists (|org-mobile|)
 - the session server, with `remote.enabled` (|org-remote|)
 
@@ -970,6 +1082,8 @@ sub-list indentation, circular item motion and the automatic rules.
                 toggling it is refused ("Cannot toggle this checkbox"). A
                 count 4 (C-u) adds or removes the checkbox, 16 (C-u C-u)
                 sets `[-]`. Without a checkbox, it only repairs the list.
+                On a statistics cookie, timestamp or radio target of the
+                item, it acts on that instead, as in Emacs.
                 With `ORDERED: t`, boxes after an unchecked one stay
                 unchecked. On other lines of an item: nothing.
 <C-Space>       Toggle checkboxes (org-toggle-checkbox): the item at the
@@ -1220,7 +1334,8 @@ digits, `_`, `@`, `#` and `%` (org-tag-re); `:a-b:` is not a tag.
                 home(h)` or the `tags` option), a key menu is shown
                 (org-fast-tag-selection); otherwise you type the tags with
                 completion.
-<C-c><C-c>      On a headline: set tags.
+<C-c><C-c>      On a headline: set tags (on a statistics cookie or a
+                timestamp in the title: update or normalize it).
 N<prefix>t      With a count (C-u C-c C-q): realign the tags of every
                 headline. A count of 16 (C-u C-u) types the tags with
                 completion even when they have keys.
@@ -3896,6 +4011,11 @@ the file), `sync_delete_empty_dir` ("query", true, false) and
 `archive_delete` (delete the attachments of archived entries: false, true,
 "query").
 
+On export, `attachment:NAME` links become `file:` links to NAME in the
+attachment directory of their entry (org-attach-expand-links), so an
+attached image is inlined like any image link; when the entry has no
+existing directory, NAME is relative to the file's directory.
+
 Pasting images and files                                    *org-yank-media*
 
 `:Org yank_media` (no default key; Emacs's `yank-media`) pastes what the
@@ -4888,6 +5008,26 @@ runs. C-c C-v v shows the body as the Emacs expand function makes it.
   - screen: the block is pasted into the screen session `:session`
     ("default"), started in `:terminal` (xterm) running `:cmd` (sh);
     `:Org babel_screen_test` checks the setup.
+  - calc: no program needed; each line runs on a Calc stack (the Calc of
+    table formulas, 12 digits, degrees). A `:var` name pushes its value, a
+    line `'KEY` runs that Calc key on the stack (`'+ '- '* '/ '^ '% '\
+    ': '| 'B` on two values, `'n '& 'Q 'L 'E 'S 'C 'T 'A 'F 'R '!` on
+    one, `'P` pushes pi), another line is a formula whose value is pushed
+    (`:var` names replaced). The top of the stack is the result: a matrix
+    gives a table, a vector a row (`:results verbatim`: the text).
+  - dot (Graphviz): `cmd :cmdline -o :file` (`:cmdline` defaults to `-T`
+    and the file's extension, `:cmd` replaces `cmd`), `$NAME` replaced by
+    `:var NAME`. The diagrams extension (|org-extensions-diagrams|)
+    replaces it while it handles dot.
+  - sed: `cmd -f SCRIPT :cmd-line :in-file`; `:stdin ref` feeds a value.
+  - sass: `cmd :cmdline IN OUT`; the CSS is the result, or goes to `:file`.
+  - octave, matlab: the code with `name=value;` lines is fed to `cmd`
+    (`octave -q`, `matlab -nosplash`); a value result is written by the
+    wrapper of ob-octave to a file read back as a table; a graphics
+    `:file` is printed with `print -dpng`.
+  - forth: the lines run in gforth (`cmd`); `:results output` gives what
+    each line printed, the default the last line's (`:session none` is an
+    error like Emacs).
 
 Header arguments ~
 Header arguments merge like Emacs: `babel.default_header_args` (inline
@@ -6906,6 +7046,83 @@ Highlight groups (all `default`, override with |nvim_set_hl()|):  *org-highlight
 ==============================================================================
 27. CONFIGURATION REFERENCE                                       *org-config*
 
+Recommended options ~
+                                                      *org-config-recommended*
+The options most setups change, with their defaults. The rest of this
+chapter lists every option.
+
+  org_directory = "~/org"
+      Base directory: relative paths (capture targets, ...) start here.
+      |org-faq-capture|
+  agenda_files = {}
+      Files, directories (not recursive) and globs the agenda reads. Empty:
+      the agenda shows nothing. |org-agenda|
+  default_notes_file = "~/.notes"
+      Where captures without a `target` go. |org-capture-templates|
+  todo_keywords = { "TODO | DONE" }
+      Keyword sequences: { "TODO(t) NEXT(n) | DONE(d) CANCELLED(c)" }.
+      |org-todo|
+  log_done = false
+      "time" adds CLOSED: when an entry is done, "note" also asks for a
+      note. |org-todo|
+  log_into_drawer = false
+      true puts state changes and notes in a :LOGBOOK: drawer. |org-todo|
+  startup_folded = "showeverything"
+      Folding when a file opens: "overview", "content", "show2levels",
+      ... |org-folding|
+  mappings.prefix = "<leader>o"
+      What <prefix> means in the default keys. |org-keymaps|
+  capture.templates = {}
+      Capture templates by key; empty: one "Task" template into
+      `default_notes_file`. |org-capture-templates|
+  refile.targets = {}
+      Where refile can move entries; empty: the level-1 headlines of the
+      current file (`refile.max_level` adds the agenda files). |org-refile|
+  agenda.span = "week"
+      Days in the agenda: "day", "week", "fortnight", "month", "year" or
+      a number. |org-agenda|
+  agenda.custom_commands = {}
+      Your own views in the agenda dispatcher. |org-agenda-custom-commands|
+  deadline_warning_days = 14
+      Days before a deadline it starts showing in the agenda. |org-agenda|
+  ui.indent_mode = false
+      Virtual indentation of body text (org-indent-mode). |org-indent|
+  ui.hide_emphasis_markers = false
+      Hide the *, /, _, =, ~ and + around emphasized text.
+      |org-appearance|
+  picker = "auto"
+      The picker of the pick_* actions: snacks, fzf-lua, telescope, mini
+      or vim.ui.select. |org-pickers|
+  notifications.enabled = false
+      Reminders before entries with a time today. |org-notifications|
+  extensions = {}
+      Optional extensions: roam, ql, journal, ... |org-extensions|
+
+A setup with the usual changes: >lua
+    require("org").setup({
+      org_directory = "~/org",
+      agenda_files = { "~/org/**/*.org" },
+      default_notes_file = "~/org/inbox.org",
+      todo_keywords = {
+        "TODO(t) NEXT(n) WAITING(w@) | DONE(d) CANCELLED(c@)",
+      },
+      log_done = "time",
+      log_into_drawer = true,
+      startup_folded = "content",
+      refile = { max_level = 2 },
+      ui = { indent_mode = true, hide_emphasis_markers = true },
+      notifications = { enabled = true },
+      capture = {
+        templates = {
+          t = { description = "Task", target = "inbox.org",
+                template = "* TODO %?\n  %U" },
+          n = { description = "Note", target = "notes.org",
+                headline = "Notes", template = "* %?\n  %U" },
+        },
+      },
+    })
+<
+Full reference ~
 Every option and its default is listed in `lua/org/config/`. Lists
 replace the default, tables are merged, and `capture.templates` replaces the
 default template. Summary:
@@ -7856,6 +8073,11 @@ they belong to is entered and removed when another one is. GUIs show them
 in the menu bar; anywhere, run an entry with |:emenu| (`:emenu Org.<Tab>`
 completes) or pop a menu up with |:popup| (`:popup Org`). Entries Emacs
 greys out at point are disabled before a popup and refuse to run otherwise.
+The menus are built the first time they can be used: when a GUI is
+attached, or when a menu command (|:emenu|, |:popup|, |:menu|, ...) is typed
+or run from the command line. A mapping that runs `<Cmd>popup Org<CR>` (no
+command line) should call `require("org.menu").popup("Org")` instead, which
+builds them first.
 "File List for Agenda" and "Agenda Files" list the agenda files.
 `ui.menus = false` turns the menus off (Emacs has no option for them).
 
@@ -8744,6 +8966,15 @@ Differences from Emacs:
   program fails with "You must install .NET to run this application".
   fish `:var` values escape `\` and `'` inside their single quotes (Emacs
   quotes them like POSIX shells, which changes values with backslashes).
+  calc blocks run on the Calc of table formulas with a new stack for
+  each block (Emacs keeps the *Calculator* stack and stored variables
+  between blocks); a table or text `:var` inside a formula is replaced
+  by its value (Emacs mangles it). octave and matlab blocks always run in
+  a new process (`cmd`; Emacs runs a block with `:session` in an inferior
+  Octave or matlab-shell). forth blocks run in a new gforth (`cmd`) whose
+  output is split by line like ob-forth's session; definitions don't
+  carry over to the next block, and an error stops the block. ob-eshell
+  (Emacs's own shell) is not available.
 - Emacs Lisp outside of blocks (`(eval ...)` macros, capture `%(sexp)`,
   diary sexps, `%(function)` link abbreviations, header forms) runs on the
   table formula Lisp interpreter when it can and otherwise in a separate
@@ -9164,8 +9395,13 @@ Date arguments (`:from`, `:to`, `:on`) are a number of days from today,
 `:with-time t` (or `nil`) keeps only timestamps with (without) a time.
 A repeating timestamp matches a range when one of its occurrences falls in
 it (`expand_repeaters`). Regexps are Emacs regexps and match
-case-insensitively. Results are cached per entry until its file changes
-(`cache`), except for queries with Lua functions or `now`.
+case-insensitively, as do the strings of `heading`, `rifle` and
+`outline-path` (accented letters too). Priority comparisons and the
+`priority` sort follow the priority's value, so with numeric priorities
+(`#+PRIORITIES: 1 20 10`) `(priority '> "10")` matches `[#9]`. An
+impossible date (`2026-02-30`) is a query error. Results are cached per
+entry until its file changes (`cache`), except for queries with Lua
+functions or `now`.
 
 Sorting ~
 `sort` is one of `date` (the deadline, else the scheduled date),
@@ -9260,8 +9496,9 @@ those of a Lua table by name, automatic selectors last. Empty groups are
 not shown; items no group takes are shown under "Other items"
 (`unmatched_name`, order `unmatched_order` = 99). Groups are shown by
 `order` (default 0, lowest first; groups with the same non-zero order by
-name). A block (or custom command, or org-ql view) can set `super_groups`
-to use other groups, or `false` for none.
+name; an `order` that isn't a number counts as 0). A block (or custom
+command, or org-ql view) can set `super_groups` to use other groups, or
+`false` for none.
 
 On a group header, <Tab> folds and unfolds the group (it stays folded when
 the agenda is redone; elsewhere <Tab> keeps its agenda meaning), and `gj`
@@ -9277,7 +9514,8 @@ Selectors:
   `deadline`, `scheduled`     true, false, "past", "today", "future",
                               `{ "before"|"on"|"after", "2026-10-01" }`
   `todo`                      keywords, true (any) or false (none)
-  `tag`, `category`           any of them
+  `tag`, `category`           any of them (tags ignore case, as Emacs'
+                              `cl-equalp`, accented letters too)
   `priority`                  letters; `priority_gt` `priority_ge`
                               `priority_lt` `priority_le` (or
                               `["priority>"]` etc.) compare with one
@@ -9764,7 +10002,9 @@ What the line may contain ~
                repeater and are written as a diary sexp,
                `<%%(memq (calendar-day-of-week date) '(1 2 3 4 5))>`.
   `#tag`       a tag; `#42` (digits only) stays in the title
-  `!A` `!1`    priority; also `p1`, `p2`, `p3` (p1 is the highest)
+  `!A` `!1`    priority; also `p1`, `p2`, `p3` (p1 is the highest).
+               With numeric priorities (`priority_highest = "1"`,
+               `priority_lowest = "10"`) `!5` is priority 5 itself.
   `~30m`       Effort: `~30m`, `~1h`, `~1h30`, `~1:30`, `~90`, `~1.5h`
   `@Heading`   target: the best match among the headings of the `targets`
                files (exact, then prefix, substring and fuzzy match);
@@ -12303,6 +12543,7 @@ Options (defaults) ~
   `width`          40
   `interval`       30
   `sections`       { "clock", "next", "today", "habits", "inbox" }
+                   (one name may be given as a string)
   `show_done`      false
   `deadline_days`  7
   `inbox_file`     nil
@@ -12895,5 +13136,137 @@ Other differences ~
     next row.
   - Menus (the agenda dispatcher, capture, export) are org.nvim's own key
     menus, which Esc closes (|org-key-menus|).
+
+==============================================================================
+36. FAQ AND TROUBLESHOOTING                                          *org-faq*
+
+Common questions and problems, each with a pointer to the full story. Run
+`:checkhealth org` (|org-health|) first: it finds many of them for you.
+
+The <leader>o keys clash with mine ~
+                                                              *org-faq-prefix*
+Every default key written `<prefix>...` in this manual uses
+`mappings.prefix`, by default `<leader>o`. The `global` keys (`<prefix>a`
+agenda, `<prefix>c` capture, `<prefix>ls`, `<prefix>g`, the clock keys) are
+set in every buffer, replacing a global mapping made earlier on the same
+keys; the others are local to org buffers and shadow your `<leader>o...`
+mappings there. A mapping of yours on `<leader>o` itself makes Vim wait
+'timeoutlen' for the longer org keys. Move them all to another prefix: >lua
+    require("org").setup({ mappings = { prefix = "<localleader>o" } })
+<
+or change single keys (`false` removes one), or turn every default key off
+with `mappings.disable_all = true` (|org-keymaps|). `:verbose nmap <leader>o`
+shows who set a key.
+
+The agenda is empty ~
+                                                              *org-faq-agenda*
+`agenda_files` defaults to `{}`, like Emacs's org-agenda-files (nil), so
+the agenda reads no file at all, not even the current one, until you list
+some: >lua
+    require("org").setup({ agenda_files = { "~/org/**/*.org" } })
+<
+A directory adds the .org files directly in it, not those in its
+subdirectories: use a glob like the one above for those. <C-c>[ in an org
+buffer adds that file to the list (the change is saved), and `<` in the
+agenda dispatcher restricts a view to the current file. `:checkhealth org`
+says how many files `agenda_files` gives and why an entry gives none. See
+|org-agenda|.
+
+Using it with nvim-orgmode or Neorg ~
+                                                       *org-faq-other-plugins*
+nvim-orgmode: don't keep both. They both define the `org` filetype and the
+`:Org` command, and `:checkhealth org` warns when it finds nvim-orgmode.
+Your files need no change: remove nvim-orgmode and convert its setup with
+`:Org migrate_config`; |org-migrate| maps its options and keys to
+org.nvim's.
+
+Neorg uses its own format, `.norg` files with the `norg` filetype, which
+org.nvim never touches, so the two can be installed side by side. Neorg
+notes are not Org files, though: org.nvim doesn't read them and they don't
+show in the agenda.
+
+A source block can't find its interpreter ~
+                                                               *org-faq-babel*
+Each language runs the program in `babel.languages.<lang>.cmd`: `python3`
+for python, `node` for js, `Rscript` for R, `bash` for bash, ... (`lua`
+runs inside Neovim). `:checkhealth org` lists each of these programs and
+whether it is found. Point a language at another program; the language
+tables are merged, so only `cmd` changes: >lua
+    require("org").setup({
+      babel = {
+        languages = { python = { cmd = "/opt/homebrew/bin/python3.12" } },
+      },
+    })
+<
+`python = false` removes a language. The program must be on Neovim's
+$PATH, which may be shorter than your shell's when Neovim is started from
+a desktop launcher. See |org-babel| and |org-babel-languages|.
+
+Export needs pandoc or LaTeX ~
+                                                              *org-faq-export*
+HTML, Markdown, ASCII, Org, ODT, iCalendar, Texinfo, man and the LaTeX and
+Beamer source are written by org.nvim itself. Programs are needed for:
+
+  PDF (LaTeX, Beamer, KOMA letters)
+                    a TeX distribution: latexmk (with perl) when installed,
+                    else `export.latex.compiler` ("pdflatex");
+                    `export.latex.pdf_process` sets the commands
+  DOCX, EPUB, RST, ...
+                    pandoc (`export.pandoc.cmd`)
+  Info              makeinfo
+  ODT to DOC, PDF, ...
+                    LibreOffice (`export.odt.preferred_output_format`)
+  man to PDF        groff
+
+`:checkhealth org` checks pandoc, makeinfo and the LaTeX compiler. See
+|org-export| and |org-export-backends|.
+
+Captures end up in ~/.notes ~
+                                                             *org-faq-capture*
+A template without `target` (or with `target = ""`), and the default
+"Task" template used while `capture.templates` is empty, files into
+`default_notes_file`. Its default is `~/.notes`, as in Emacs
+(org-default-notes-file), not a file in `org_directory`. `org_directory`
+(default `~/org`) is the base of relative paths: `target = "inbox.org"`
+is `~/org/inbox.org`. Set both: >lua
+    require("org").setup({
+      org_directory = "~/org",
+      default_notes_file = "~/org/refile.org",
+    })
+<
+See |org-capture-templates|.
+
+Windows ~
+                                                             *org-faq-windows*
+org.nvim runs on Windows; |org-windows| lists what differs. In short:
+`sh`/`bash` source blocks need a bash on %PATH% (Git for Windows, MSYS2),
+org-crypt needs GnuPG for Windows (or Gpg4win) on %PATH%, reminders are
+shown through `powershell.exe`, and `TZ` with a zone name has no effect.
+
+Why does org.nvim do X differently from Emacs? ~
+                                                               *org-faq-emacs*
+org.nvim follows Emacs Org 9.8: the same file format, commands, options
+(named after the Emacs variables) and defaults. What differs on purpose is
+in |org-differences|; |org-migrate-differences| compares with
+nvim-orgmode. A difference listed in neither is likely a bug: report it
+with `:Org bug_report` (|org-bug-report|).
+
+Images don't show ~
+                                                              *org-faq-images*
+Image links are previewed on demand: <prefix>xv (`link_preview`, Emacs
+C-c C-x C-v), or when a file opens with `ui.images.startup = true` or
+`#+STARTUP: inlineimages`. Previews need a terminal that can draw images
+and, depending on the Neovim version, snacks.nvim or image.nvim; tmux,
+zellij and SSH get in the way. |org-images-troubleshooting| has the
+setups that work, and `:checkhealth org` shows which backend is used.
+
+Keys like <C-CR> or <S-CR> do nothing ~
+                                                       *org-faq-terminal-keys*
+The terminal must send them: they need extended keys (CSI u), which tmux
+passes on only with `set -s extended-keys on`, and the terminal's own
+keybinds must not take them. On macOS, Option must send Alt for the
+<M-...> keys. `:checkhealth org` checks this in tmux, Ghostty, kitty,
+WezTerm and Alacritty (|org-health|). Every such key can be moved
+(|org-keymaps|).
 
  vim:tw=78:ts=8:ft=help:norl:

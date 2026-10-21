@@ -365,6 +365,10 @@ local function score(file)
   return areas, all, rows
 end
 
+--- The KIND column of inventory.tsv, as the scorecard shows it.
+local KIND_NAMES =
+  { cmd = "command", opt = "option", exec = "Babel executor", link = "link type", trans = "transcoder" }
+
 local function pct(t, strict)
   local s = (t.done or 0) + (t.vim or 0) + 0.5 * (t.partial or 0)
   local d = t.n - (t.na or 0) - (strict and 0 or (t["emacs-only"] or 0))
@@ -386,7 +390,8 @@ do
   end
   local b = {
     "<h1>Parity with Emacs Org 9.8.12</h1>",
-    '<p class="lead">Every interactive command and user option of Org 9.8.12 is listed in '
+    '<p class="lead">Every interactive command, user option, Babel executor, link type and export '
+      .. "back-end transcoder of Org 9.8.12 is listed in "
       .. '<a href="'
       .. blob("docs/parity/inventory.tsv")
       .. '"><code>docs/parity/inventory.tsv</code></a> with its status in org.nvim. '
@@ -420,19 +425,14 @@ do
     if #list > 0 then
       local id = "status-" .. status
       b[#b + 1] = '<h2 id="' .. id .. '">' .. status:gsub("^%l", string.upper) .. " (" .. #list .. ")</h2>"
-      add_search(
-        status:gsub("^%l", string.upper) .. " commands and options",
-        "parity/index.html#" .. id,
-        "Parity",
-        "heading"
-      )
+      add_search(status:gsub("^%l", string.upper) .. " parity items", "parity/index.html#" .. id, "Parity", "heading")
       b[#b + 1] =
         '<div class="table-wrap"><table><thead><tr><th>Symbol</th><th>Kind</th><th>Area</th><th>Note</th></tr></thead><tbody>'
       for _, r in ipairs(list) do
         b[#b + 1] = "<tr><td><code>"
           .. html.escape(r.sym)
           .. "</code></td><td>"
-          .. (r.kind == "cmd" and "command" or "option")
+          .. (KIND_NAMES[r.kind] or r.kind)
           .. "</td><td>"
           .. html.escape(r.area)
           .. "</td><td>"
@@ -854,16 +854,23 @@ do
         .. (#r.unknown > 0 and ("; check by hand: " .. table.concat(r.unknown, ", ")) or "")
     end)
     group("near", "Near misses", report.near, function(r)
-      return "needs " .. report_lib.why(r, report_lib.blockers(r))
+      return report_lib.why_split(r, report_lib.blockers(r))
     end)
     group("far", "Further off", report.far, function(r)
-      return "needs " .. report_lib.why(r, report_lib.blockers(r))
+      return report_lib.why_split(r, report_lib.blockers(r))
     end)
-    group("below", "Stable but below the bar", report.below, function(r)
-      return "lacks " .. report_lib.why(r, r.failed)
+    group("below", "Stable with work left", report.below, function(r)
+      local age = select(2, report_lib.split_age(r.failed))
+      return "lacks "
+        .. report_lib.why(r, r.gaps)
+        .. (#age > 0 and ("; also waits on age: " .. report_lib.why(r, age)) or "")
+    end)
+    group("young", "Stable, below the bar only by age", report.young, function(r)
+      return "waits on " .. report_lib.why(r, r.age)
     end)
     b[#b + 1] = '<p class="muted">A stable extension is never demoted automatically: '
-      .. "falling below the bar is a prompt to add the missing specs or docs.</p>"
+      .. "falling below the bar is a prompt to add the missing specs or docs. "
+      .. "One below it only by age needs nothing but time.</p>"
     b[#b + 1] = '<h2 id="bar">The bar</h2>'
     b[#b + 1] = '<div class="table-wrap"><table class="defs-bar"><thead><tr><th scope="col">Criterion</th>'
       .. '<th scope="col">An experimental extension needs</th></tr></thead><tbody>'

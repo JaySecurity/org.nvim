@@ -372,3 +372,41 @@ describe("org-cite-activate (basic)", function()
     eq("A [cite:@knuth1984] b", text_of(buf))
   end)
 end)
+
+describe("org.cite loading", function()
+  -- Opening an org buffer sets up citations through org.cite.attach,
+  -- which loads org.cite only when a citation is in view. Runs in a fresh
+  -- Neovim, since this one has long loaded org.cite.
+  it("opening a plain org file doesn't load org.cite; a citation in view does", function()
+    local tmp = vim.fn.tempname()
+    vim.fn.mkdir(tmp, "p")
+    local file = tmp .. "/plain.org"
+    local script = tmp .. "/script.lua"
+    vim.fn.writefile({
+      "vim.opt.rtp:prepend(" .. vim.inspect(vim.fn.fnamemodify(root, ":h")) .. ")",
+      "vim.cmd('runtime plugin/org.lua')",
+      "require('org').setup({})",
+      "vim.fn.writefile({ '* Heading', 'Some text.' }, " .. vim.inspect(file) .. ")",
+      "vim.cmd.edit(" .. vim.inspect(file) .. ")",
+      "vim.cmd('redraw!')",
+      "local out = { ft = vim.bo.filetype, plain = package.loaded['org.cite'] ~= nil }",
+      "out.attach = package.loaded['org.cite.attach'] ~= nil",
+      "vim.api.nvim_buf_set_lines(0, -1, -1, false, { 'See [cite:@knuth1984].' })",
+      "vim.cmd('redraw!')",
+      "out.cited = package.loaded['org.cite'] ~= nil",
+      "vim.api.nvim_win_set_cursor(0, { 3, 12 })",
+      "local ctx = require('org.cite').at_point()",
+      "out.key = ctx and ctx.reference and ctx.reference.key",
+      "io.stdout:write(vim.json.encode(out))",
+      "vim.cmd('qa!')",
+    }, script)
+    local env = { XDG_DATA_HOME = tmp .. "/data", XDG_STATE_HOME = tmp .. "/state", XDG_CONFIG_HOME = tmp .. "/cfg" }
+    local r = vim
+      .system({ vim.v.progpath, "--headless", "--clean", "-l", script }, { env = env, text = true })
+      :wait(30000)
+    vim.fn.delete(tmp, "rf")
+    local decoded, out = pcall(vim.json.decode, r.stdout or "")
+    ok(decoded, tostring(r.stdout) .. tostring(r.stderr))
+    eq({ ft = "org", plain = false, attach = true, cited = true, key = "knuth1984" }, out)
+  end)
+end)

@@ -31,6 +31,7 @@ local function change_time(hl, yesterday)
   return t or today:clone({ hour = 23, min = 59 }), today
 end
 
+---@type table<string, { [1]: "done"|"repeat", [2]: string|false }>
 local LOGGING_WORDS = {
   logdone = { "done", "time" },
   lognotedone = { "done", "note" },
@@ -48,15 +49,20 @@ local LOGGING_WORDS = {
 ---@return { done: string|false, ["repeat"]: string|false, states: table<string, org.TodoKeyword> }|nil
 function M.local_logging(hl)
   local value = hl and hl:get_property("LOGGING", true)
-  if not value then
+  if not hl or not value then
     return nil
   end
+  ---@type { done: string|false, ["repeat"]: string|false, states: table<string, org.TodoKeyword> }
   local out = { done = false, ["repeat"] = false, states = {} }
   local todo_cfg = hl.file.settings.todo
   for w in value:gmatch("%S+") do
     local spec = LOGGING_WORDS[w]
     if spec then
-      out[spec[1]] = spec[2]
+      if spec[1] == "done" then
+        out.done = spec[2]
+      else
+        out["repeat"] = spec[2]
+      end
     else
       local kw = require("org.todo_keywords").parse_token(w)
       if todo_cfg:is_keyword(kw.name) and (kw.log_enter or kw.log_leave) then
@@ -535,7 +541,7 @@ end
 function M.change_state(target, new, opts)
   opts = opts or {}
   local bufnr, file, hl = edit.resolve_headline(target)
-  if not bufnr then
+  if not (file and hl) then
     return nil
   end
   local cfg = config.opts
@@ -595,6 +601,7 @@ function M.change_state(target, new, opts)
     end
     logging_active = any_states or log_done ~= false
   end
+  ---@type string|false
   local state_log = false
   if logging_active then
     state_log = (opts.force_note and "note") or (new_kw and new_kw.log_enter) or (old_kw and old_kw.log_leave) or false
@@ -759,7 +766,7 @@ M.for_targets = for_targets
 --- is neither logged nor blocked (org-inhibit-logging, org-inhibit-blocking).
 local function shift(target, dir)
   local bufnr, file, hl = edit.resolve_headline(target)
-  if not bufnr then
+  if not (file and hl) then
     return nil
   end
   local nxt = file.settings.todo:shift(hl.todo, dir)
@@ -782,7 +789,7 @@ end
 --- logged, like Emacs.
 function M.next_sequence(target, dir)
   local bufnr, file, hl = edit.resolve_headline(target)
-  if not bufnr then
+  if not (file and hl) then
     return nil
   end
   local todo_cfg = file.settings.todo
@@ -830,7 +837,7 @@ end
 function M.select(target, opts)
   return for_targets(target, function(t)
     local bufnr, file, hl = edit.resolve_headline(t)
-    if not bufnr then
+    if not (file and hl) then
       return nil
     end
     local choice = pick_keyword(file.settings.todo, hl.todo)
@@ -873,7 +880,7 @@ end
 local function todo_step(target, arg, opts, repeated)
   opts = vim.deepcopy(opts or {})
   local bufnr, file, hl = edit.resolve_headline(target)
-  if not bufnr then
+  if not (file and hl) then
     return nil
   end
   local tgt = { bufnr = bufnr, lnum = hl.line }
@@ -901,7 +908,7 @@ end
 --- One `C-c C-t` on a headline; `arg` is the Emacs prefix argument.
 local function todo_command(target, arg, opts)
   local bufnr, _, hl = edit.resolve_headline(target)
-  if not bufnr then
+  if not (bufnr and hl) then
     return nil
   end
   local lnum = hl.line
@@ -951,7 +958,7 @@ end
 --- Set every repeater of the entry to 0 (org-cancel-repeaters).
 function M.cancel_repeaters(target)
   local bufnr, _, hl = edit.resolve_headline(target)
-  if not bufnr then
+  if not (bufnr and hl) then
     return nil
   end
   local lines = vim.api.nvim_buf_get_lines(bufnr, hl.line - 1, hl.body_end, false)
@@ -977,7 +984,7 @@ end
 function M.todo_cancel_repeaters(target)
   return for_targets(target, function(t)
     local bufnr, _, hl = edit.resolve_headline(t)
-    if not bufnr then
+    if not (bufnr and hl) then
       return nil
     end
     M.cancel_repeaters({ bufnr = bufnr, lnum = hl.line })
@@ -988,7 +995,7 @@ end
 --- Add a note to the entry (org-add-note).
 function M.add_note(target)
   local bufnr, _, hl = edit.resolve_headline(target)
-  if not bufnr then
+  if not (bufnr and hl) then
     return nil
   end
   local time = date.effective_now(hl)

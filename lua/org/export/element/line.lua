@@ -26,9 +26,8 @@ local function is_clock_line(l)
   return l:match("^[ \t]*CLOCK:") ~= nil
 end
 
-local function is_planning_line(l)
-  return l:match("^[ \t]*CLOSED:") ~= nil or l:match("^[ \t]*DEADLINE:") ~= nil or l:match("^[ \t]*SCHEDULED:") ~= nil
-end
+-- org-element-planning-line-re
+local is_planning_line = require("org.parser").is_planning_line
 
 local function drawer_name(l)
   return l:match("^[ \t]*:([%w%-_]+):[ \t]*$")

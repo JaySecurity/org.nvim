@@ -121,6 +121,34 @@ describe("source lint", function()
     end)
   end)
 
+  describe("planning-line", function()
+    it("flags a hand-written planning-line pattern", function()
+      eq(
+        { "1:planning-line", "1:planning-line", "2:planning-line", "3:planning-line", "4:planning-line" },
+        hits({
+          'if l:match("^%s*SCHEDULED:") or l:match("^%s*DEADLINE:") then end',
+          'local x = l:find("^[ \\t]*CLOSED:")',
+          "local P = { '^ *DEADLINE:' }",
+          'local y = l:match("^%s*CLOSED:%s*(%b[])")',
+        })
+      )
+    end)
+
+    it("accepts the keywords elsewhere in a pattern or line", function()
+      eq(
+        {},
+        hits({
+          'local a = l:find("DEADLINE:", 1, true)',
+          'local b = l:match("SCHEDULED:%s*$")',
+          'local c = l:match("^SCHEDULED: +<[^>]+>()", s)',
+          'local d = l:match("^%s*CLOCK:")',
+          'local e = l:match("^%s*NOTE:")',
+          "local f = parser.is_planning_line(l)",
+        })
+      )
+    end)
+  end)
+
   describe("allow comments", function()
     it("allow a hit on the same line or the line before, with a reason", function()
       eq(

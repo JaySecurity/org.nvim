@@ -261,6 +261,34 @@ describe("archive", function()
     eq(require("org.utils").realpath(dir .. "/arch.org"), require("org.utils").realpath(loc.filename))
   end)
 
+  it("warns, without an error, when an OrgArchive handler removed the entry", function()
+    local dir = tmpdir()
+    local p = dir .. "/h.org"
+    utils.writefile(p, { "* A", "text", "* B" })
+    setup(dir, { archive_location = "arch.org::" })
+    local group = vim.api.nvim_create_augroup("archive_spec", { clear = true })
+    vim.api.nvim_create_autocmd("User", {
+      group = group,
+      pattern = "OrgArchive",
+      callback = function(ev)
+        vim.api.nvim_buf_set_lines(ev.data.bufnr, 0, 2, false, {})
+      end,
+    })
+    local warned
+    local orig = utils.warn
+    utils.warn = function(msg)
+      warned = msg
+    end
+    vim.cmd("edit! " .. p)
+    vim.api.nvim_win_set_cursor(0, { 1, 0 })
+    local success, err = pcall(archive.archive_subtree)
+    utils.warn = orig
+    vim.api.nvim_del_augroup_by_id(group)
+    eq(true, success, tostring(err))
+    ok(warned and warned:match("^The archived subtree was removed from"))
+    eq({ "* B" }, buf_lines())
+  end)
+
   it("toggles the ARCHIVE tag", function()
     config.setup({ tags_column = 0 })
     org_buffer({ "* Task :a:" }, { 1, 0 })

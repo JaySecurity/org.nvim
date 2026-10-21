@@ -677,6 +677,47 @@ describe("health: sections", function()
     end)
   end)
 
+  describe("default notes file", function()
+    with_config({ agenda_files = {} })
+
+    it("warns when default_notes_file is outside org_directory", function()
+      local cfg = require("org.config").opts
+      cfg.org_directory = dir .. "/notes"
+      cfg.default_notes_file = dir .. "/.notes"
+      local out = capture(health.check_files)
+      local msg = find_msg(out, "^warn: default_notes_file")
+      ok(msg and msg:find("is outside org_directory", 1, true), vim.inspect(out))
+      local shown = require("org.utils").abbreviate(dir)
+      ok(
+        find_msg(out, 'advice: set default_notes_file = "' .. vim.pesc(shown) .. '/notes/refile%.org"'),
+        vim.inspect(out)
+      )
+      ok(not find_msg(out, "^ok: default_notes_file is in org_directory"), vim.inspect(out))
+    end)
+
+    it("is fine with a notes file in org_directory, relative or not yet created", function()
+      local cfg = require("org.config").opts
+      cfg.org_directory = dir .. "/notes"
+      for _, notes in ipairs({ dir .. "/notes/a.org", "refile.org", dir .. "/notes/sub/inbox.org" }) do
+        cfg.default_notes_file = notes
+        local out = capture(health.check_files)
+        ok(find_msg(out, "^ok: default_notes_file is in org_directory"), notes .. vim.inspect(out))
+        ok(not find_msg(out, "outside org_directory"), notes .. vim.inspect(out))
+      end
+    end)
+
+    it("compares paths, not prefixes, and resolves symlinks", function()
+      eq(true, health.notes_outside(dir .. "/notes-other/a.org", dir .. "/notes"))
+      eq(true, health.notes_outside(vim.fs.normalize(vim.fn.expand("~")) .. "/.notes", dir .. "/notes"))
+      eq(false, health.notes_outside(dir .. "/notes/a.org", dir .. "/notes/"))
+      if vim.fn.has("win32") == 0 then
+        vim.uv.fs_symlink(dir .. "/notes", dir .. "/link")
+        eq(false, health.notes_outside(dir .. "/link/new.org", dir .. "/notes"))
+        eq(false, health.notes_outside(dir .. "/notes/a.org", dir .. "/link"))
+      end
+    end)
+  end)
+
   describe("state files", function()
     with_config({ id = {}, clock = { persist = false } })
 
@@ -777,6 +818,7 @@ describe("health: sections", function()
           vim.inspect(out)
         )
         ok(find_msg(out, "^warn: nvim%-orgmode is also loaded"), vim.inspect(out))
+        ok(find_msg(out, "advice: .*`:Org migrate_config`.*see :h org%-migrate$"), vim.inspect(out))
       end)
       package.loaded["orgmode"] = nil
       vim.opt.rtp:remove(dir .. "/other")

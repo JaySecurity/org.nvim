@@ -1,5 +1,5 @@
-#+TITLE: org.nvim tutor 8: code and export
-#+TUTOR_ORDER: 8
+#+TITLE: org.nvim tutor 10: code and export
+#+TUTOR_ORDER: 10
 #+TUTOR_LEVEL: Power user
 #+TUTOR_TOPICS: source blocks, results, variables, named blocks, tangling, export, export options
 #+STARTUP: showall nologdone

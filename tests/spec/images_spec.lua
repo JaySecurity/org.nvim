@@ -274,6 +274,23 @@ describe("image previews", function()
   end)
 end)
 
+describe("image paragraphs and planning lines", function()
+  it("keeps a CLOSED planning line out of the paragraph below it", function()
+    local info, paras = images.scan({ "* DONE H", "CLOSED: [2024-01-01 Mon]", "[[file:a.png]]" })
+    eq(nil, info[2].para)
+    eq(3, paras[info[3].para].first)
+  end)
+
+  it("reads a planning keyword away from a headline as paragraph text", function()
+    -- org-element: only the line right below a headline is a planning
+    -- line; elsewhere it is a paragraph that takes the affiliated keywords
+    local info, paras = images.scan({ "#+ATTR_ORG: :width 100", "SCHEDULED: <2024-01-01 Mon>", "[[file:a.png]]" })
+    local para = paras[info[3].para]
+    eq(2, para.first)
+    eq({ "#+ATTR_ORG: :width 100" }, para.attrs)
+  end)
+end)
+
 describe("latex fragments", function()
   local function texts(buf, a, b)
     return vim.tbl_map(function(x)

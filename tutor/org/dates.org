@@ -1,5 +1,5 @@
-#+TITLE: org.nvim tutor 4: dates in depth
-#+TUTOR_ORDER: 4
+#+TITLE: org.nvim tutor 6: dates in depth
+#+TUTOR_ORDER: 6
 #+TUTOR_LEVEL: Daily workflow
 #+TUTOR_TOPICS: date prompt, timestamps, shifting dates, repeaters, deadlines, ranges
 #+STARTUP: showall nologdone

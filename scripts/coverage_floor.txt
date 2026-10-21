@@ -1,0 +1,42 @@
+# Coverage floors for `make coverage-check` (scripts/coverage_floor.lua):
+# the Coverage workflow fails when a path's line coverage drops below its
+# floor. One repo-relative file or directory per line (a directory covers
+# everything under it), then the floor in percent. The paths are those of
+# scripts/typecheck_strict.txt. After a full `make coverage`,
+# `make coverage-check ARGS=--update` resets every floor to the coverage
+# rounded down, less one; never lower one just to make the check pass
+# (CONTRIBUTING.md, "Coverage floors").
+lua/org/api                          94
+lua/org/parser.lua                   95
+lua/org/element.lua                  77
+lua/org/files.lua                    94
+lua/org/date.lua                     92
+lua/org/timestamps.lua               92
+lua/org/structure.lua                91
+lua/org/structure                    86
+lua/org/lists.lua                    98
+lua/org/lists                        90
+lua/org/clock.lua                    93
+lua/org/clock                        87
+lua/org/agenda                       87
+lua/org/pickers                      94
+lua/org/health                       85
+lua/org/links.lua                    99
+lua/org/links                        84
+lua/org/columns.lua                  99
+lua/org/columns                      88
+lua/org/mobile.lua                   89
+lua/org/mobile                       87
+lua/org/capture.lua                  99
+lua/org/capture                      87
+lua/org/babel                        82
+lua/org/extensions                   82
+lua/org/table.lua                    94
+lua/org/table                        84
+lua/org/export                       87
+lua/org/fold.lua                     94
+lua/org/fold                         93
+lua/org/ui.lua                       90
+lua/org/ui                           82
+lua/org/migrate.lua                  91
+lua/org/reload.lua                   84

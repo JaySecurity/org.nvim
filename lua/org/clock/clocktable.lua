@@ -238,10 +238,7 @@ end
 local COOKIE = "%[%d*%%%]"
 local COOKIE2 = "%[%d*/%d*%]"
 
-local function link_display(s)
-  s = s:gsub("%[%[([^%]]-)%]%[([^%]]-)%]%]", "%2")
-  return (s:gsub("%[%[([^%]]-)%]%]", "%1"))
-end
+local link_display = utils.link_descriptions
 
 --- Clock data of one file (org-clock-get-table-data).
 ---@return { file: org.File, total: integer, entries: table[] }
