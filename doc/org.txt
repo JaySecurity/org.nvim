@@ -1464,6 +1464,11 @@ Editing next to hidden ones asks whether to show them
                                   gives each column one character)
                   v view value, r / g refresh, q quit (<CR> jumps to the
                   headline in the table view).
+                In the overlay view, a key that starts a global mapping
+                or is your leader keeps its usual meaning: <Space> with
+                a space 'mapleader', and g (Neovim's gr* and gx start
+                with it; r refreshes). Leader keys and which-key keep
+                working while the view is open and after it closes.
                 Format changes are saved to the COLUMNS property or the
                 `#+COLUMNS:` line the view comes from.
 
@@ -8828,7 +8833,9 @@ Differences from Emacs:
   above, `dk` below, a Visual selection, an Ex command, the agenda) still
   reaches them, where Emacs refuses it. Like Emacs, digits 1-9 select
   allowed values on a column row, so counts are not available there (0
-  keeps its Vim meaning; counts work on other lines).
+  keeps its Vim meaning; counts work on other lines). A view key that
+  starts a global mapping or is your leader is not remapped, so g doesn't
+  refresh the overlay view (Neovim's gr* and gx start with it; r does).
 - Feeds (|org-feed|): feeds are fetched with curl (or wget, or a Lua
   function) instead of url.el, and `:parse-feed`/`:filter`/handlers are Lua
   functions. Fixes over org-feed.el: a multi-line `%field` alone on its line
