@@ -179,12 +179,34 @@ end
 
 --- A `map` for `bind_keys` in the org buffer: on a column row the key runs
 --- its column view action (Emacs binds them on the overlays), elsewhere it
---- keeps its usual meaning.
+--- keeps its usual meaning. A key that starts a global mapping or a leader
+--- (<Space> with a space leader, g before Neovim's gr*) isn't bound: it
+--- would shadow them, and a plugin that maps the key itself after the
+--- view opened (which-key's trigger) would lose its mapping on quit.
 local function overlay_mapper(state)
   local src = state.src
   state.actions, state.saved_maps, state.lhs = {}, {}, {}
+  local longer = {}
+  for _, m in ipairs(vim.api.nvim_get_keymap("n")) do
+    longer[#longer + 1] = vim.keycode(m.lhs)
+  end
+  for _, leader in ipairs({ vim.g.mapleader or "\\", vim.g.maplocalleader or "\\" }) do
+    longer[#longer + 1] = vim.keycode(leader) .. "x"
+  end
+  local function starts_other(l)
+    local kc = vim.keycode(l)
+    for _, other in ipairs(longer) do
+      if #other > #kc and other:sub(1, #kc) == kc then
+        return true
+      end
+    end
+    return false
+  end
   return function(lhs, fn, desc)
     for _, l in ipairs(type(lhs) == "table" and lhs or { lhs }) do
+      if starts_other(l) then
+        goto continue
+      end
       local idx = #state.actions + 1
       state.actions[idx] = fn
       local prev = vim.fn.maparg(l, "n", false, true)
@@ -201,6 +223,7 @@ local function overlay_mapper(state)
         end
         return l
       end, { buffer = src, expr = true, nowait = true, desc = "org columns: " .. desc })
+      ::continue::
     end
   end
 end

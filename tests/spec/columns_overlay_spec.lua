@@ -131,6 +131,31 @@ describe("overlay column view", function()
     ok(not columns.active())
   end)
 
+  it("leaves the leader and the keys that start longer mappings alone (#282)", function()
+    local leader = vim.g.mapleader
+    vim.g.mapleader = " "
+    vim.keymap.set("n", "<leader>dt", "<Cmd>let g:org_leader = 1<CR>")
+    local buf = org_buffer(lines, { 2, 0 })
+    vim.g.org_leader = nil
+    columns.open()
+    -- g starts Neovim's default gr* and gx mappings
+    for _, k in ipairs({ " ", "g" }) do
+      eq(nil, vim.fn.maparg(k, "n", false, true).desc)
+    end
+    cursor(3, 5)
+    keys(" dt")
+    eq(1, vim.g.org_leader)
+    -- which-key puts its trigger back after the keys that opened the view,
+    -- only where the key isn't mapped
+    if vim.fn.maparg(" ", "n") == "" then
+      vim.keymap.set("n", " ", "<Nop>", { buffer = buf, desc = "which-key-trigger" })
+    end
+    columns.quit()
+    vim.keymap.del("n", "<leader>dt")
+    vim.g.mapleader = leader
+    eq("which-key-trigger", vim.fn.maparg(" ", "n", false, true).desc)
+  end)
+
   it("n / p / digits switch the allowed values of the column under the cursor", function()
     local buf = org_buffer(lines, { 1, 0 })
     columns.open()
