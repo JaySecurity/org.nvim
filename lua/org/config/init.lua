@@ -148,6 +148,7 @@ function M.lhs_list(value)
   if not value then
     return {}
   end
+  ---@type string[]
   local list = type(value) == "table" and value or { value }
   local prefix = M.opts.mappings.prefix or "<leader>o"
   local out = {}

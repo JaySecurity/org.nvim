@@ -40,3 +40,4 @@ lua/org/migrate.lua
 lua/org/reload.lua
 lua/org/utils.lua
 lua/org/id.lua
+lua/org/config
