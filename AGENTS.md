@@ -84,6 +84,7 @@ make extensions-report                     # each extension against the promotio
 | `lua/org/export/latex.lua`, `export/latex/` | LaTeX export: configuration, escaping and label helpers in the facade; math filters, preamble, engraved source, template, transcoders, headlines, links, plain text, source blocks, tables, back-end, PDF compilation in the parts |
 | `lua/org/export/html.lua`, `export/html/` | HTML export: configuration, escaping, attribute and anchor helpers in the facade; code, table of contents and footnotes, template, transcoders, headlines, LaTeX, links, blocks, tables, back-end in the parts |
 | `lua/org/export/ascii.lua`, `export/ascii/` | plain text export: configuration and character / column helpers in the facade; fill prefixes, line breaking, filling, layout, template, transcoders, tables, filters and back-end in the parts |
+| `lua/org/export/init.lua`, `export/dispatch/` | the export dispatcher (`require("org.export")`): format tables, output file names, the temporary buffer, writing files and running pandoc in the facade; exporting a buffer and `to_string`, compiling PDF / Info / man PDF, the export stack, asynchronous export, converting a region, the default template and the dispatcher menu and commands in the parts |
 | `lua/org/api/` | the public Lua API (`:h org-api`); everything else is internal |
 | `lua/org/pickers/` | picker sources and the snacks / fzf-lua / telescope / mini.pick / `vim.ui.select` adapters |
 | `lua/org/extensions/` | optional extensions, each enabled under `extensions` in `setup()` |
