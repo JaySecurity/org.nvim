@@ -189,6 +189,31 @@ drift.
 | Before this round (`main` at `6815b25`) | 1,932 | 1,242 | 70 | 100 | 365 | 55 | 100 | 76.6% | 74.3% |
 | After | 1,932 | 1,733 | 70 | 2 | 0 | 24 | 103 | 99.9% | 98.6% |
 
+By area, before this round (`score.sh parity/inventory-baseline.tsv`) and
+as re-measured against Org 9.8.12 (`score.sh`, 1,934 items):
+
+| Area | Overall before | Strict before | Overall now | Strict now |
+| --- | --- | --- | --- | --- |
+| Outline, structure, TODO, tags, properties, dates | 76.6% | 71.9% | 100% | 98.2% |
+| Plain lists | 60.6% | 60.6% | 100% | 100% |
+| Agenda and habits | 82.6% | 82.0% | 100% | 100% |
+| Capture and date trees | 70.6% | 70.6% | 100% | 100% |
+| Refile and archive | 91.1% | 91.1% | 100% | 100% |
+| Clocking and timers | 90.8% | 89.4% | 100% | 100% |
+| Tables and plots | 87.7% | 86.2% | 99.6% | 99.6% |
+| Column view | 100% | 96.8% | 100% | 100% |
+| Links | 59.0% | 49.3% | 100% | 83.6% |
+| Attachments, IDs, footnotes, lint, protocol, crypt | 78.7% | 78.7% | 100% | 100% |
+| Babel and source editing | 58.2% | 57.8% | 99.7% | 98.5% |
+| Export and publishing | 77.6% | 76.6% | 100% | 99.7% |
+| Citations | 39.4% | 39.4% | 100% | 100% |
+| Feeds and MobileOrg | 100% | 100% | 100% | 100% |
+
+Before this round the README gave estimates of about 92–95%, which
+weighted everyday features more heavily; the inventory gives every
+command and option the same weight, which is why the measured starting
+point was lower.
+
 ### How the gaps were closed
 
 The 465 missing or partial items were split into twelve workstreams by

@@ -22,6 +22,8 @@ Outlines · TODOs · Agenda · Capture · Clocking · Spreadsheet tables · Babe
 **[Docs](https://org-nvim.com/)** ·
 **[Guide](docs/guide.md)** ·
 **[Try it in your browser](https://org-nvim.com/playground.html)** ·
+**[Migrating from nvim-orgmode](https://org-nvim.com/manual/org-migrate.html)** ·
+**[FAQ](https://org-nvim.com/manual/org-faq.html)** ·
 **[Changelog](CHANGELOG.md)** ·
 **[Contributing](CONTRIBUTING.md)**
 
@@ -57,8 +59,10 @@ formulas, Babel and export.
 How does it compare with nvim-orgmode and Neorg? See [why another Org
 plugin?](docs/guide.md#-why-another-org-plugin).
 
-Switching from nvim-orgmode? [`:h org-migrate`](doc/org.txt) maps its
-options and keys to org.nvim's, and `:Org migrate_config` converts your setup.
+Switching from nvim-orgmode? [Migrating from
+nvim-orgmode](https://org-nvim.com/manual/org-migrate.html) (`:h org-migrate`)
+maps its options and keys to org.nvim's, and `:Org migrate_config` converts
+your setup.
 
 **On AI:** org.nvim is written with AI assistance
 ([Claude Code](https://claude.com/claude-code)). To keep that honest, its
@@ -362,67 +366,62 @@ by topic, with each command's Vim and Emacs keys on one row.
   option is under `:h org-config`.
 - **[The documentation website](https://org-nvim.com/)**: the manual, the
   guide, the examples and the parity scorecard, searchable.
+- **[FAQ](https://org-nvim.com/manual/org-faq.html)** (`:h org-faq`) and
+  **[Migrating from nvim-orgmode](https://org-nvim.com/manual/org-migrate.html)**
+  (`:h org-migrate`, with `:Org migrate_config` to convert your setup).
 
 ---
 
 ## 📊 Parity with Emacs Org
 
-How much of Emacs Org 9.8 works the same way in org.nvim, **measured**
-against **Org 9.8.12** (October 2026). Every interactive command and
-every user option of Org 9.8.12 (877 commands and 1,055 options, listed by
-Emacs itself, plus the `org-overriding-columns-format` variable that the
-manual tells users to set, and `org-replace-buffer-contents`, a command
-only before Emacs 31) was checked against org.nvim:
+**98.6% of Org 9.8.12's commands and options behave the same in org.nvim**
+(strict count, October 2026). Emacs itself lists every interactive command
+and user option of Org 9.8.12; each one is classified in
+[`docs/parity/inventory.tsv`](docs/parity/inventory.tsv) and scored by
+[`docs/parity/score.sh`](docs/parity/score.sh):
 
-| Lens | Parity | What it counts |
+| Count | Parity | What it counts |
 | --- | --- | --- |
-| **Overall** | `▰▰▰▰▰▰▰▰▰▰` **99.9%** | The 1,806 commands and options (of 1,934) that can exist outside Emacs; Emacs internals are left out |
-| **Strict** | `▰▰▰▰▰▰▰▰▰▰` **98.6%** | Also counts the 24 that need Emacs itself (Gnus, BBDB, eww, TRAMP, CDLaTeX...) |
+| **Strict** | `▰▰▰▰▰▰▰▰▰▰` **98.6%** | All 1,830 commands and options with a user-visible effect, including the 24 that need Emacs itself (Gnus, BBDB, eww, TRAMP, CDLaTeX...) |
+| Without Emacs-only | `▰▰▰▰▰▰▰▰▰▰` 99.9% | The 1,806 of those that can exist outside Emacs |
 
-Before this round, the same measurement gave 76.6% overall and 74.3%
-strict. The earlier estimates in this README (~92–95%) weighted everyday
-features more heavily; this measurement gives every command and option
-the same weight.
+By area (strict):
 
-By area:
+| Area | Parity | What's left |
+| --- | --- | --- |
+| 🌳 Outline, structure, TODO, tags, properties, dates | `▰▰▰▰▰▰▰▰▰▰` 98.2% | CDLaTeX, RefTeX and speedbar need Emacs |
+| 📋 Plain lists | `▰▰▰▰▰▰▰▰▰▰` 100% | — |
+| 🗓️ Agenda and habits | `▰▰▰▰▰▰▰▰▰▰` 100% | — |
+| 📥 Capture and date trees | `▰▰▰▰▰▰▰▰▰▰` 100% | — |
+| 📦 Refile and archive | `▰▰▰▰▰▰▰▰▰▰` 100% | — |
+| ⏱️ Clocking and timers | `▰▰▰▰▰▰▰▰▰▰` 100% | — |
+| 🧮 Tables and plots | `▰▰▰▰▰▰▰▰▰▰` 99.6% | Calc's symbolic mode and date format can't be set in `calc_default_modes` |
+| 🏛️ Column view | `▰▰▰▰▰▰▰▰▰▰` 100% | — |
+| 🔗 Links | `▰▰▰▰▰▰▰▰▱▱` 83.6% | Links to Emacs applications (Gnus, BBDB, MH-E, eww, w3m) need Emacs |
+| 📎 Attachments, IDs, footnotes, lint, protocol, crypt | `▰▰▰▰▰▰▰▰▰▰` 100% | — |
+| 🧪 Babel and source editing | `▰▰▰▰▰▰▰▰▰▰` 98.5% | Common Lisp runs in `sbcl`, not SLIME/SLY; TRAMP and Clojure's CIDER need Emacs |
+| 📤 Export and publishing | `▰▰▰▰▰▰▰▰▰▰` 99.7% | BBDB anniversaries in iCalendar need Emacs |
+| 📚 Citations | `▰▰▰▰▰▰▰▰▰▰` 100% | — |
+| 📰 Feeds and MobileOrg | `▰▰▰▰▰▰▰▰▰▰` 100% | — |
 
-| Area | Parity | Before | What's left |
-| --- | --- | --- | --- |
-| 🌳 Outline, structure, TODO, tags, properties, dates | `▰▰▰▰▰▰▰▰▰▰` 100% | 77% | Nothing that Neovim can do; CDLaTeX, RefTeX and speedbar need Emacs (98% strict) |
-| 📋 Plain lists | `▰▰▰▰▰▰▰▰▰▰` 100% | 61% | — |
-| 🗓️ Agenda and habits | `▰▰▰▰▰▰▰▰▰▰` 100% | 83% | — |
-| 📥 Capture and date trees | `▰▰▰▰▰▰▰▰▰▰` 100% | 71% | — |
-| 📦 Refile and archive | `▰▰▰▰▰▰▰▰▰▰` 100% | 91% | — |
-| ⏱️ Clocking and timers | `▰▰▰▰▰▰▰▰▰▰` 100% | 91% | — |
-| 🧮 Tables and plots | `▰▰▰▰▰▰▰▰▰▰` 99.6% | 88% | Calc's symbolic mode and date format can't be set in `calc_default_modes` |
-| 🏛️ Column view | `▰▰▰▰▰▰▰▰▰▰` 100% | 100% | — |
-| 🔗 Links | `▰▰▰▰▰▰▰▰▰▰` 100% | 59% | Links to Emacs applications (Gnus, BBDB, MH-E, eww, w3m) need Emacs (84% strict) |
-| 📎 Attachments, IDs, footnotes, lint, protocol, crypt | `▰▰▰▰▰▰▰▰▰▰` 100% | 79% | — |
-| 🧪 Babel and source editing | `▰▰▰▰▰▰▰▰▰▰` 99.7% | 58% | Common Lisp runs in `sbcl`, not SLIME/SLY; TRAMP and Clojure's CIDER need Emacs |
-| 📤 Export and publishing | `▰▰▰▰▰▰▰▰▰▰` 100% | 78% | BBDB anniversaries in iCalendar need Emacs |
-| 📚 Citations | `▰▰▰▰▰▰▰▰▰▰` 100% | 39% | — |
-| 📰 Feeds and MobileOrg | `▰▰▰▰▰▰▰▰▰▰` 100% | 100% | — |
+**Known gaps.** This counts commands and options, not every edge case of
+each, so it measures coverage rather than bug-for-bug equality. Where
+org.nvim differs from Emacs on purpose (prefix arguments are counts, the
+cursor sits on a character rather than between two), it is listed in the
+[known differences from Emacs](https://org-nvim.com/parity/differences.html)
+(`:h org-differences`). The status and note of every command and option
+are in the [parity scorecard](https://org-nvim.com/parity/index.html) and
+[`docs/parity/inventory.tsv`](docs/parity/inventory.tsv). If something
+behaves differently and isn't listed,
+[please open an issue](https://github.com/xheisenbugx/org.nvim/issues).
 
-> [!NOTE]
-> **How this is measured.** [`docs/parity/inventory.el`](docs/parity/inventory.el)
-> makes Emacs list every command and option of Org 9.8.12, and
-> [`docs/parity/inventory.tsv`](docs/parity/inventory.tsv) records, for each
-> one, whether org.nvim does the same thing (with the code that does it), or
-> why not. A command or option counts as done only when org.nvim behaves
-> equivalently, with a spec that exercises it; results that Emacs produces
-> (buffer text, export output, agenda lines) are checked against Emacs run in
-> batch mode. Partial ones count half; Emacs internals with no user-visible
-> effect (byte compilation, caches, obsolete aliases) are left out. Run
-> [`docs/parity/score.sh`](docs/parity/score.sh) to recompute the numbers.
->
-> A command or option that exists is not the same as every edge case of it
-> behaving identically, so this measures coverage, not bug-for-bug
-> equality. Where org.nvim differs on purpose (prefix arguments are counts,
-> the cursor sits on a character rather than between two), it says so in
-> [Differences from Emacs Org mode](docs/guide.md#differences-from-emacs-org-mode),
-> `:h org-differences` and the [parity review](docs/parity-review.md).
-> If something behaves differently from Emacs and isn't listed,
-> [please open an issue](https://github.com/xheisenbugx/org.nvim/issues).
+**Method.** A command or option counts as done only when org.nvim behaves
+equivalently and a spec exercises it; output that Emacs produces (buffer
+text, export, agenda lines) is compared with Emacs run in batch mode.
+Partial ones count half, and Emacs internals (byte compilation, caches,
+obsolete aliases) are left out. The full method, and how the numbers
+changed from round to round, are in the
+[parity review](docs/parity-review.md#fifth-round-a-measured-inventory).
 
 ---
 
