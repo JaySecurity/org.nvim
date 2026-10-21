@@ -394,27 +394,9 @@ end
 --- The objects whose count selects an ancestor.
 local NESTING = { heading = true, subtree = true, element = true, item = true }
 
---- Text object names in display order: { config name, object, inner }.
-M.list = {
-  { "inner_heading", "heading", true },
-  { "around_heading", "heading", false },
-  { "inner_subtree", "subtree", true },
-  { "around_subtree", "subtree", false },
-  { "inner_element", "element", true },
-  { "around_element", "element", false },
-  { "inner_item", "item", true },
-  { "around_item", "item", false },
-  { "inner_cell", "cell", true },
-  { "around_cell", "cell", false },
-  { "inner_row", "row", true },
-  { "around_row", "row", false },
-  { "inner_column", "column", true },
-  { "around_column", "column", false },
-  { "inner_link", "link", true },
-  { "around_link", "link", false },
-  { "inner_timestamp", "timestamp", true },
-  { "around_timestamp", "timestamp", false },
-}
+--- Text object names in display order: { config name, object, inner }
+--- (kept in org.mappings, which binds them without loading this module).
+M.list = require("org.mappings").text_objects
 
 --- The current Visual selection as a range, or nil outside Visual mode.
 ---@return org.TextObjectRange|nil

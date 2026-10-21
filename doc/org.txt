@@ -8050,6 +8050,11 @@ they belong to is entered and removed when another one is. GUIs show them
 in the menu bar; anywhere, run an entry with |:emenu| (`:emenu Org.<Tab>`
 completes) or pop a menu up with |:popup| (`:popup Org`). Entries Emacs
 greys out at point are disabled before a popup and refuse to run otherwise.
+The menus are built the first time they can be used: when a GUI is
+attached, or when a menu command (|:emenu|, |:popup|, |:menu|, ...) is typed
+or run from the command line. A mapping that runs `<Cmd>popup Org<CR>` (no
+command line) should call `require("org.menu").popup("Org")` instead, which
+builds them first.
 "File List for Agenda" and "Agenda Files" list the agenda files.
 `ui.menus = false` turns the menus off (Emacs has no option for them).
 

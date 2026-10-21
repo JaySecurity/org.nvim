@@ -39,7 +39,12 @@ local DEBOUNCE_MS = 200
 
 local has_buffer, sbuf = pcall(require, "string.buffer")
 
-local thread = require("org.agenda.index.thread")
+-- (loaded on first use: setup() runs this module's setup on start)
+local thread = setmetatable({}, {
+  __index = function(_, k)
+    return require("org.agenda.index.thread")[k]
+  end,
+})
 
 ---@class org.agenda.index.Entry
 ---@field ms integer mtime seconds
