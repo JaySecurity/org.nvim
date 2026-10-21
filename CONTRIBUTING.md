@@ -1078,7 +1078,8 @@ the bar is a prompt to add the missing specs or docs.
   `release branch` check fails any other pull request into `main`.
 - Pull requests into `dev` and `main` run `make test` on Ubuntu against
   Neovim v0.11.0, stable and nightly (nightly may fail without blocking),
-  and on macOS and Windows against stable, plus stylua, `make typecheck`
+  and on macOS and Windows against stable, plus `make lint` (stylua and
+  the source lint rules), `make typecheck`
   and a helptags check; after editing `doc/org.txt`, run
   `nvim --headless -u NONE -c "helptags doc" -c q`. A pull request that
   changes the docs also builds the website. Pushes don't run CI.

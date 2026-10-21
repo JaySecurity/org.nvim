@@ -92,8 +92,9 @@ jobs:
           d=$(mktemp -d)
           ORG_TEST_SHARD=${{ matrix.shard }}/3 ORG_TEST_PERF=0 ORG_TEST_PROGRESS=1 XDG_DATA_HOME=$d nvim --headless -u tests/minimal_init.lua -l tests/run.lua < /dev/null
 
+  # make lint: stylua, then the source lint rules (scripts/lint_sources.lua)
   lint:
-    name: lint (stylua)
+    name: lint (stylua, source rules)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -103,7 +104,13 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           version: 2.5.2
-          args: --check lua plugin ftplugin syntax tests scripts/site
+          args: --check lua plugin ftplugin syntax tests scripts/site scripts/playground
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: stable
+      - name: Source lint rules
+        run: nvim --headless --clean -l scripts/lint_sources.lua lua
 
   typecheck:
     name: typecheck (lua-language-server)
