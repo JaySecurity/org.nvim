@@ -1932,3 +1932,481 @@ ox-texinfo	org-texinfo-table-scientific-notation	opt	done	lua/org/export/texinfo
 ox-texinfo	org-texinfo-tables-verbatim	opt	done	lua/org/export/texinfo.lua:1534 export.texinfo.tables_verbatim	read from config but not listed in defaults/doc	-
 ox-texinfo	org-texinfo-text-markup-alist	opt	done	lua/org/export/texinfo.lua:1537 export.texinfo.text_markup_alist	read from config but not listed in defaults/doc	-
 ox-texinfo	org-texinfo-with-latex	opt	done	lua/org/config/misc.lua:47 export.texinfo.with_latex	-	-
+ob-C	org-babel-execute:C	exec	done	babel.languages.C (gcc); exec.lua c_compiler	ob-C: :flags :libs :includes :defines :main; babel_parity_spec	-
+ob-C	org-babel-execute:C++	exec	done	babel.languages['C++'] (g++); exec.lua c_compiler	ob-C; babel_parity_spec	-
+ob-C	org-babel-execute:D	exec	done	babel.languages.D (rdmd); exec.lua c_compiler	ob-C's D path, same code as C/C++ (no D-only spec)	-
+ob-C	org-babel-execute:cpp	exec	done	babel.languages.cpp (g++); exec.lua c_compiler	ob-C alias of C++; babel_parity_spec	-
+ob-R	org-babel-execute:R	exec	done	babel.languages.R (Rscript); langs.lua family r	babel_repl_spec	-
+ob-awk	org-babel-execute:awk	exec	partial	babel.languages.awk (awk -f)	runs the body with awk -f, but ignores :var (awk -v), :stdin, :cmd-line and :in-file; Emacs probe: `:var x=5 :stdin tbl` gives a table, org.nvim no result; no spec	-
+ob-calc	org-babel-execute:calc	exec	missing	-	default executor being added in this batch (calc, dot, sed, sass, octave, matlab, forth)	-
+ob-clojure	org-babel-execute:clojure	exec	done	babel/lang/clojure.lua (ob.lua HANDLERS)	babel_ob_clojure_spec	-
+ob-clojure	org-babel-execute:clojurescript	exec	done	babel/lang/clojure.lua (ob.lua HANDLERS)	nbb backend; babel_ob_clojure_spec	-
+ob-csharp	org-babel-execute:csharp	exec	done	babel/lang/csharp.lua	babel_ob_csharp_spec	-
+ob-css	org-babel-execute:css	exec	missing	-	ob-css returns the body as the result; org.nvim errors "No org-babel-execute function for css"	-
+ob-ditaa	org-babel-execute:ditaa	exec	done	babel/lang/ditaa.lua	babel_ob_ditaa_spec	-
+ob-dot	org-babel-execute:dot	exec	missing	-	default executor being added in this batch (calc, dot, sed, sass, octave, matlab, forth); the diagrams extension renders dot when enabled	-
+ob-emacs-lisp	org-babel-execute:elisp	exec	done	babel/elisp.lua (emacs --batch, else the formula interpreter)	babel_elisp_spec	-
+ob-emacs-lisp	org-babel-execute:emacs-lisp	exec	done	babel/elisp.lua (emacs --batch, else the formula interpreter)	babel_elisp_spec	-
+ob-eshell	org-babel-execute:eshell	exec	emacs-only	-	runs Eshell, Emacs's Lisp shell	-
+ob-forth	org-babel-execute:forth	exec	missing	-	default executor being added in this batch (calc, dot, sed, sass, octave, matlab, forth)	-
+ob-fortran	org-babel-execute:fortran	exec	done	babel/lang/fortran.lua	babel_ob_fortran_spec	-
+ob-gnuplot	org-babel-execute:gnuplot	exec	done	babel/lang/gnuplot.lua	babel_ob_gnuplot_spec	-
+ob-groovy	org-babel-execute:groovy	exec	done	babel/lang/groovy.lua	babel_ob_scripts_spec	-
+ob-haskell	org-babel-execute:haskell	exec	done	babel/lang/haskell.lua	babel_ob_haskell_spec	-
+ob-java	org-babel-execute:java	exec	done	babel/lang/java.lua	babel_ob_java_spec	-
+ob-js	org-babel-execute:js	exec	done	babel.languages.js (node); langs.lua family js	babel_session_spec, babel_parity_spec	-
+ob-julia	org-babel-execute:julia	exec	done	babel/lang/julia.lua	babel_ob_scripts_spec	-
+ob-latex	org-babel-execute:latex	exec	done	babel/lang/latex.lua	babel_ob_latex_spec	-
+ob-lilypond	org-babel-execute:lilypond	exec	done	babel/lang/lilypond.lua	babel_ob_lilypond_spec	-
+ob-lisp	org-babel-execute:lisp	exec	done	babel/lang/lisp.lua	sbcl --script in place of SLIME (org-babel-lisp-eval-fn is partial); babel_ob_lisp_spec	-
+ob-lua	org-babel-execute:lua	exec	done	babel.languages.lua (in Neovim, or cmd); langs.run_lua	babel_emacs_spec	-
+ob-makefile	org-babel-execute:makefile	exec	missing	-	ob-makefile returns the body as the result; org.nvim errors "No org-babel-execute function for makefile"	-
+ob-maxima	org-babel-execute:maxima	exec	done	babel/lang/maxima.lua	babel_ob_scripts_spec	-
+ob-ocaml	org-babel-execute:ocaml	exec	done	babel/lang/ocaml.lua	babel_ob_scripts_spec	-
+ob-octave	org-babel-execute:matlab	exec	missing	-	default executor being added in this batch (calc, dot, sed, sass, octave, matlab, forth)	-
+ob-octave	org-babel-execute:octave	exec	missing	-	default executor being added in this batch (calc, dot, sed, sass, octave, matlab, forth)	-
+ob-org	org-babel-execute:org	exec	missing	-	ob-org: the body (with $var expansion) as raw Org, or exported with :results latex/html/ascii; org.nvim errors "No org-babel-execute function for org"	-
+ob-perl	org-babel-execute:perl	exec	done	babel.languages.perl; langs.lua family perl	babel_var_spec	-
+ob-plantuml	org-babel-execute:plantuml	exec	done	babel/lang/plantuml.lua	babel_ob_plantuml_spec	-
+ob-processing	org-babel-execute:processing	exec	done	babel/lang/processing.lua	babel_ob_processing_screen_spec	-
+ob-python	org-babel-execute:python	exec	done	babel.languages.python; langs.lua family python	babel_ob_values_spec, babel_session_spec	-
+ob-ruby	org-babel-execute:ruby	exec	done	babel.languages.ruby; langs.lua family ruby	babel_ob_values_spec	-
+ob-sass	org-babel-execute:sass	exec	missing	-	default executor being added in this batch (calc, dot, sed, sass, octave, matlab, forth)	-
+ob-scheme	org-babel-execute:scheme	exec	done	babel/lang/scheme.lua	babel_ob_lisp_spec	-
+ob-screen	org-babel-execute:screen	exec	done	babel/lang/screen.lua	babel_ob_processing_screen_spec	-
+ob-sed	org-babel-execute:sed	exec	missing	-	default executor being added in this batch (calc, dot, sed, sass, octave, matlab, forth)	-
+ob-shell	org-babel-execute:ash	exec	done	babel.shell_names (config/babel.lua); exec.lua lang_cmd	runs as itself like org-babel-shell-names; babel_ob_shell_spec	-
+ob-shell	org-babel-execute:bash	exec	done	babel.shell_names (config/babel.lua); exec.lua lang_cmd	runs as itself like org-babel-shell-names; babel_ob_shell_spec	-
+ob-shell	org-babel-execute:csh	exec	done	babel.shell_names (config/babel.lua); exec.lua lang_cmd	runs as itself like org-babel-shell-names; babel_ob_shell_spec	-
+ob-shell	org-babel-execute:dash	exec	done	babel.shell_names (config/babel.lua); exec.lua lang_cmd	runs as itself like org-babel-shell-names; babel_ob_shell_spec	-
+ob-shell	org-babel-execute:fish	exec	done	babel.shell_names (config/babel.lua); exec.lua lang_cmd	runs as itself like org-babel-shell-names; babel_ob_shell_spec	-
+ob-shell	org-babel-execute:ksh	exec	done	babel.shell_names (config/babel.lua); exec.lua lang_cmd	runs as itself like org-babel-shell-names; babel_ob_shell_spec	-
+ob-shell	org-babel-execute:mksh	exec	done	babel.shell_names (config/babel.lua); exec.lua lang_cmd	runs as itself like org-babel-shell-names; babel_ob_shell_spec	-
+ob-shell	org-babel-execute:posh	exec	done	babel.shell_names (config/babel.lua); exec.lua lang_cmd	runs as itself like org-babel-shell-names; babel_ob_shell_spec	-
+ob-shell	org-babel-execute:sh	exec	done	babel.shell_names (config/babel.lua); exec.lua lang_cmd	runs as itself like org-babel-shell-names; babel_ob_shell_spec	-
+ob-shell	org-babel-execute:shell	exec	done	babel.shell_names (config/babel.lua); exec.lua lang_cmd	runs as itself like org-babel-shell-names; babel_ob_shell_spec	-
+ob-shell	org-babel-execute:zsh	exec	done	babel.shell_names (config/babel.lua); exec.lua lang_cmd	runs as itself like org-babel-shell-names; babel_ob_shell_spec	-
+ob-sql	org-babel-execute:sql	exec	done	babel.languages.sql (:engine client); langs.lua family sql	babel_fixes_spec, babel_parity_spec	-
+ob-sqlite	org-babel-execute:sqlite	exec	done	babel.languages.sqlite (sqlite3)	babel_session_spec, babel_parity_spec	-
+ol	link:elisp	link	done	links/shell.lua open_elisp	asks, then evaluates in emacs --batch or the interpreter; links_parity_spec	-
+ol	link:file	link	done	links/open.lua open_file_link	links_follow_spec, links_parity_spec	-
+ol	link:file+emacs	link	done	links/open.lua open_file_link (app vim)	opens in Neovim, as Emacs opens in Emacs; export_emacs_spec	-
+ol	link:file+sys	link	done	links/open.lua open_file_link (app system)	the system application; export_emacs_spec, lint_spec	-
+ol	link:ftp	link	done	links/open.lua: vim.ui.open, the same branch as http:	no ftp:-specific spec	-
+ol	link:help	link	vim	links/open.lua: :help	opens Neovim's :help for the tag; Emacs describes a Lisp function or variable	-
+ol	link:http	link	done	links/open.lua: vim.ui.open	links_parity_spec	-
+ol	link:https	link	done	links/open.lua: vim.ui.open	links_parity_spec	-
+ol	link:mailto	link	done	links/open.lua: vim.ui.open, the same branch as http:	the system mail handler (Emacs: compose-mail)	-
+ol	link:news	link	done	links/open.lua: vim.ui.open, the same branch as http:	no news:-specific spec	-
+ol	link:shell	link	done	links/shell.lua open_shell	links_parity_spec	-
+ol	link:shortdoc	link	emacs-only	-	Emacs shortdoc function groups	-
+ol-bbdb	link:bbdb	link	emacs-only	-	BBDB contact database	-
+ol-bibtex	link:bibtex	link	done	links/open.lua (file with ::key search); ol-bibtex store	bibtex_emacs_spec	-
+ol-docview	link:docview	link	partial	links/open.lua (as a file:)	opens the file, but drops ::PAGE (Emacs opens DocView at that page); no spec	-
+ol-doi	link:doi	link	done	links/open.lua: link.doi_server_url	links_parity_spec	-
+ol-eshell	link:eshell	link	emacs-only	-	runs a command in Eshell	-
+ol-eww	link:eww	link	missing	-	Emacs browses the URL in eww; org.nvim does not know the type (could open it like http:)	-
+ol-gnus	link:gnus	link	emacs-only	-	Gnus	-
+ol-info	link:info	link	done	links/open.lua: info(1) in a terminal	Emacs opens its Info reader; no info:-follow spec	-
+ol-irc	link:irc	link	done	links/open.lua: vim.ui.open, the same branch as http:	the system irc:// handler (Emacs: ERC/rcirc); no irc:-specific spec	-
+ol-man	link:man	link	done	links/open.lua: :Man	links_follow_spec	-
+ol-mhe	link:mhe	link	emacs-only	-	MH-E mail reader	-
+ol-rmail	link:rmail	link	emacs-only	-	Rmail	-
+ol-w3m	link:w3m	link	missing	-	Emacs browses the URL in emacs-w3m; org.nvim does not know the type (could open it like http:)	-
+org-attach	link:attachment	link	done	links/open.lua: org.attach resolve_attachment	attach_spec	-
+org-id	link:id	link	done	links/open.lua: find_id_link	links_parity_spec, api_spec	-
+ox-ascii	ascii:bold	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:center-block	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:clock	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:code	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:drawer	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:dynamic-block	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:entity	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:example-block	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:export-block	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:export-snippet	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:fixed-width	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:footnote-reference	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:headline	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:horizontal-rule	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:inline-src-block	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:inlinetask	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:inner-template	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:italic	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:item	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:keyword	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:latex-environment	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:latex-fragment	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:line-break	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:link	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:node-property	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:paragraph	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:plain-list	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:plain-text	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:planning	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:property-drawer	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:quote-block	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:radio-target	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:section	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:special-block	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:src-block	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:statistics-cookie	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:strike-through	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:subscript	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:superscript	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:table	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:table-cell	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:table-row	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:target	trans	na	-	names org-ascii-target, which Org does not define: nothing to port	-
+ox-ascii	ascii:template	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:timestamp	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:underline	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:verbatim	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-ascii	ascii:verse-block	trans	done	export/ascii/backend.lua	export_ascii_spec, emacs_export_parity_spec	-
+ox-beamer	beamer:bold	trans	done	export/beamer.lua	export_beamer_spec	-
+ox-beamer	beamer:export-block	trans	done	export/beamer.lua	export_beamer_spec	-
+ox-beamer	beamer:export-snippet	trans	done	export/beamer.lua	export_beamer_spec	-
+ox-beamer	beamer:headline	trans	done	export/beamer.lua	export_beamer_spec	-
+ox-beamer	beamer:item	trans	done	export/beamer.lua	export_beamer_spec	-
+ox-beamer	beamer:keyword	trans	done	export/beamer.lua	export_beamer_spec	-
+ox-beamer	beamer:link	trans	done	export/beamer.lua	export_beamer_spec	-
+ox-beamer	beamer:plain-list	trans	done	export/beamer.lua	export_beamer_spec	-
+ox-beamer	beamer:radio-target	trans	done	export/beamer.lua	export_beamer_spec	-
+ox-beamer	beamer:template	trans	done	export/beamer.lua	export_beamer_spec	-
+ox-html	html:bold	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:center-block	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:clock	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:code	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:drawer	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:dynamic-block	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:entity	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:example-block	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:export-block	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:export-snippet	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:fixed-width	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:footnote-reference	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:headline	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:horizontal-rule	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:inline-src-block	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:inlinetask	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:inner-template	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:italic	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:item	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:keyword	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:latex-environment	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:latex-fragment	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:line-break	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:link	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:node-property	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:paragraph	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:plain-list	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:plain-text	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:planning	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:property-drawer	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:quote-block	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:radio-target	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:section	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:special-block	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:src-block	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:statistics-cookie	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:strike-through	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:subscript	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:superscript	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:table	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:table-cell	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:table-row	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:target	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:template	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:timestamp	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:underline	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:verbatim	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-html	html:verse-block	trans	done	export/html/backend.lua	export_spec, emacs_export_parity_spec	-
+ox-icalendar	icalendar:clock	trans	done	export/icalendar.lua	export_icalendar_spec	-
+ox-icalendar	icalendar:footnote-definition	trans	done	export/icalendar.lua	export_icalendar_spec	-
+ox-icalendar	icalendar:footnote-reference	trans	done	export/icalendar.lua	export_icalendar_spec	-
+ox-icalendar	icalendar:headline	trans	done	export/icalendar.lua	export_icalendar_spec	-
+ox-icalendar	icalendar:inlinetask	trans	done	export/icalendar.lua	export_icalendar_spec	-
+ox-icalendar	icalendar:inner-template	trans	done	export/icalendar.lua	export_icalendar_spec	-
+ox-icalendar	icalendar:planning	trans	done	export/icalendar.lua	export_icalendar_spec	-
+ox-icalendar	icalendar:section	trans	done	export/icalendar.lua	export_icalendar_spec	-
+ox-icalendar	icalendar:template	trans	done	export/icalendar.lua	export_icalendar_spec	-
+ox-koma-letter	koma-letter:export-block	trans	done	export/koma.lua	export_koma_spec	-
+ox-koma-letter	koma-letter:export-snippet	trans	done	export/koma.lua	export_koma_spec	-
+ox-koma-letter	koma-letter:headline	trans	done	export/koma.lua	export_koma_spec	-
+ox-koma-letter	koma-letter:keyword	trans	done	export/koma.lua	export_koma_spec	-
+ox-koma-letter	koma-letter:template	trans	done	export/koma.lua	export_koma_spec	-
+ox-latex	latex:bold	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:center-block	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:clock	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:code	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:drawer	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:dynamic-block	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:entity	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:example-block	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:export-block	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:export-snippet	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:fixed-width	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:footnote-definition	trans	na	-	names org-latex-footnote-definition, which Org does not define: nothing to port	-
+ox-latex	latex:footnote-reference	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:headline	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:horizontal-rule	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:inline-src-block	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:inlinetask	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:italic	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:item	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:keyword	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:latex-environment	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:latex-fragment	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:latex-math-block	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:latex-matrices	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:line-break	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:link	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:node-property	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:paragraph	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:plain-list	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:plain-text	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:planning	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:property-drawer	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:quote-block	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:radio-target	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:section	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:special-block	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:src-block	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:statistics-cookie	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:strike-through	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:subscript	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:superscript	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:table	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:table-cell	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:table-row	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:target	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:template	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:timestamp	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:underline	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:verbatim	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-latex	latex:verse-block	trans	done	export/latex/backend.lua	emacs_export_parity_spec	-
+ox-man	man:babel-call	trans	na	-	names org-man-babel-call, which Org does not define: nothing to port	-
+ox-man	man:bold	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:center-block	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:code	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:drawer	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:dynamic-block	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:entity	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:example-block	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:export-block	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:export-snippet	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:fixed-width	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:footnote-definition	trans	na	-	names org-man-footnote-definition, which Org does not define: nothing to port	-
+ox-man	man:footnote-reference	trans	na	-	names org-man-footnote-reference, which Org does not define: nothing to port	-
+ox-man	man:headline	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:horizontal-rule	trans	na	-	names org-man-horizontal-rule, which Org does not define: nothing to port	-
+ox-man	man:inline-babel-call	trans	na	-	names org-man-inline-babel-call, which Org does not define: nothing to port	-
+ox-man	man:inline-src-block	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:inlinetask	trans	na	-	names org-man-inlinetask, which Org does not define: nothing to port	-
+ox-man	man:italic	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:item	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:keyword	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:line-break	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:link	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:node-property	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:paragraph	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:plain-list	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:plain-text	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:planning	trans	na	-	names org-man-planning, which Org does not define: nothing to port	-
+ox-man	man:property-drawer	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:quote-block	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:radio-target	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:section	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:special-block	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:src-block	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:statistics-cookie	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:strike-through	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:subscript	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:superscript	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:table	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:table-cell	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:table-row	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:target	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:template	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:timestamp	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:underline	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:verbatim	trans	done	export/man.lua	export_man_spec	-
+ox-man	man:verse-block	trans	done	export/man.lua	export_man_spec	-
+ox-md	md:bold	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:center-block	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:code	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:drawer	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:dynamic-block	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:example-block	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:export-block	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:fixed-width	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:headline	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:horizontal-rule	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:inline-src-block	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:inlinetask	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:inner-template	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:italic	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:item	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:keyword	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:latex-environment	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:latex-fragment	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:line-break	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:link	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:node-property	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:paragraph	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:plain-list	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:plain-text	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:property-drawer	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:quote-block	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:section	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:special-block	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:src-block	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:table	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:template	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-md	md:verbatim	trans	done	export/markdown.lua	emacs_export_parity_spec, export_compare_spec	-
+ox-odt	odt:bold	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:center-block	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:clock	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:code	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:drawer	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:dynamic-block	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:entity	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:example-block	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:export-block	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:export-snippet	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:fixed-width	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:footnote-definition	trans	na	-	names org-odt-footnote-definition, which Org does not define: nothing to port	-
+ox-odt	odt:footnote-reference	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:headline	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:horizontal-rule	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:inline-src-block	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:inlinetask	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:italic	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:item	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:keyword	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:latex-environment	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:latex-fragment	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:line-break	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:link	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:node-property	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:paragraph	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:plain-list	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:plain-text	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:planning	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:property-drawer	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:quote-block	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:radio-target	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:section	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:special-block	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:src-block	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:statistics-cookie	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:strike-through	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:subscript	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:superscript	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:table	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:table-cell	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:table-row	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:target	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:template	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:timestamp	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:underline	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:verbatim	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-odt	odt:verse-block	trans	done	export/odt/backend.lua	export_odt_spec	-
+ox-org	org:babel-call	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:bold	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:center-block	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:citation	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:citation-reference	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:clock	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:code	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:diary-sexp	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:drawer	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:dynamic-block	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:entity	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:example-block	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:export-block	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:fixed-width	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:footnote-definition	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:footnote-reference	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:headline	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:horizontal-rule	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:inline-babel-call	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:inline-src-block	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:inlinetask	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:italic	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:item	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:keyword	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:latex-environment	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:latex-fragment	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:line-break	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:link	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:node-property	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:paragraph	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:plain-list	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:planning	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:property-drawer	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:quote-block	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:radio-target	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:section	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:special-block	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:src-block	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:statistics-cookie	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:strike-through	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:subscript	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:superscript	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:table	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:table-cell	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:table-row	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:target	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:template	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:timestamp	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:underline	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:verbatim	trans	done	export/org.lua	export_emacs_spec	-
+ox-org	org:verse-block	trans	done	export/org.lua	export_emacs_spec	-
+ox-texinfo	texinfo:bold	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:center-block	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:clock	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:code	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:drawer	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:dynamic-block	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:entity	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:example-block	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:export-block	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:export-snippet	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:fixed-width	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:footnote-definition	trans	na	-	names org-texinfo-footnote-definition, which Org does not define: nothing to port	-
+ox-texinfo	texinfo:footnote-reference	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:headline	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:inline-src-block	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:inlinetask	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:italic	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:item	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:keyword	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:latex-environment	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:latex-fragment	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:line-break	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:link	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:node-property	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:paragraph	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:plain-list	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:plain-text	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:planning	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:property-drawer	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:quote-block	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:radio-target	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:section	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:special-block	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:src-block	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:statistics-cookie	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:strike-through	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:subscript	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:superscript	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:table	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:table-cell	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:table-row	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:target	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:template	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:timestamp	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:underline	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:verbatim	trans	done	export/texinfo.lua	export_texinfo_spec	-
+ox-texinfo	texinfo:verse-block	trans	done	export/texinfo.lua	export_texinfo_spec	-

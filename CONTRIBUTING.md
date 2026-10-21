@@ -441,12 +441,12 @@ and `docs/parity/inventory.el` name it too). Every Monday the Org releases
 workflow (`.github/workflows/org-release.yml`, also runnable from the
 Actions tab) looks up the latest release, the highest of GNU ELPA's `org`
 package and the `release_*` tags of the org-mode git repository. When it
-is newer than the pinned one, it lists the commands and options of both
-releases with `docs/parity/inventory.el` and opens an issue labelled
-`org-release` with the version and the diff: commands and options added,
-removed or moved to another library, and the ones
-`docs/parity/inventory.tsv` doesn't list yet. While that issue is open,
-later runs update it (for a still newer release too) instead of opening
+is newer than the pinned one, it lists the commands, options, Babel
+executors, link types and export transcoders of both releases with
+`docs/parity/inventory.el` and opens an issue labelled `org-release` with
+the version and the diff: items added, removed or moved to another
+library, and the ones `docs/parity/inventory.tsv` doesn't list yet. While that
+issue is open, later runs update it (for a still newer release too) instead of opening
 another; once it's closed, the same release isn't reported again. The
 workflow can only read the repository and write issues.
 
@@ -467,7 +467,7 @@ later) is fetched with `git clone` and `make autoloads`. To move to a new
 release: bump `ORG_VERSION`, `ORG_VERSION` in `lua/org/health/init.lua`
 and the version check in `scripts/emacs-parity/common.el` (`health_spec`
 checks the three agree), regenerate the fixtures (`make parity-fixtures`),
-give each new command and option a status in `docs/parity/inventory.tsv`,
+give each new item a status in `docs/parity/inventory.tsv`,
 run `make difftest` against it, and close the issue. The workflow lists
 commands with Emacs 30.1, so a compat alias of a command Emacs itself
 defines (`org-replace-buffer-contents`) can show up there but not with a

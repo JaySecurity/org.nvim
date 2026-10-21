@@ -307,3 +307,67 @@ Validation: the merged branch passes the full suite (3,349 passed, 0
 failed; `main` had 2,554), on Neovim 0.13.0-dev. StyLua was not run
 over existing files (the local version differs from the repository's);
 the files added in this round were formatted with StyLua 2.3.1.
+
+## The inventory beyond commands and options
+
+Counting only commands and options missed whole features: an `ob-LANG.el`
+that defines no option (ob-css, ob-makefile, ob-org, ob-sed...) never
+showed up, nor did a link type or an export element a back-end can't
+translate. [`parity/inventory.el`](parity/inventory.el) now also lists,
+from the same loaded Org (9.8.12; 9.8.10 gives the same lists):
+
+| Kind (`KIND` column) | What is listed | Items | As `SYMBOL` |
+| --- | --- | --- | --- |
+| `exec` | every `org-babel-execute:LANG` function, aliases (`cpp`, `elisp`, each shell of `org-babel-shell-names`) included | 56 | `org-babel-execute:LANG` |
+| `link` | every type in `org-link-parameters` after loading Org's libraries; the library is the one defining the type's functions, else the one whose loading registered it | 27 | `link:TYPE` |
+| `trans` | the transcoders each registered back-end defines itself (ascii, beamer, html, icalendar, koma-letter, latex, man, md, odt, org, texinfo); a derived back-end's inherited ones are counted once, in its parent | 395 | `BACKEND:ELEMENT-TYPE` |
+
+They are classified with the statuses above and scored by
+[`parity/score.sh`](parity/score.sh), which now also prints a line per
+kind. How each kind maps to org.nvim:
+
+- An executor is done when a block of that language runs with the default
+  configuration (`babel.languages`, `babel.shell_names`, a port under
+  `org.babel.lang`, or `org.babel.elisp`) and a spec runs it; partial when
+  it runs but ignores header arguments Emacs's executor reads. Executors
+  were probed by running the same buffer through `org-babel-execute-buffer`
+  in `emacs -Q --batch` and through `require("org.babel").execute_buffer`.
+- A link type is done when `org.links` follows it to the same target (an
+  external URL handler stands in for Emacs's IRC client or mail composer),
+  vim when Neovim's own command takes Emacs's place (`help:` opens `:help`),
+  emacs-only when following it needs an Emacs application (Gnus, Rmail,
+  MH-E, BBDB, Eshell, shortdoc).
+- A transcoder is done when the org.nvim back-end of the same name has a
+  transcoder for that element type (`org.export.ox` back-ends use Org's
+  type names) and that back-end's specs and Emacs golden files pass; na
+  when Org names a function it never defines (`org-man-planning`,
+  `org-latex-footnote-definition`, ...), so Emacs exports nothing there
+  either. Per-type output is checked only as far as the back-end's specs
+  and fixtures go.
+
+`release-watch.sh report` compares the three new lists between Org
+releases too, so a new language, link type or transcoder in a later Org
+shows up in the release issue.
+
+| | Items | done | vim | partial | missing | emacs-only | na | Overall | Strict |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Commands and options only | 1,934 | 1,734 | 70 | 2 | 0 | 24 | 104 | 99.9% | 98.6% |
+| With executors, link types and transcoders | 2,412 | 2,179 | 71 | 4 | 12 | 31 | 115 | 99.4% | 98.0% |
+| Executors | 56 | 44 | 0 | 1 | 10 | 1 | 0 | 80.9% | 79.5% |
+| Link types | 27 | 17 | 1 | 1 | 2 | 6 | 0 | 88.1% | 68.5% |
+| Transcoders | 395 | 384 | 0 | 0 | 0 | 0 | 11 | 100.0% | 100.0% |
+
+Gaps it found:
+
+- Executors missing: `calc`, `dot`, `forth`, `matlab`, `octave`, `sass`,
+  `sed` (default executors being added in the same batch of changes;
+  `dot` already renders through the `diagrams` extension), and `css`,
+  `makefile` (Emacs returns the body as the result) and `org` (the body
+  as raw Org, or exported with `:results latex`, `html` or `ascii`):
+  org.nvim reports "No org-babel-execute function".
+- `awk` is partial: the body runs with `awk -f`, but `:var` (awk's `-v`),
+  `:stdin`, `:cmd-line` and `:in-file` are ignored.
+- Link types: `eww:` and `w3m:` are unknown (they could open the URL like
+  `http:`); `docview:FILE::PAGE` opens the file but drops the page.
+- No spec follows `ftp:`, `news:`, `irc:`, `info:` or `docview:` links,
+  and none runs `awk` or `D` blocks.
