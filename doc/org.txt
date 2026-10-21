@@ -9464,8 +9464,9 @@ those of a Lua table by name, automatic selectors last. Empty groups are
 not shown; items no group takes are shown under "Other items"
 (`unmatched_name`, order `unmatched_order` = 99). Groups are shown by
 `order` (default 0, lowest first; groups with the same non-zero order by
-name). A block (or custom command, or org-ql view) can set `super_groups`
-to use other groups, or `false` for none.
+name; an `order` that isn't a number counts as 0). A block (or custom
+command, or org-ql view) can set `super_groups` to use other groups, or
+`false` for none.
 
 On a group header, <Tab> folds and unfolds the group (it stays folded when
 the agenda is redone; elsewhere <Tab> keeps its agenda meaning), and `gj`
@@ -9481,7 +9482,8 @@ Selectors:
   `deadline`, `scheduled`     true, false, "past", "today", "future",
                               `{ "before"|"on"|"after", "2026-10-01" }`
   `todo`                      keywords, true (any) or false (none)
-  `tag`, `category`           any of them
+  `tag`, `category`           any of them (tags ignore case, as Emacs'
+                              `cl-equalp`, accented letters too)
   `priority`                  letters; `priority_gt` `priority_ge`
                               `priority_lt` `priority_le` (or
                               `["priority>"]` etc.) compare with one
