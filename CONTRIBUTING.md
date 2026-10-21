@@ -50,6 +50,23 @@ run alone, so no other spec competes with them for the CPUs;
 (CI spreads the slow Windows run over three runners). The run ends with
 the five slowest files.
 
+#### Flaky specs
+
+`tests/quarantine.lua` lists the spec files known to fail now and then
+for reasons outside the change under test (a slow runner, a race with a
+child Neovim), each with its reason and, optionally, the one OS it flakes
+on. With `ORG_TEST_RERUN_QUARANTINED=1`, which CI sets, a listed file that
+fails runs once more in a fresh Neovim: if that run passes, the file is
+reported as `FLAKY:` (with the first run's failures, and a warning on the
+CI run's page) and doesn't fail the run; if it fails again, a
+`QUARANTINED:` line says so and its failures count. Files not on the list
+never get a second run, so a flake can't hide a real failure, and a real
+breakage of a listed file still fails, twice. Add a file only once CI
+history shows it failing on unrelated changes, and take it out once the
+flake is fixed; `ORG_TEST_QUARANTINE=a_spec.lua,b_spec.lua` quarantines
+files for one run. `tests/spec/test_runner_quarantine_spec.lua` tests the
+runner's side of it.
+
 `make coverage` runs the same specs with line coverage of `lua/org`
 (`SPEC=` works too). A line hook in `tests/coverage.lua`, loaded only
 then, counts the lines each test Neovim runs (with the JIT off, so it's a
