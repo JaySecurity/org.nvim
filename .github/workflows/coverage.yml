@@ -62,9 +62,11 @@ jobs:
             echo "No coverage report was written." >> "$GITHUB_STEP_SUMMARY"
           fi
           if [ -f coverage/floors.txt ]; then
-            printf '\n### Coverage floors\n\n```\n' >> "$GITHUB_STEP_SUMMARY"
-            cat coverage/floors.txt >> "$GITHUB_STEP_SUMMARY"
-            printf '```\n' >> "$GITHUB_STEP_SUMMARY"
+            {
+              printf '\n### Coverage floors\n\n```\n'
+              cat coverage/floors.txt
+              printf '```\n'
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
       # each criterion of "Promoting an extension" (CONTRIBUTING.md) with
       # this coverage, and the candidates for stable

@@ -1119,10 +1119,19 @@ the section is empty), and deploys the documentation website built from
 that tag. The tag goes on the release branch's last commit.
 There is no version number in the code: `:Org version` reports the latest
 `vX.Y.Z` tag of the checkout. Merge release PRs with a merge commit, not a
-squash, so that commit is part of `main`. Afterwards, merge the release
-branch back into `dev` (a pull request from `release/v0.2.0` into `dev`),
-so `dev` gets the changelog and reaches the tag; do the same for any fix
-committed to the release branch itself. Pick the version with
+squash, so that commit is part of `main`. The Release workflow then
+brings the release back into `dev`, so `dev` gets the changelog and
+reaches the tag: it makes a `merge-back/v0.2.0` branch at the release
+branch's last commit (the release branch may be deleted by then) and opens
+a pull request from it into `dev`, titled `release: merge v0.2.0 into dev`
+(a `release:` subject, which the changelog leaves out). It skips that when
+`dev` already has the commit. Merge that pull request with a merge commit
+too, resolving any conflict (usually `CHANGELOG.md`, take the release's)
+on the `merge-back` branch; pull requests opened by the workflow don't
+start CI. Opening it needs "Allow GitHub Actions to create and approve
+pull requests" (Settings > Actions > General); without it, or if the step
+fails, the release is still out and the step's warning links to open the
+same pull request by hand. Pick the version with
 [semver](https://semver.org): a breaking change (`feat!:` or a
 `BREAKING CHANGE:` footer, listed first in the changelog) bumps the major
 version, a `feat` the minor version, and fixes the patch.
