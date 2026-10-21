@@ -469,6 +469,7 @@ function export_as(backend, lines, opts)
       end
     end, { with_affiliated = true })
   end
+  M.expand_attachment_links(tree, work, lines, subtree, filename)
   tree = apply_filters(info.filters["parse-tree"], tree, info)
   M.collect_tree_properties(tree, info)
   if info.with_cite_processors and cite then
@@ -488,6 +489,63 @@ function export_as(backend, lines, opts)
   end
   output = apply_filters(info.filters["final-output"], output, info)
   return output, info
+end
+
+--- org-attach-expand-links (in org-export-before-parsing-functions): every
+--- attachment: link becomes a file: link to the file in the attachment
+--- directory of its entry (org-attach-expand), so images are inlined like
+--- any file link. `work` are the parsed lines; for an exported subtree
+--- `lines` before it give the entry and its parents.
+function M.expand_attachment_links(tree, work, lines, subtree, filename)
+  local found = false
+  for _, l in ipairs(work) do
+    if l:find("attachment:", 1, true) then
+      found = true
+      break
+    end
+  end
+  if not found then
+    return
+  end
+  local attach = require("org.attach")
+  local offset = subtree and subtree.first - 1 or 0
+  local file
+  element.map(tree, "link", function(l)
+    if l.link_type ~= "attachment" then
+      return
+    end
+    local h = l.parent
+    while h do
+      -- a link in a link's description stays (the search goes on after
+      -- the rewritten link)
+      if h.type == "link" then
+        return
+      end
+      if h.type == "headline" then
+        break
+      end
+      h = h.parent
+    end
+    if not file then
+      local ctx = work
+      if subtree then
+        ctx = vim.list_slice(lines, 1, offset)
+        vim.list_extend(ctx, work)
+      end
+      file = require("org.parser").parse(ctx, filename)
+    end
+    local lnum = h and h.begin_line and h.begin_line + offset or (subtree and subtree.line)
+    local hl = lnum and file:headline_at(lnum) or nil
+    -- the new link is parsed again: "::search" is its search option
+    local name, opt = (l.path or ""):match("^(.-)::(.*)$")
+    local path = attach.expand(name or l.path or "", file, hl)
+    l.link_type = "file"
+    l.type_explicit = true
+    l.path = path
+    l.search_option = opt
+    l.raw_link = "file:" .. path .. (opt and ("::" .. opt) or "")
+    l.format = "bracket"
+  end, { with_affiliated = true })
 end
 
 function M.as_list(v)

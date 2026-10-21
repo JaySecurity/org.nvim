@@ -4008,6 +4008,11 @@ the file), `sync_delete_empty_dir` ("query", true, false) and
 `archive_delete` (delete the attachments of archived entries: false, true,
 "query").
 
+On export, `attachment:NAME` links become `file:` links to NAME in the
+attachment directory of their entry (org-attach-expand-links), so an
+attached image is inlined like any image link; when the entry has no
+existing directory, NAME is relative to the file's directory.
+
 Pasting images and files                                    *org-yank-media*
 
 `:Org yank_media` (no default key; Emacs's `yank-media`) pastes what the
