@@ -28,8 +28,8 @@ local M = {}
 ---@field keyword? string|false default keyword
 ---@field keywords? string[] keywords `*KW` may name
 ---@field date_kind? "scheduled"|"deadline"
----@field priority_highest? string
----@field priority_lowest? string
+---@field priority_highest? string|integer
+---@field priority_lowest? string|integer
 
 ---------------------------------------------------------------------------
 -- Tokens
@@ -62,8 +62,9 @@ function M.tokenize(text)
     elseif c == "\\" and i < n then
       started = true
       plain = false
-      -- the next (possibly multibyte) character
-      local ch = text:sub(i + 1):match("^[%z\1-\127\194-\244][\128-\191]*")
+      -- the next (possibly multibyte) character; one byte when it starts
+      -- no UTF-8 character
+      local ch = text:sub(i + 1):match("^[%z\1-\127\194-\244][\128-\191]*") or text:sub(i + 1, i + 1)
       cur[#cur + 1] = ch
       i = i + 1 + #ch
     else
@@ -216,6 +217,18 @@ end
 ---------------------------------------------------------------------------
 -- Parser
 ---------------------------------------------------------------------------
+
+--- Value of a priority: its number when it has digits, else its letter's
+--- code (org-priority-to-value).
+---@param p string|integer
+---@return integer
+local function priority_value(p)
+  if type(p) == "number" then
+    return p
+  end
+  local n = tostring(p):match("%d+")
+  return n and tonumber(n) or tostring(p):upper():byte()
+end
 
 local function lower(tok)
   return tok.plain and tok.text:lower() or nil
@@ -380,7 +393,31 @@ function M.parse(text, now, opts)
   for _, k in ipairs(opts.keywords or {}) do
     keywords[k:upper()] = k
   end
-  local hi, lo = (opts.priority_highest or "A"):byte(), (opts.priority_lowest or "C"):byte()
+  local hi, lo = priority_value(opts.priority_highest or "A"), priority_value(opts.priority_lowest or "C")
+  -- numbers 0-64 (`#+PRIORITIES: 1 10 5`) or letters
+  local numeric = hi <= 64 and lo <= 64
+  local function rank(n)
+    local v = n and n > 0 and hi + n - 1
+    if v and v <= lo then
+      return numeric and tostring(v) or string.char(v)
+    end
+  end
+  -- The priority a token names: `!A`, `!1` (the highest), `p1`; in a
+  -- numeric range `!N` is priority N itself.
+  local function priority_of(tok, w)
+    local body = tok.text:sub(2)
+    if tok.sigil == "!" and numeric and body:match("^%d%d?$") then
+      local v = tonumber(body)
+      return v >= hi and v <= lo and tostring(v) or nil
+    elseif tok.sigil == "!" and not numeric and #body == 1 and body:match("%a") then
+      local v = body:upper():byte()
+      return v >= hi and v <= lo and body:upper() or nil
+    elseif tok.sigil == "!" and body:match("^%d$") then
+      return rank(tonumber(body))
+    elseif w and w:match("^p%d$") then
+      return rank(tonumber(w:sub(2)))
+    end
+  end
 
   local function literal(tok)
     parts[#parts + 1] = { text = tok.text }
@@ -506,14 +543,8 @@ function M.parse(text, now, opts)
         item.target.heading = body
       end
       i = i + 1
-    elseif tok.sigil == "!" and #body == 1 and body:upper():byte() >= hi and body:upper():byte() <= lo then
-      item.priority = body:upper()
-      i = i + 1
-    elseif tok.sigil == "!" and body:match("^%d$") and hi + tonumber(body) - 1 <= lo and tonumber(body) > 0 then
-      item.priority = string.char(hi + tonumber(body) - 1)
-      i = i + 1
-    elseif w and w:match("^p%d$") and tonumber(w:sub(2)) > 0 and hi + tonumber(w:sub(2)) - 1 <= lo then
-      item.priority = string.char(hi + tonumber(w:sub(2)) - 1)
+    elseif priority_of(tok, w) then
+      item.priority = priority_of(tok, w)
       i = i + 1
     elseif tok.sigil == "~" and M.parse_effort(body) then
       item.effort = M.parse_effort(body)

@@ -9963,7 +9963,9 @@ What the line may contain ~
                repeater and are written as a diary sexp,
                `<%%(memq (calendar-day-of-week date) '(1 2 3 4 5))>`.
   `#tag`       a tag; `#42` (digits only) stays in the title
-  `!A` `!1`    priority; also `p1`, `p2`, `p3` (p1 is the highest)
+  `!A` `!1`    priority; also `p1`, `p2`, `p3` (p1 is the highest).
+               With numeric priorities (`priority_highest = "1"`,
+               `priority_lowest = "10"`) `!5` is priority 5 itself.
   `~30m`       Effort: `~30m`, `~1h`, `~1h30`, `~1:30`, `~90`, `~1.5h`
   `@Heading`   target: the best match among the headings of the `targets`
                files (exact, then prefix, substring and fuzzy match);
