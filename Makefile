@@ -36,6 +36,13 @@ coverage:
 	nvim --clean --headless -l scripts/coverage_report.lua coverage/counts coverage || s=1; \
 	exit $$s
 
+# The coverage of `make coverage` (coverage/coverage.json) against the
+# floors in scripts/coverage_floor.txt: fails when a path dropped below its
+# floor; ARGS=--update resets the floors (after a full run).
+.PHONY: coverage-check
+coverage-check:
+	nvim --clean --headless -l scripts/coverage_floor.lua coverage/coverage.json $(ARGS)
+
 # The fuzz specs with many more seeds: ORG_FUZZ_SCALE (40) times their
 # defaults, or ORG_FUZZ_ITERATIONS each, from ORG_FUZZ_START (default: a
 # random seed). See "Fuzzing" in CONTRIBUTING.md.
@@ -124,8 +131,10 @@ changelog:
 
 # The promotion report of the extensions (CONTRIBUTING.md, "Promoting an
 # extension"): each criterion per extension, pass or fail, and the
-# candidates for stable. Uses coverage/coverage.json of `make coverage`
-# when there is one. ARGS: --markdown, --json, --no-gh, --demo FILE, names.
+# candidates for stable. Uses the coverage/ of `make coverage` when there
+# is one (or --coverage PATH / ORG_COVERAGE, e.g. a downloaded `coverage`
+# artifact). ARGS: --markdown, --json, --no-gh, --coverage PATH, --demo
+# FILE, names.
 .PHONY: extensions-report
 extensions-report:
 	@nvim --headless --clean -l scripts/extension_report.lua $(ARGS)

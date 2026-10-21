@@ -41,6 +41,13 @@ M.HANDLERS = {
   groovy = "groovy",
   ocaml = "ocaml",
   maxima = "maxima",
+  calc = "calc",
+  dot = "dot",
+  sed = "sed",
+  sass = "sass",
+  octave = "octave",
+  matlab = "octave",
+  forth = "forth",
 }
 
 --- The options of `lang` (its `babel.languages` entry), or nil when the

@@ -399,6 +399,13 @@ describe("site", function()
       -- coverage is required: an unmeasured one blocks a promotion
       ok(vim.tbl_contains(report.blockers(data.extensions[2]), "coverage"))
       ok(report.why(data.extensions[2], { "coverage" }):find("coverage not measured", 1, true))
+      -- a failed criterion is work to do (gaps) or only time (age)
+      for _, r in ipairs(data.extensions) do
+        eq(#r.failed, #r.gaps + #r.age)
+      end
+      eq({ { "specs" }, { "added" } }, { report.split_age({ "specs", "added" }) })
+      ok(report.why_split(data.extensions[2], { "added" }):find("^only waits on age: "))
+      ok(type(data.young) == "table")
       local okk, msg = pcall(report.measure, { only = { "nope" } })
       eq(false, okk)
       eq("no built-in extension nope", msg)

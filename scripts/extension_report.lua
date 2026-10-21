@@ -8,8 +8,13 @@
 -- Options:
 --   --markdown          GitHub Markdown (for a job summary) instead of text
 --   --json              the measurements as JSON
---   --coverage FILE     coverage.json of `make coverage` (default:
---                       coverage/coverage.json when it exists)
+--   --coverage PATH     the line coverage of `make coverage`: its
+--                       coverage.json or report.md, its counts directory,
+--                       or a directory holding one of them (such as the
+--                       `coverage` artifact of the Coverage workflow:
+--                       gh run download ID --name coverage --dir DIR).
+--                       Default: $ORG_COVERAGE, else ./coverage when it
+--                       has any of them; without one it shows "?"
 --   --no-gh             don't ask GitHub for open bug issues (also when
 --                       `gh` is missing or fails: the column is skipped)
 --   --issues FILE       open bug issues as the JSON of `gh issue list --json
@@ -158,16 +163,86 @@ end
 -- ---------------------------------------------------------------------------
 -- Coverage
 
--- the modules of the coverage.json in use (nil: not measured)
+-- the modules of the coverage in use, { [module] = { file?, lines, hit } }
+-- (nil: not measured)
 local coverage
 
+-- how to get coverage when there is none
+local COVERAGE_HOW = "run `make coverage` here, or download the `coverage` artifact of the latest "
+  .. "Coverage workflow run (`gh run download ID --name coverage --dir coverage`) "
+  .. "or point --coverage PATH or ORG_COVERAGE at one"
+M.COVERAGE_HOW = COVERAGE_HOW
+
 --- The modules of a coverage.json of `make coverage`, nil when unreadable.
-local function load_coverage(path)
+local function coverage_json(path)
   local ok, data = pcall(vim.json.decode, read(path) or "")
   if ok and type(data) == "table" and type(data.modules) == "table" then
     return data.modules
   end
-  io.stderr:write("extension_report.lua: can't read coverage from " .. path .. "\n")
+end
+
+--- The modules of a report.md of `make coverage` (its "| `module` | pct |
+--- run | lines |" rows), nil when it has none.
+local function coverage_md(path)
+  local out
+  for l in (read(path) or ""):gmatch("[^\n]+") do
+    local mod, hit, n = l:match("^|%s*`([%w_%.]+)`%s*|%s*[%d%.]+%%%s*|%s*(%d+)%s*|%s*(%d+)%s*|")
+    if mod then
+      out = out or {}
+      out[mod] = { lines = tonumber(n), hit = tonumber(hit) }
+    end
+  end
+  return out
+end
+
+--- The modules of a counts directory of `make coverage` (the <pid>.json
+--- files of tests/coverage.lua), merged by scripts/coverage_report.lua.
+local function coverage_counts(dir)
+  if #vim.fn.glob(dir .. "/*.json", false, true) == 0 then
+    return nil
+  end
+  local out = vim.fn.tempname()
+  local res = run({ vim.v.progpath, "--clean", "--headless", "-l", root .. "/scripts/coverage_report.lua", dir, out })
+  local mods = res and coverage_json(out .. "/coverage.json")
+  vim.fn.delete(out, "rf")
+  return mods
+end
+
+--- The coverage at `path`: a coverage.json, a report.md, a counts
+--- directory, or a directory holding one of them (a `make coverage`
+--- output directory or a downloaded `coverage` artifact). Nil (and a
+--- warning) when there is none.
+---@param path string
+---@return table|nil modules
+---@return string|nil from the file or directory read
+function M.load_coverage(path)
+  local function try(p)
+    local st = vim.uv.fs_stat(p)
+    if not st then
+      return nil
+    elseif st.type == "directory" then
+      for _, sub in ipairs({ "coverage.json", "report.md" }) do
+        local mods, from = try(p .. "/" .. sub)
+        if mods then
+          return mods, from
+        end
+      end
+      local mods = coverage_counts(p)
+      if mods then
+        return mods, p
+      end
+      return try(p .. "/counts")
+    elseif p:match("%.md$") then
+      return coverage_md(p), p
+    end
+    return coverage_json(p), p
+  end
+  local mods, from = try(path)
+  if not mods then
+    io.stderr:write("extension_report.lua: no coverage in " .. path .. ": " .. COVERAGE_HOW .. "\n")
+    return nil
+  end
+  return mods, from
 end
 
 ---@return number|nil percent
@@ -176,10 +251,18 @@ local function measure_coverage(name)
     return nil
   end
   local dir, single = "lua/org/extensions/" .. name .. "/", "lua/org/extensions/" .. name .. ".lua"
+  local prefix = "org.extensions." .. name
   local n, hit = 0, 0
-  for _, m in pairs(coverage) do
-    local file = type(m) == "table" and m.file or ""
-    if file:sub(1, #dir) == dir or file == single then
+  for mod, m in pairs(coverage) do
+    -- by file (coverage.json), else by module name (report.md)
+    local file = type(m) == "table" and m.file or nil
+    local mine
+    if file then
+      mine = file:sub(1, #dir) == dir or file == single
+    else
+      mine = mod == prefix or mod:sub(1, #prefix + 1) == prefix .. "."
+    end
+    if mine and type(m) == "table" then
       n, hit = n + (m.lines or 0), hit + (m.hit or 0)
     end
   end
@@ -662,6 +745,25 @@ for _, crit in ipairs(CRITERIA) do
   REQUIRED[crit[1]] = crit[3]
 end
 
+--- The criteria only time clears (releases since it was added, its age):
+--- an extension short of them alone has no work left, it just waits.
+local AGE = { added = true }
+M.AGE = AGE
+
+--- `keys` without the age criteria, and the age criteria among them.
+---@return string[] gaps, string[] age
+function M.split_age(keys)
+  local gaps, age = {}, {}
+  for _, k in ipairs(keys) do
+    if AGE[k] then
+      age[#age + 1] = k
+    else
+      gaps[#gaps + 1] = k
+    end
+  end
+  return gaps, age
+end
+
 local function measure_row(name)
   local ok, ext = pcall(require, "org.extensions." .. name)
   ext = ok and type(ext) == "table" and ext or {}
@@ -675,9 +777,14 @@ local function measure_row(name)
   c.specs = { value = tostring(specs.tests), pass = specs.tests >= BAR.specs }
   c.edge = { value = specs.edge and "yes" or "no", pass = specs.edge ~= nil, detail = specs.edge }
   if cov then
-    c.coverage = { value = ("%.1f%%"):format(cov), pass = cov >= BAR.coverage }
+    c.coverage = {
+      value = ("%.1f%%"):format(cov),
+      pass = cov >= BAR.coverage,
+      -- a `make coverage SPEC=...` of other specs
+      detail = cov == 0 and "no line run: not loaded by the specs of that coverage run" or nil,
+    }
   else
-    c.coverage = { value = "?", pass = nil, detail = "run make coverage" }
+    c.coverage = { value = "?", pass = nil, detail = "no make coverage data" }
   end
   local missing = {}
   if #docs.missing.doc > 0 then
@@ -734,12 +841,16 @@ local function measure_row(name)
       unknown[#unknown + 1] = crit[1]
     end
   end
+  local gaps, age = M.split_age(failed)
   return {
     name = name,
     stability = exts.stability(name),
     criteria = c,
     failed = failed,
     unknown = unknown,
+    -- the failed criteria that need work, and those only time clears
+    gaps = gaps,
+    age = age,
   }
 end
 
@@ -806,6 +917,21 @@ function M.why(r, keys)
 end
 local why = M.why
 
+--- What criteria `keys` of row `r` lack, the work first and then what
+--- only time clears: "needs X; waits on age: Y", or "only waits on age: Y".
+function M.why_split(r, keys)
+  local gaps, age = M.split_age(keys)
+  local out = {}
+  if #gaps > 0 then
+    out[#out + 1] = "needs " .. why(r, gaps)
+  end
+  if #age > 0 then
+    out[#out + 1] = (#gaps > 0 and "waits on age: " or "only waits on age: ") .. why(r, age)
+  end
+  return table.concat(out, "; ")
+end
+local why_split = M.why_split
+
 --- The bar in one sentence.
 M.BAR_TEXT = ("≥ %d specs, an edge-case spec, ≥ %d%% line coverage, every option documented, a health check, "):format(
   BAR.specs,
@@ -844,7 +970,7 @@ end
 
 ---@class ExtensionReportOpts
 ---@field only? string[] the extensions to measure (default: every built-in one)
----@field coverage? string a coverage.json of `make coverage` (nil: not measured)
+---@field coverage? string the coverage of `make coverage` (M.load_coverage; nil: not measured)
 ---@field gh? boolean ask GitHub (`gh`) for the open bug issues
 ---@field issues? string open bug issues as the JSON of `gh issue list` instead
 ---@field repo? string the git repository to read the history from
@@ -853,7 +979,7 @@ end
 --- Measure every criterion of the extensions. Errors (a message without a
 --- position) on an unknown extension or an unreadable issues file.
 ---@param o? ExtensionReportOpts
----@return table report { bar, criteria, extensions = rows, candidates, near, far, below, history }
+---@return table report { bar, criteria, extensions = rows, candidates, near, far, below, young, history, coverage_from }
 function M.measure(o)
   opts = o or {}
   local names = exts.builtin()
@@ -865,7 +991,11 @@ function M.measure(o)
     end
     names = opts.only
   end
-  coverage = opts.coverage and load_coverage(opts.coverage) or nil
+  local coverage_from
+  coverage = nil
+  if opts.coverage then
+    coverage, coverage_from = M.load_coverage(opts.coverage)
+  end
   issues = load_issues()
   local demo = opts.demo and exists(opts.demo) and read(opts.demo) or nil
   demo_extensions = demo and (demo:match("\n%s*extensions%s*=%s*(%b{})") or false) or nil
@@ -876,7 +1006,8 @@ function M.measure(o)
   for _, name in ipairs(names) do
     rows[#rows + 1] = measure_row(name)
   end
-  local candidates, near, far, below = {}, {}, {}, {}
+  -- below: stable with work left; young: stable and short only of age
+  local candidates, near, far, below, young = {}, {}, {}, {}, {}
   for _, r in ipairs(rows) do
     local b = blockers(r)
     if r.stability == "experimental" and #b == 0 then
@@ -885,8 +1016,10 @@ function M.measure(o)
       near[#near + 1] = r
     elseif r.stability == "experimental" then
       far[#far + 1] = r
-    elseif r.stability == "stable" and #r.failed > 0 then
+    elseif r.stability == "stable" and #r.gaps > 0 then
       below[#below + 1] = r
+    elseif r.stability == "stable" and #r.age > 0 then
+      young[#young + 1] = r
     end
   end
   for _, r in ipairs(rows) do
@@ -900,7 +1033,9 @@ function M.measure(o)
     near = near,
     far = far,
     below = below,
+    young = young,
     history = history_ok,
+    coverage_from = coverage_from,
   }
 end
 
@@ -995,14 +1130,24 @@ function M.format(report, md)
       .. (#r.unknown > 0 and ("; not measured here, check by hand: " .. table.concat(r.unknown, ", ")) or "")
   end)
   list("Near misses (one or two criteria short)", report.near, function(r)
-    return "needs " .. why(r, blockers(r))
+    return why_split(r, blockers(r))
   end)
   list("Further off", report.far, function(r)
-    return "needs " .. why(r, blockers(r))
+    return why_split(r, blockers(r))
   end)
-  list("Stable but below the bar (not demoted; look into it)", report.below, function(r)
-    return "lacks " .. why(r, r.failed)
+  list("Stable with work left (below the bar, not demoted; look into it)", report.below, function(r)
+    local _, age = M.split_age(r.failed)
+    return "lacks " .. why(r, r.gaps) .. (#age > 0 and ("; also waits on age: " .. why(r, age)) or "")
   end)
+  list("Stable, below the bar only by age (nothing to do: time clears it)", report.young or {}, function(r)
+    return "waits on " .. why(r, r.age)
+  end)
+  say()
+  if report.coverage_from then
+    say("Coverage from " .. report.coverage_from .. ".")
+  else
+    say("Coverage not measured: " .. COVERAGE_HOW .. ".")
+  end
   return table.concat(out, "\n") .. "\n"
 end
 
@@ -1035,8 +1180,18 @@ function M.main(argv)
     end
     i = i + 1
   end
-  local default_cov = root .. "/coverage/coverage.json"
-  o.coverage = o.coverage or (exists(default_cov) and default_cov or nil)
+  if not o.coverage and vim.env.ORG_COVERAGE and vim.env.ORG_COVERAGE ~= "" then
+    o.coverage = vim.env.ORG_COVERAGE
+  end
+  if not o.coverage then
+    -- what `make coverage` leaves, when it ran here
+    for _, p in ipairs({ "/coverage/coverage.json", "/coverage/report.md", "/coverage/counts" }) do
+      if exists(root .. p) then
+        o.coverage = root .. "/coverage"
+        break
+      end
+    end
+  end
   o.demo = o.demo or vim.env.ORG_DEMO_CONFIG or vim.fn.expand("~/demo/config.lua")
   local ok, report = pcall(M.measure, o)
   if not ok then

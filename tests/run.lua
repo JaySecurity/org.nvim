@@ -305,6 +305,8 @@ end
 local files = _G.arg and #_G.arg > 0 and { unpack(_G.arg) }
   or vim.fn.glob(root .. "/tests/spec/**/*_spec.lua", false, true)
 local progress = vim.env.ORG_TEST_PROGRESS
+-- flaky spec files: a second run when they fail (tests/quarantine.lua)
+local quarantine = dofile(root .. "/tests/quarantine.lua")
 
 --- Spec files that time their work: a parallel run starts them after every
 --- other file has finished, one at a time, so no other spec file competes
@@ -383,6 +385,8 @@ local function run_parallel(jobs)
     return size[a] > size[b]
   end)
   local running, finished, outputs = {}, 0, {}
+  -- the failed first run of each quarantined file that runs again
+  local first_runs = {}
   local start = uv.hrtime()
   local function launch(f)
     local data = vim.fn.tempname()
@@ -395,6 +399,7 @@ local function run_parallel(jobs)
       file = f,
       data = data,
       started = uv.hrtime(),
+      rerun = first_runs[f] ~= nil,
     }
     job.proc = vim.system({
       vim.v.progpath,
@@ -441,8 +446,19 @@ local function run_parallel(jobs)
         or (res.code ~= 0 and ("exited with code " .. tostring(res.code)))
         or "exited without results"
     end
-    outputs[#outputs + 1] = entry
     vim.fn.delete(job.data, "rf")
+    if job.rerun then
+      entry.first = first_runs[job.file]
+    elseif quarantine.should_rerun(job.file, entry) then
+      -- a known flake: run it once more, next, and report that run
+      first_runs[job.file] = entry
+      table.insert(queue, 1, job.file)
+      if progress and progress ~= "" then
+        io.stderr:write("== " .. vim.fn.fnamemodify(job.file, ":t") .. " failed, quarantined: running it again\n")
+      end
+      return
+    end
+    outputs[#outputs + 1] = entry
   end
   local n = math.min(jobs, #queue)
   local function may_launch()
@@ -484,8 +500,29 @@ local function run_parallel(jobs)
   table.sort(outputs, function(a, b)
     return a.file < b.file
   end)
-  local passed, failed, skips = 0, 0, {}
+  local passed, failed, skips, flaky = 0, 0, {}, {}
+  --- The FAIL lines of the run `e` of a spec file.
+  local function fail_lines(e)
+    local r = e.result or {}
+    local out = {}
+    for _, err in ipairs(r.errors or {}) do
+      out[#out + 1] = "FAIL: " .. err.name .. "\n    " .. tostring(err.err):gsub("\n", "\n    ")
+    end
+    if e.crash then
+      out[#out + 1] = "FAIL: " .. vim.fn.fnamemodify(e.file, ":.") .. ": " .. e.crash
+    end
+    return out
+  end
   for _, e in ipairs(outputs) do
+    if e.first and not quarantine.failed(e) then
+      flaky[#flaky + 1] = e
+    elseif e.first then
+      io.stdout:write(
+        "QUARANTINED: "
+          .. vim.fn.fnamemodify(e.file, ":.")
+          .. " failed twice; its failures count (tests/quarantine.lua)\n"
+      )
+    end
     local r = e.result or { passed = 0, failed = 0, errors = {}, skipped = {} }
     passed = passed + (r.passed or 0)
     failed = failed + (r.failed or 0)
@@ -507,12 +544,25 @@ local function run_parallel(jobs)
   for _, sk in ipairs(skips) do
     io.stdout:write("SKIP: " .. sk .. "\n")
   end
+  -- quarantined files that failed, then passed on their second run: not
+  -- failures, but listed with what failed the first time
+  for _, e in ipairs(flaky) do
+    local name = vim.fn.fnamemodify(e.file, ":.")
+    io.stdout:write("FLAKY: " .. name .. " failed, then passed on a second run; the first run:\n")
+    for _, l in ipairs(fail_lines(e.first)) do
+      io.stdout:write("    " .. l:gsub("\n", "\n    ") .. "\n")
+    end
+    if vim.env.GITHUB_ACTIONS == "true" then
+      io.stdout:write("::warning title=Flaky spec::" .. name .. " failed, then passed on a second run\n")
+    end
+  end
   io.stdout:write(
     string.format(
-      "\n%d passed, %d failed%s\n",
+      "\n%d passed, %d failed%s%s\n",
       passed,
       failed,
-      #skips > 0 and string.format(", %d skipped", #skips) or ""
+      #skips > 0 and string.format(", %d skipped", #skips) or "",
+      #flaky > 0 and string.format(", %d flaky", #flaky) or ""
     )
   )
   -- where the time went, to see which files to split or speed up
@@ -533,7 +583,20 @@ end
 local jobs = tonumber(vim.env.ORG_TEST_JOBS or "")
   or (vim.uv.available_parallelism and vim.uv.available_parallelism())
   or 1
-if jobs > 1 and #files > 1 and vim.env.ORG_TEST_WORKER ~= "1" then
+-- a quarantined file that may need a second run goes through the parallel
+-- runner even alone: the second run needs a fresh Neovim
+local function may_rerun()
+  if not quarantine.enabled() then
+    return false
+  end
+  for _, f in ipairs(files) do
+    if quarantine.find(f) then
+      return true
+    end
+  end
+  return false
+end
+if vim.env.ORG_TEST_WORKER ~= "1" and #files > 0 and ((jobs > 1 and #files > 1) or may_rerun()) then
   run_parallel(jobs)
   return
 end

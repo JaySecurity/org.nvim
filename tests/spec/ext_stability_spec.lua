@@ -197,6 +197,125 @@ describe("extension promotion report", function()
     eq(false, rows.heatmap.candidate)
   end)
 
+  --- Runs the report on `args`; its exit code, stdout and stderr.
+  local function run_report(args, env)
+    local cmd = { vim.v.progpath, "--headless", "--clean", "-l", root .. "/scripts/extension_report.lua", "--no-gh" }
+    return vim.system(vim.list_extend(cmd, args), { text = true, env = env }):wait()
+  end
+
+  it("reads the coverage of a report.md, a directory or a counts directory", function()
+    local dir = vim.fn.tempname()
+    vim.fn.mkdir(dir .. "/md", "p")
+    vim.fn.writefile({
+      "## Line coverage of lua/org",
+      "",
+      "| Module | Coverage | Lines run | Lines |",
+      "| --- | ---: | ---: | ---: |",
+      "| `org.extensions.heatmap` | 50.0% | 50 | 100 |",
+      "| `org.extensions.heatmap.render` | 100.0% | 100 | 100 |",
+      "| `org.extensions.heatmapx` | 0.0% | 0 | 900 |",
+      "| `org.extensions.kanban` | 0.0% | 0 | 10 |",
+    }, dir .. "/md/report.md")
+    -- a counts directory of tests/coverage.lua: { [file] = { [line] = n } }
+    vim.fn.mkdir(dir .. "/cov/counts", "p")
+    local f = assert(io.open(dir .. "/cov/counts/1.json", "wb"))
+    local hits = {}
+    for l = 1, 60 do
+      hits[tostring(l)] = 1
+    end
+    f:write(vim.json.encode({ ["lua/org/extensions/heatmap/init.lua"] = hits }))
+    f:close()
+    for _, case in ipairs({
+      { args = { "--coverage", dir .. "/md/report.md" } },
+      { args = { "--coverage", dir .. "/md" } },
+      { args = {}, env = { ORG_COVERAGE = dir .. "/md" } },
+    }) do
+      local res = run_report(vim.list_extend({ "--json", "heatmap", "kanban" }, case.args), case.env)
+      eq(0, res.code, res.stderr)
+      local rows = {}
+      for _, r in ipairs(vim.json.decode(res.stdout).extensions) do
+        rows[r.name] = r
+      end
+      -- its modules only, not heatmapx's
+      eq("75.0%", rows.heatmap.criteria.coverage.value)
+      eq(false, rows.heatmap.criteria.coverage.pass)
+      eq("0.0%", rows.kanban.criteria.coverage.value)
+      ok(rows.kanban.criteria.coverage.detail:find("not loaded", 1, true))
+    end
+    -- a counts directory is merged by scripts/coverage_report.lua
+    for _, p in ipairs({ dir .. "/cov", dir .. "/cov/counts" }) do
+      local res = run_report({ "--coverage", p, "heatmap" })
+      eq(0, res.code, res.stderr)
+      ok(res.stdout:find("Coverage from " .. dir .. "/cov/counts.", 1, true), res.stdout)
+      res = run_report({ "--json", "--coverage", p, "heatmap" })
+      local value = vim.json.decode(res.stdout).extensions[1].criteria.coverage.value
+      ok(value:match("^%d+%.%d%%$") and value ~= "0.0%", value)
+    end
+    -- none there: "?" and how to get it
+    local res = run_report({ "--coverage", dir .. "/nothing", "heatmap" })
+    vim.fn.delete(dir, "rf")
+    eq(0, res.code)
+    ok(res.stderr:find("no coverage in", 1, true), res.stderr)
+    ok(res.stdout:find("Coverage not measured: run `make coverage`", 1, true), res.stdout)
+    ok(res.stdout:find("gh run download", 1, true), res.stdout)
+  end)
+
+  it("lists stable extensions short only of age apart from those with work left", function()
+    local dir = vim.fn.tempname()
+    vim.fn.mkdir(dir, "p")
+    local demo, cov = dir .. "/config.lua", dir .. "/coverage.json"
+    -- sidebar isn't in the demo: a gap; both are 21 days old
+    vim.fn.writefile({ "return {", "  extensions = {", "    heatmap = {},", "  },", "}" }, demo)
+    vim.fn.writefile({
+      vim.json.encode({
+        modules = {
+          ["org.extensions.heatmap"] = { file = "lua/org/extensions/heatmap/init.lua", lines = 10, hit = 10 },
+          ["org.extensions.sidebar"] = { file = "lua/org/extensions/sidebar/init.lua", lines = 10, hit = 10 },
+        },
+      }),
+    }, cov)
+    local vcs = { "git", "-C", dir, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false" }
+    local env = { GIT_CONFIG_NOSYSTEM = "1", GIT_CONFIG_GLOBAL = "/dev/null" }
+    local d = ("@%d +0000"):format(os.time() - 21 * 86400)
+    local function g(args, e)
+      local r = vim.system(vim.list_extend(vim.deepcopy(vcs), args), { text = true, env = e or env }):wait()
+      eq(0, r.code, r.stderr)
+    end
+    g({ "init", "-q" })
+    for _, name in ipairs({ "heatmap", "sidebar" }) do
+      vim.fn.mkdir(dir .. "/lua/org/extensions/" .. name, "p")
+      vim.fn.writefile({ "x" }, dir .. "/lua/org/extensions/" .. name .. "/init.lua")
+    end
+    g({ "add", "-A" })
+    g(
+      { "commit", "-q", "-m", "feat: x" },
+      vim.tbl_extend("force", env, { GIT_AUTHOR_DATE = d, GIT_COMMITTER_DATE = d })
+    )
+    for _, t in ipairs({ "v1.0.0", "v1.1.0", "v1.2.0" }) do
+      g({ "tag", t })
+    end
+    local args = { "--repo", dir, "--demo", demo, "--coverage", cov, "heatmap", "sidebar" }
+    local res = run_report(vim.list_extend({ "--json" }, vim.deepcopy(args)))
+    eq(0, res.code, res.stderr)
+    local rows = {}
+    for _, r in ipairs(vim.json.decode(res.stdout).extensions) do
+      rows[r.name] = r
+    end
+    eq({ "added" }, rows.heatmap.failed)
+    eq({}, rows.heatmap.gaps)
+    eq({ "added" }, rows.heatmap.age)
+    eq({ "demo" }, rows.sidebar.gaps)
+    res = run_report(args)
+    vim.fn.delete(dir, "rf")
+    eq(0, res.code, res.stderr)
+    local work = res.stdout:match("Stable with work left[^\n]*\n(.-)\n\n")
+    local young = res.stdout:match("Stable, below the bar only by age[^\n]*\n(.-)\n\n")
+    ok(work and work:find("sidebar: lacks a place in the live demo; also waits on age", 1, true), res.stdout)
+    ok(not work:find("heatmap", 1, true), res.stdout)
+    ok(young and young:find("heatmap: waits on days since its first commit 21 of 30", 1, true), res.stdout)
+    ok(not young:find("sidebar", 1, true), res.stdout)
+  end)
+
   it("the bug report form lists every built-in extension", function()
     local form = read(".github/ISSUE_TEMPLATE/bug_report.yml")
     local block = form:match("\n    id: extension\n(.-)\n    validations:")

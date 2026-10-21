@@ -279,7 +279,7 @@ function M.org(lines, todo_cfg)
     elseif drawer and line:match("^%s*:[^%s:]+:") then
       local key, val = line:match("^(%s*:[^%s:]+:)(.*)$")
       chunks = { { key, "OrgPropertyKey" }, { val, "OrgPropertyValue" } }
-    elseif line:match("^%s*SCHEDULED:") or line:match("^%s*DEADLINE:") or line:match("^%s*CLOSED:") then
+    elseif require("org.parser").is_planning_line(line) then
       chunks = M.inline(line, "OrgPlanning")
     elseif line:match("^%s*|") then
       chunks = { { line, "OrgTable" } }

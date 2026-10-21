@@ -6,6 +6,29 @@ local utils = require("org.utils")
 
 local M = {}
 
+--- The text objects (org.textobjects) in display order: { config name,
+--- object, inner }. Here so that binding them doesn't load org.textobjects.
+M.text_objects = {
+  { "inner_heading", "heading", true },
+  { "around_heading", "heading", false },
+  { "inner_subtree", "subtree", true },
+  { "around_subtree", "subtree", false },
+  { "inner_element", "element", true },
+  { "around_element", "element", false },
+  { "inner_item", "item", true },
+  { "around_item", "item", false },
+  { "inner_cell", "cell", true },
+  { "around_cell", "cell", false },
+  { "inner_row", "row", true },
+  { "around_row", "row", false },
+  { "inner_column", "column", true },
+  { "around_column", "column", false },
+  { "inner_link", "link", true },
+  { "around_link", "link", false },
+  { "inner_timestamp", "timestamp", true },
+  { "around_timestamp", "timestamp", false },
+}
+
 --- Feed the key's default behaviour (or a global mapping for it) when an
 --- action returned `false`.
 local function fallback(lhs, mode)
@@ -240,7 +263,7 @@ function M.attach(bufnr)
   require("org.mouse").attach(bufnr)
   -- text objects (synchronous)
   local to = maps.text_objects or {}
-  for _, obj in ipairs(require("org.textobjects").list) do
+  for _, obj in ipairs(M.text_objects) do
     local name, kind, inner = obj[1], obj[2], obj[3]
     for _, lhs in ipairs(config.lhs_list(to[name])) do
       set({ "o", "x" }, lhs, function()
@@ -573,7 +596,7 @@ local function org_help_rows()
     table.insert(by_group[g], { lhs, a.desc })
   end
   local objects = {}
-  for _, obj in ipairs(require("org.textobjects").list) do
+  for _, obj in ipairs(M.text_objects) do
     local name = obj[1]
     local lhs = config.lhs_list((maps.text_objects or {})[name])
     if #lhs > 0 then

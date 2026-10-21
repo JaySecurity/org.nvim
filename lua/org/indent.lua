@@ -24,9 +24,7 @@ local BLOCKS = {
   ["verse-block"] = true,
 }
 
-local function is_blank(l)
-  return l == nil or l:match("^%s*$") ~= nil
-end
+local is_blank = require("org.utils").is_blank
 
 --- Display width of the leading whitespace of `l`.
 local function indentation(l, ts)
@@ -119,11 +117,7 @@ local function context(bufnr, lnum)
   local els = {}
   local i = 1
   local first = lines[1]
-  if
-    hs > 0
-    and first
-    and (first:match("^%s*SCHEDULED:") or first:match("^%s*DEADLINE:") or first:match("^%s*CLOSED:"))
-  then
+  if hs > 0 and parser.is_planning_line(first) then
     local j = 2
     while j <= ctx.n and is_blank(lines[j]) do
       j = j + 1
@@ -738,8 +732,7 @@ function M.unindent_buffer()
       end
       local els = {}
       local i = 1
-      local planning = sub[1]
-        and (sub[1]:match("^%s*SCHEDULED:") or sub[1]:match("^%s*DEADLINE:") or sub[1]:match("^%s*CLOSED:"))
+      local planning = parser.is_planning_line(sub[1])
       if headline(lines[s]) and planning then
         local j = 2
         while j <= #sub and is_blank(sub[j]) do

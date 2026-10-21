@@ -15,7 +15,8 @@
 -- asciicast player can play the file.
 --
 -- Recordings are reproducible: the clock is fixed (2026-10-12 09:00, moved
--- on only by a step's `wait`), the event times come from the steps rather
+-- on only by a step's `wait`), random bytes (the UUIDs of IDs) come from
+-- a fixed seed, the event times come from the steps rather
 -- than the wall clock (whole milliseconds), the screen is taken once it
 -- has settled, and messages show the data directory as
 -- ~/.local/share/nvim wherever it is. The header's "generator" names the
@@ -154,6 +155,21 @@ os.time = function(t)
 end
 os.date = function(fmt, t)
   return date(fmt, t or os.time())
+end
+-- random bytes from a fixed seed: the same IDs (org-id UUIDs) every time
+local seed = 1
+vim.uv.random = function(len, _, callback)
+  local bytes = {}
+  for i = 1, len do
+    seed = (seed * 1103515245 + 12345) % 2147483648
+    bytes[i] = string.char(math.floor(seed / 65536) % 256)
+  end
+  local s = table.concat(bytes)
+  if callback then
+    callback(nil, s)
+    return 0
+  end
+  return s
 end
 ]]
 

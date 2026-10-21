@@ -22,7 +22,7 @@ end
 -- Prefixes of the modules opening a file must not load (`except`: the
 -- light parts that each subsystem keeps for every buffer).
 local DENY = {
-  { "org.agenda", except = { "org.agenda.index", "org.agenda.index.thread" } },
+  { "org.agenda", except = { "org.agenda.index" } },
   { "org.archive" },
   { "org.babel" },
   { "org.calendar" },
@@ -33,16 +33,19 @@ local DENY = {
   { "org.crypt" },
   { "org.customize" },
   { "org.edit" },
-  { "org.export", except = { "org.export.beamer_mode" } },
+  { "org.export" },
   { "org.links", except = { "org.links.schemes" } },
   { "org.lint" },
   { "org.lists.", except = { "org.lists.shared" } },
+  { "org.menu_defs" },
   { "org.mobile" },
   { "org.org_mouse" },
   { "org.pickers" },
   { "org.refile" },
+  { "org.speed" },
   { "org.structure" },
   { "org.table", except = { "org.table.attach", "org.table.typing" } },
+  { "org.textobjects" },
   { "org.timestamps" },
   { "org.ui.images", except = { "org.ui.images.startup" } },
 }
@@ -63,7 +66,7 @@ local function denied(modules)
   return out
 end
 
--- About what a plain file loads now (46 modules), with room to grow; a
+-- About what a plain file loads now (42 modules), with room to grow; a
 -- large jump means a subsystem started loading with every buffer.
 local MAX_MODULES = 60
 
@@ -102,6 +105,58 @@ describe("first open", function()
     vim.api.nvim_buf_set_extmark(buf, ns, 0, 0, {})
     vim.cmd("doautocmd TextChanged")
     eq({}, vim.api.nvim_buf_get_extmarks(buf, ns, 0, -1, {}))
+  end)
+
+  it("still starts beamer mode with #+STARTUP: beamer or startup_with_beamer_mode", function()
+    local buf = org_buffer({ "#+STARTUP: beamer", "* H" }, { 2, 0 })
+    eq(true, vim.b[buf].org_beamer_mode)
+    local beamer = require("org.export.beamer_mode")
+    beamer.mode(buf, false)
+    buf = org_buffer({ "* H" }, { 1, 0 })
+    ok(not beamer.enabled(buf))
+    local config = require("org.config")
+    config.opts.startup_with_beamer_mode = true
+    buf = org_buffer({ "* H" }, { 1, 0 })
+    config.opts.startup_with_beamer_mode = false
+    ok(beamer.enabled(buf))
+    beamer.mode(buf, false)
+  end)
+
+  it("still runs speed commands and binds the text objects", function()
+    local config = require("org.config")
+    config.opts.use_speed_commands = true
+    org_buffer({ "* A", "** B", "* C" }, { 1, 0 })
+    vim.api.nvim_feedkeys("in", "xt", false)
+    vim.wait(50, function()
+      return vim.api.nvim_win_get_cursor(0)[1] == 2
+    end)
+    vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "xt", false)
+    config.opts.use_speed_commands = false
+    eq(2, vim.api.nvim_win_get_cursor(0)[1])
+    local buf = org_buffer({ "* A", "text", "* B" }, { 2, 0 })
+    vim.cmd("normal dar")
+    eq({ "* B" }, buf_lines(buf))
+  end)
+
+  it("builds the menus on the first menu command, not before", function()
+    local menu = require("org.menu")
+    eq(false, menu._live)
+    local function menus()
+      local found, m = pcall(vim.fn.menu_get, "Org")
+      return found and #m or 0
+    end
+    org_buffer({ "* H" })
+    eq(0, menus())
+    eq(true, menu.is_menu_cmdline("emenu Org."))
+    eq(true, menu.is_menu_cmdline("silent! popup Org"))
+    eq(true, menu.is_menu_cmdline("2nme x y"))
+    eq(false, menu.is_menu_cmdline("messages"))
+    eq(false, menu.is_menu_cmdline("pop"))
+    vim.api.nvim_feedkeys(":emenu Org\27", "xt", false)
+    eq(true, menu._live)
+    eq(1, menus())
+    vim.cmd("enew!")
+    eq(0, menus())
   end)
 
   it("the deny-list matches what it should", function()

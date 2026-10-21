@@ -41,9 +41,7 @@ local function set_lines(bufnr, s, e, lines)
   vim.api.nvim_buf_set_lines(bufnr, s - 1, e, false, lines)
 end
 
-local function is_blank(l)
-  return l == nil or l:match("^%s*$") ~= nil
-end
+local is_blank = utils.is_blank
 
 --- Insert `lines` before line `at` (a line past the end appends). Lines
 --- inserted right before a fold become part of it for Vim, which then
@@ -211,7 +209,7 @@ local function relevel(lines, delta, todo_cfg)
       if level then
         local j = h + 1
         local nxt = lines[j] or ""
-        if nxt:match("^%s*SCHEDULED:") or nxt:match("^%s*DEADLINE:") or nxt:match("^%s*CLOSED:") then
+        if parser.is_planning_line(nxt) then
           data[j], data_level[j] = "planning", level
           j = j + 1
         end

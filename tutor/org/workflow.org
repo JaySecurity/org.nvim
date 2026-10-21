@@ -37,7 +37,8 @@ file it (={{capture.kill}}= cancels).
 The agenda collects the TODO items and dates of your agenda files
 (=agenda_files=). ={{global.agenda}}= opens its menu. Press =<= in the
 menu to restrict it to the current file, then the key of a view: =a= for
-the week, =t= for every TODO item.
+the week, =t= for every TODO item. Here is a first look; the next
+lesson (=:Org tutor agenda=) covers searches, filters and bulk actions.
 
 ** 2.1 Mark a task done from the agenda
 In this file, press ={{global.agenda}}=, then =<= and =t=. The agenda

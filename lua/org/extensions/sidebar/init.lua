@@ -354,7 +354,14 @@ function M.render(st)
   local today = date.from_days(data.today_days)
   cv:add({ { " Today", "OrgSidebarTitle" }, { "  " .. today:strftime("%a %b %d"), "OrgSidebarDate" } })
 
-  for _, name in ipairs(o.sections or {}) do
+  -- one section name as a string; anything else that isn't a list: the default
+  local sections = o.sections
+  if type(sections) == "string" then
+    sections = { sections }
+  elseif type(sections) ~= "table" then
+    sections = M.defaults.sections
+  end
+  for _, name in ipairs(sections) do
     if name == "clock" then
       section(icons.clock, "Clock", nil)
       local c = data.clock

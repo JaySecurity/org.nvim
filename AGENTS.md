@@ -16,6 +16,7 @@ make site                                  # docs website into site/ (scripts/si
 make playground                            # re-record the tutor lessons for the site's playground (docs/playground/); LESSON=name for one
 make typecheck                             # lua-language-server --check with .luarc.json
 make coverage                              # specs with line coverage; report in coverage/report.md
+make coverage-check                        # coverage/ against the floors in scripts/coverage_floor.txt
 make fuzz                                  # fuzz specs with 40x the seeds, random start
 make bench                                 # first open and a 50,000-headline agenda, timed (CONTRIBUTING.md)
 make extensions-report                     # each extension against the promotion criteria (CONTRIBUTING.md)
@@ -66,13 +67,16 @@ make extensions-report                     # each extension against the promotio
 | `lua/org/parser.lua`, `element.lua`, `files.lua` | parsing and the per-file cache |
 | `lua/org/agenda/`, `babel/`, `capture/`, `export/`, `table/`, `ui/` | larger subsystems |
 | `lua/org/agenda/items.lua`, `agenda/items/` | collecting agenda entries (not compiled by the JIT, each part included): item fields, building items and headline iteration in the facade; times of day, repeats, date ranges, diary sexps, deadlines and scheduled, timestamps, log mode, the day agenda, the TODO / tags / search / stuck lists and sorting in the parts |
+| `lua/org/agenda/render.lua`, `agenda/render/` | turning agenda blocks into buffer lines (not compiled by the JIT, each part included): the extension hooks (`sources`, `grouper`) and the line builder in the facade; dates and spans, the prefix format, item lines, limits, clock checks and the clock report, what blocks share, the agenda block, the list blocks and the whole view in the parts |
 | `lua/org/fold.lua`, `fold/` | fold levels (`foldexpr` and its cache, a hot path) in `fold.lua`; visibility cycling and commands in `fold/` |
 | `lua/org/structure.lua`, `structure/` | outline editing: shared helpers in the facade; heading insertion, templates, promote/demote, moves, kill ring and clone, sorting, narrowing, toggles, motions in the parts |
 | `lua/org/links.lua`, `links/` | hyperlinks: the facade, and parse / search / open / shell / store / insert / commands parts |
 | `lua/org/lists.lua`, `lists/` | plain lists: the item parser (a hot path) and shared helpers in the facade; list structures, statistics cookies, checkboxes, item editing, motions, bullets and conversions in the parts |
 | `lua/org/ui/images.lua`, `ui/images/` | image and LaTeX previews: options, cell size and image files in the facade; element scan, image links, LaTeX rendering, backends, previews, native placement (redrawn every frame, a hot path) and commands in the parts |
 | `lua/org/columns.lua`, `columns/` | column view: the format parser and property values in the facade; summaries, the columnview dynamic block, drawing, editing and opening the view in the parts |
+| `lua/org/cite.lua`, `cite/` | citations in the buffer (oc.el / oc-basic.el insert, follow, activate): options and the processor registry in the facade; syntax, the text around the cursor and editing it, bibliography, insert, follow and mouse clicks, highlights in the parts; `cite/attach.lua` is what every org buffer sets up (the highlight provider, which loads the rest only with a citation in view) |
 | `lua/org/mobile.lua`, `mobile/` | MobileOrg sync: MD5, file helpers and encryption in the facade; index.org, agendas.org, push, pull edits, applying the inbox and flagged entries in the parts |
+| `lua/org/org_mouse.lua`, `org_mouse/` | org-mouse (port of org-mouse.el, `mouse.org_mouse`): the feature switches, text replacing and the checkbox / list item helpers in the facade; commands, menu builders, context menus, the agenda menu and keys, and the mouse keys in the parts |
 | `lua/org/export/element.lua`, `export/element/` | the export parser (port of org-element): node and text helpers in the facade; line classification, parser state, blocks, element parsers, lists, markup, links, objects, document and tree helpers in the parts |
 | `lua/org/export/odt.lua`, `export/odt/` | ODT export: constants, per-export state and encoding in the facade; headlines, labels, media, LaTeX, source code, timestamps, transcoders, tables, template, back-end, packaging, conversion in the parts |
 | `lua/org/table/calc_alg.lua`, `table/calc_alg/` | the table Calc's symbolic algebra: Calc's internals and the shared helpers (normalize, subst, angle conversions) in the facade; simplify, expand, polynomials and collect, deriv, integ and solve in the parts |
@@ -81,6 +85,7 @@ make extensions-report                     # each extension against the promotio
 | `lua/org/export/latex.lua`, `export/latex/` | LaTeX export: configuration, escaping and label helpers in the facade; math filters, preamble, engraved source, template, transcoders, headlines, links, plain text, source blocks, tables, back-end, PDF compilation in the parts |
 | `lua/org/export/html.lua`, `export/html/` | HTML export: configuration, escaping, attribute and anchor helpers in the facade; code, table of contents and footnotes, template, transcoders, headlines, LaTeX, links, blocks, tables, back-end in the parts |
 | `lua/org/export/ascii.lua`, `export/ascii/` | plain text export: configuration and character / column helpers in the facade; fill prefixes, line breaking, filling, layout, template, transcoders, tables, filters and back-end in the parts |
+| `lua/org/export/init.lua`, `export/dispatch/` | the export dispatcher (`require("org.export")`): format tables, output file names, the temporary buffer, writing files and running pandoc in the facade; exporting a buffer and `to_string`, compiling PDF / Info / man PDF, the export stack, asynchronous export, converting a region, the default template and the dispatcher menu and commands in the parts |
 | `lua/org/api/` | the public Lua API (`:h org-api`); everything else is internal |
 | `lua/org/pickers/` | picker sources and the snacks / fzf-lua / telescope / mini.pick / `vim.ui.select` adapters |
 | `lua/org/extensions/` | optional extensions, each enabled under `extensions` in `setup()` |

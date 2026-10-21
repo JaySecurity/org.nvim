@@ -231,7 +231,8 @@ local function decorate(st, slide, lines)
         local start = #stars
         local parts = require("org.parser").parse_headline_line(line, todo_cfg)
         if parts and parts.todo then
-          start = line:find(parts.todo, #stars + 1, true) + #parts.todo
+          -- "* TODO" alone: the title (and its highlight) is empty
+          start = math.min(line:find(parts.todo, #stars + 1, true) + #parts.todo, #line)
         end
         vim.api.nvim_buf_set_extmark(buf, ns, row, start, {
           end_col = #line,

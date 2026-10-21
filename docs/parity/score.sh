@@ -1,6 +1,7 @@
 #!/bin/sh
-# Score inventory.tsv (LIBRARY, SYMBOL, cmd|opt, STATUS, EVIDENCE, NOTE) per
-# area and overall. STATUS is done, vim (stock Neovim covers it), partial
+# Score inventory.tsv (LIBRARY, SYMBOL, KIND, STATUS, EVIDENCE, NOTE, SIZE)
+# per area, per kind and overall. KIND is cmd (command), opt (option), exec
+# (Babel executor), link (link type) or trans (export transcoder). STATUS is done, vim (stock Neovim covers it), partial
 # (counts half), missing, emacs-only, or na (Emacs internals, not counted):
 #   overall = (done + vim + partial/2) / (total - na - emacs-only)
 #   strict  = (done + vim + partial/2) / (total - na)
@@ -29,10 +30,14 @@ function row(name, n, d, v, p, m, e, x) {
   s = d + v + 0.5 * p
   return sprintf("%-16s %5d %5d %4d %4d %4d %5d %4d  %6.1f%% %6.1f%%", name, n, d, v, p, m, e, x, 100 * s / (n - x - e), 100 * s / (n - x))
 }
-{ a = area($1); n[a]++; c[a, $4]++; N++; C[$4]++ }
+{ a = area($1); n[a]++; c[a, $4]++; N++; C[$4]++; kn[$3]++; kc[$3, $4]++ }
 END {
   for (a in n)
     print row(a, n[a], c[a, "done"], c[a, "vim"], c[a, "partial"], c[a, "missing"], c[a, "emacs-only"], c[a, "na"]) | "sort"
   close("sort")
   print row("ALL", N, C["done"], C["vim"], C["partial"], C["missing"], C["emacs-only"], C["na"])
+  print ""
+  for (k in kn)
+    print row("kind " k, kn[k], kc[k, "done"], kc[k, "vim"], kc[k, "partial"], kc[k, "missing"], kc[k, "emacs-only"], kc[k, "na"]) | "sort"
+  close("sort")
 }' "$file"

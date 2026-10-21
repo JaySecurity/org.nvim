@@ -45,7 +45,8 @@ function P:headline(L, i, e)
   end
   local last = j - 1
   local cb = skip_blank(L, i + 1, last)
-  local node = M.node("headline", { level = level, true_level = level })
+  -- begin_line: the headline's line in the parsed lines (org-attach-expand-links)
+  local node = M.node("headline", { level = level, true_level = level, begin_line = i })
   local saved = self.current_headline
   node.props = {}
   self:headline_meta(node, L, i, j - 1)

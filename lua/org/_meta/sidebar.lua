@@ -12,7 +12,7 @@
 ---Seconds between redraws while open. (default: `30`)
 ---@field interval? integer
 ---Sections, top to bottom. (default: `{ "clock", "next", "today", "habits", "inbox" }`)
----@field sections? ("clock"|"next"|"today"|"habits"|"inbox")[]
+---@field sections? ("clock"|"next"|"today"|"habits"|"inbox")[]|"clock"|"next"|"today"|"habits"|"inbox"
 ---Keep DONE entries in the lists. (default: `false`)
 ---@field show_done? boolean
 ---List upcoming deadlines from this many days before they are due. (default: `7`)

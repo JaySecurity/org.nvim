@@ -3,9 +3,10 @@ name: Org releases
 # Weekly: is there an Emacs Org release newer than the one org.nvim is
 # measured against (ORG_VERSION in difftest.yml)? The latest is the highest
 # of GNU ELPA's org package and the release_* tags of the org-mode git
-# repository. When it is newer, docs/parity/inventory.el lists the commands
-# and options of both releases, and an issue labelled "org-release" gets
-# the version and the inventory diff: a new one, or the open one updated
+# repository. When it is newer, docs/parity/inventory.el lists the commands,
+# options, Babel executors, link types and transcoders of both releases,
+# and an issue labelled "org-release" gets the version and the inventory
+# diff: a new one, or the open one updated
 # (never a second; a closed issue for that release isn't reopened).
 # scripts/emacs-parity/release-watch.sh does the work; see "Watching for
 # Org releases" in CONTRIBUTING.md.

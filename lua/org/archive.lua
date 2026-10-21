@@ -141,8 +141,9 @@ local function get_line(bufnr, lnum)
   return vim.api.nvim_buf_get_lines(bufnr, lnum - 1, lnum, false)[1]
 end
 
+--- A missing line (past the end of the buffer) is not blank here.
 local function is_blank(l)
-  return l ~= nil and l:match("^%s*$") ~= nil
+  return l ~= nil and utils.is_blank(l)
 end
 
 local function line_count(bufnr)
@@ -197,7 +198,7 @@ local function archive_point(abuf, loc, d, open_line)
   local s, e = 1, line_count(abuf)
   if loc.datetree then
     local day = require("org.capture").ensure_datetree(abuf, nil, d, "day")
-    local hl = files.get_buffer(abuf):headline_at(day)
+    local hl = assert(files.get_buffer(abuf):headline_at(day))
     s, e = hl.line, hl.end_line
     if not loc.stars then
       return reversed and hl.body_end or e, hl.level + 1
@@ -221,7 +222,7 @@ local function archive_point(abuf, loc, d, open_line)
       e = e + #new
     end
     local file = files.get_buffer(abuf)
-    local hl = file:headline_at(hline)
+    local hl = assert(file:headline_at(hline))
     local limit = loc.datetree and e or line_count(abuf)
     local n = loc.datetree and 0 or 1
     local last
@@ -325,7 +326,7 @@ function M.archive_subtree(target, opts)
     end
   end
   local bufnr, file, hl = edit.resolve_headline(target)
-  if not hl then
+  if not (bufnr and file and hl) then
     return
   end
   local loc = M.parse_location(M.location_for(hl), file.filename)
@@ -381,7 +382,7 @@ function M.archive_subtree(target, opts)
     while parent and parent.level >= level do
       parent = parent.parent
     end
-    if parent and s1 and parent.line >= s1 and parent.line <= e1 then
+    if parent and s1 and e1 and parent.line >= s1 and parent.line <= e1 then
       source:del()
       utils.restore_buffer(abuf, original, modified)
       utils.warn("Cannot archive to a position inside the source subtree")
@@ -410,6 +411,7 @@ function M.archive_subtree(target, opts)
   local data = { bufnr = bufnr, lnum = s, title = title, archive_file = loc.filename }
   fire("OrgArchiveFinalize", vim.tbl_extend("force", data, { bufnr = abuf, lnum = lnum }))
   -- org-archive-subtree-save-file-p
+  ---@type boolean|"from_org"|"from_agenda"
   local save = config.opts.archive_subtree_save_file
   if save == "from_org" or save == "from_agenda" then
     save = save == (opts.from_agenda and "from_agenda" or "from_org")
@@ -426,15 +428,15 @@ function M.archive_subtree(target, opts)
   require("org.id").register_lines(new, vim.fs.normalize(loc.filename))
   local parent = hl.parent and marks.set(bufnr, hl.parent.line)
   fire("OrgArchive", data)
-  s = source:rows()
-  if s then
-    delete_attachments(bufnr, s)
+  local first = source:rows()
+  if first then
+    delete_attachments(bufnr, first)
   end
   -- back in the source, wherever the archived copy pushed it
-  s, e = source:rows()
+  local rs, re = source:rows()
   source:del()
-  if s then
-    vim.api.nvim_buf_set_lines(bufnr, s - 1, e, false, {})
+  if rs and re then
+    vim.api.nvim_buf_set_lines(bufnr, rs - 1, re, false, {})
   else
     utils.warn("The archived subtree was removed from " .. utils.abbreviate(file.filename))
   end
@@ -445,9 +447,10 @@ function M.archive_subtree(target, opts)
       pcall(require("org.lists").update_statistics_for, bufnr, pline)
     end
   end
-  if bufnr == vim.api.nvim_get_current_buf() then
+  -- (nowhere to put the cursor when an OrgArchive handler removed the entry)
+  if rs and bufnr == vim.api.nvim_get_current_buf() then
     local n = vim.api.nvim_buf_line_count(bufnr)
-    pcall(vim.api.nvim_win_set_cursor, 0, { math.max(1, math.min(s, n)), 0 })
+    pcall(vim.api.nvim_win_set_cursor, 0, { math.max(1, math.min(rs, n)), 0 })
   end
   utils.notify(string.format('Subtree "%s" archived in %s', title, utils.abbreviate(loc.filename)))
   return abuf
@@ -462,7 +465,7 @@ function M.archive_to_sibling(target)
     return
   end
   local bufnr, file, hl = edit.resolve_headline(target)
-  if not hl then
+  if not (bufnr and file and hl) then
     return
   end
   local name = config.opts.archive_sibling_heading or "Archive"
@@ -500,7 +503,7 @@ function M.archive_to_sibling(target)
     if bufnr == vim.api.nvim_get_current_buf() then
       pcall(vim.api.nvim_win_set_cursor, 0, { s, 0 })
       if up then
-        pcall(vim.cmd, up.line .. "foldclose")
+        pcall(vim.api.nvim_command, up.line .. "foldclose")
       end
     end
     utils.notify(string.format('Subtree "%s" moved to archive sibling', hl:plain_title()))
@@ -520,7 +523,7 @@ function M.archive_to_sibling(target)
     sib_line = select(2, edit.update_headline(bufnr, at + 1, { tags = { "ARCHIVE" } }))
   end
   local sibling = assert(marks.set(bufnr, sib_line))
-  local shl = files.get_buffer(bufnr):headline_at(sib_line)
+  local shl = assert(files.get_buffer(bufnr):headline_at(sib_line))
   local at = config.opts.archive_reversed_order and shl.body_end or shl.end_line
   vim.api.nvim_buf_set_lines(
     bufnr,
@@ -530,7 +533,8 @@ function M.archive_to_sibling(target)
     edit.paste_relevel(lines, hl.level + 1, files.get_buffer(bufnr).settings.todo)
   )
   edit.set_property(bufnr, at + 1, "ARCHIVE_TIME", archive_time())
-  s, e = source:rows()
+  local rs, re = source:rows()
+  s, e = assert(rs), assert(re)
   vim.api.nvim_buf_set_lines(bufnr, s - 1, e, false, {})
   sib_line = sibling:lnum()
   local pline = parent and parent:lnum()
@@ -543,7 +547,7 @@ function M.archive_to_sibling(target)
   if bufnr == vim.api.nvim_get_current_buf() then
     local n = vim.api.nvim_buf_line_count(bufnr)
     pcall(vim.api.nvim_win_set_cursor, 0, { math.max(1, math.min(s, n)), 0 })
-    pcall(vim.cmd, sib_line .. "foldclose")
+    pcall(vim.api.nvim_command, sib_line .. "foldclose")
   end
   utils.notify(string.format('Subtree "%s" moved to archive sibling', hl:plain_title()))
   return sib_line
@@ -681,7 +685,7 @@ function M.toggle_archive_tag(target)
   -- (an OrgTagsChanged handler may move the headline)
   local _, lnum = edit.update_headline(bufnr, hl.line, { tags = tags })
   if not idx and bufnr == vim.api.nvim_get_current_buf() then
-    pcall(vim.cmd, lnum .. "foldclose")
+    pcall(vim.api.nvim_command, lnum .. "foldclose")
   end
   if not target then
     utils.notify(idx and "Subtree unarchived" or "Subtree archived")

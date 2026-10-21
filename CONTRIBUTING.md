@@ -34,6 +34,7 @@ make lint                                 # stylua --check + source lint rules
 make format                               # format with stylua
 make typecheck                            # lua-language-server --check
 make coverage                             # specs with line coverage of lua/org
+make coverage-check                       # coverage/ against scripts/coverage_floor.txt
 make fuzz                                 # the fuzz specs with many more seeds
 git config blame.ignoreRevsFile .git-blame-ignore-revs  # blame past the formatting commit
 ```
@@ -49,6 +50,23 @@ run alone, so no other spec competes with them for the CPUs;
 (CI spreads the slow Windows run over three runners). The run ends with
 the five slowest files.
 
+#### Flaky specs
+
+`tests/quarantine.lua` lists the spec files known to fail now and then
+for reasons outside the change under test (a slow runner, a race with a
+child Neovim), each with its reason and, optionally, the one OS it flakes
+on. With `ORG_TEST_RERUN_QUARANTINED=1`, which CI sets, a listed file that
+fails runs once more in a fresh Neovim: if that run passes, the file is
+reported as `FLAKY:` (with the first run's failures, and a warning on the
+CI run's page) and doesn't fail the run; if it fails again, a
+`QUARANTINED:` line says so and its failures count. Files not on the list
+never get a second run, so a flake can't hide a real failure, and a real
+breakage of a listed file still fails, twice. Add a file only once CI
+history shows it failing on unrelated changes, and take it out once the
+flake is fixed; `ORG_TEST_QUARANTINE=a_spec.lua,b_spec.lua` quarantines
+files for one run. `tests/spec/test_runner_quarantine_spec.lua` tests the
+runner's side of it.
+
 `make coverage` runs the same specs with line coverage of `lua/org`
 (`SPEC=` works too). A line hook in `tests/coverage.lua`, loaded only
 then, counts the lines each test Neovim runs (with the JIT off, so it's a
@@ -60,6 +78,22 @@ install, and nothing of it reaches plugin users. The Coverage workflow
 runs it weekly (and from the Actions tab), uploads `coverage/` as an
 artifact and puts the summary on the run's page; it never runs on pull
 requests.
+
+#### Coverage floors
+
+`scripts/coverage_floor.txt` gives each strict path (those of
+`scripts/typecheck_strict.txt`, a file or a directory) a floor in percent,
+and `make coverage-check` (`scripts/coverage_floor.lua`) fails when the
+line coverage of a path in `coverage/coverage.json` is below its floor, or
+when a path matches no file any more. The Coverage workflow runs it after
+`make coverage` and fails the run when a path dropped. The check only
+means something after a full run: with `SPEC=` most paths fall short.
+After a full `make coverage`, `make coverage-check ARGS=--update` resets
+every floor to the path's coverage rounded down, less one point (the slack
+for lines that only run on some runs); do that to raise the floors when
+coverage went up, or to give a new strict path its floor. Don't lower a
+floor just to make the check pass: add the specs, or say in the pull
+request why the code can't be covered.
 
 To try your checkout in your own config, point lazy.nvim at it:
 
@@ -407,12 +441,12 @@ and `docs/parity/inventory.el` name it too). Every Monday the Org releases
 workflow (`.github/workflows/org-release.yml`, also runnable from the
 Actions tab) looks up the latest release, the highest of GNU ELPA's `org`
 package and the `release_*` tags of the org-mode git repository. When it
-is newer than the pinned one, it lists the commands and options of both
-releases with `docs/parity/inventory.el` and opens an issue labelled
-`org-release` with the version and the diff: commands and options added,
-removed or moved to another library, and the ones
-`docs/parity/inventory.tsv` doesn't list yet. While that issue is open,
-later runs update it (for a still newer release too) instead of opening
+is newer than the pinned one, it lists the commands, options, Babel
+executors, link types and export transcoders of both releases with
+`docs/parity/inventory.el` and opens an issue labelled `org-release` with
+the version and the diff: items added, removed or moved to another
+library, and the ones `docs/parity/inventory.tsv` doesn't list yet. While that
+issue is open, later runs update it (for a still newer release too) instead of opening
 another; once it's closed, the same release isn't reported again. The
 workflow can only read the repository and write issues.
 
@@ -433,7 +467,7 @@ later) is fetched with `git clone` and `make autoloads`. To move to a new
 release: bump `ORG_VERSION`, `ORG_VERSION` in `lua/org/health/init.lua`
 and the version check in `scripts/emacs-parity/common.el` (`health_spec`
 checks the three agree), regenerate the fixtures (`make parity-fixtures`),
-give each new command and option a status in `docs/parity/inventory.tsv`,
+give each new item a status in `docs/parity/inventory.tsv`,
 run `make difftest` against it, and close the issue. The workflow lists
 commands with Emacs 30.1, so a compat alias of a command Emacs itself
 defines (`org-replace-buffer-contents`) can show up there but not with a
@@ -588,12 +622,14 @@ Lessons are numbered in the order they are meant to be taken:
 | --- | --- | --- | --- |
 | 1 | `basics` | the basics | Beginner |
 | 2 | `workflow` | capture, agenda and clocking | Daily workflow |
-| 3 | `writing` | writing in org | Beginner |
-| 4 | `dates` | dates in depth | Daily workflow |
-| 5 | `tables` | tables as a spreadsheet | Power user |
-| 6 | `properties` | properties and column view | Power user |
-| 7 | `organize` | organize and find | Daily workflow |
-| 8 | `code` | code and export | Power user |
+| 3 | `agenda` | the agenda | Daily workflow |
+| 4 | `links` | links, IDs and attachments | Daily workflow |
+| 5 | `writing` | writing in org | Beginner |
+| 6 | `dates` | dates in depth | Daily workflow |
+| 7 | `tables` | tables as a spreadsheet | Power user |
+| 8 | `properties` | properties and column view | Power user |
+| 9 | `organize` | organize and find | Daily workflow |
+| 10 | `code` | code and export | Power user |
 
 The level is one of `Beginner`, `Daily workflow` and `Power user`
 (`require("org.tutor").levels`). `:Org tutor` lists the lessons in this
@@ -966,7 +1002,8 @@ What the agenda pass found:
   view. Interpreted, the same view took a quarter of the time, and still
   less than with a larger machine-code area. `org.agenda.items` (and
   each of its parts in `agenda/items/`: the call covers only the
-  functions of the file that makes it), `org.agenda.render` and
+  functions of the file that makes it), `org.agenda.render` (and its
+  parts in `agenda/render/`) and
   `org.agenda.habits` call `jit.off(true, true)`;
   the parser keeps the JIT, which helps it when it doesn't flush. To check
   a module, load it with the JIT off (`jit.off(loadfile(path), true)`
@@ -996,11 +1033,21 @@ make coverage            # optional, but the coverage criterion needs it
 make extensions-report   # ARGS="--markdown", "--json", "--no-gh", or names
 ```
 
+Coverage is read from `coverage/` when `make coverage` has run (its
+`coverage.json`, `report.md` or `counts/`); `ARGS="--coverage PATH"` or
+`ORG_COVERAGE=PATH` point at another, such as the `coverage` artifact of
+the latest Coverage workflow run (`gh run download ID --name coverage
+--dir DIR`). Without any, coverage shows `?` and the report says how to
+get it.
+
 `scripts/extension_report.lua` measures each criterion below for every
 extension and lists the candidates (experimental extensions that pass all
 of them), the near misses and stable extensions that have fallen below
-the bar. The release pull request into `main` shows the same report in
-its job summary (with coverage from the latest Coverage run), and so does
+the bar. Stable extensions short only of the releases-and-age criterion
+are listed apart ("below the bar only by age"): time clears that, so
+only the "with work left" list needs specs or docs. For experimental
+ones, what only time clears comes after "waits on age". The release
+pull request into `main` shows the same report in its job summary (with coverage from the latest Coverage run), and so does
 the weekly Coverage workflow; the website publishes it as the
 [Extensions status](https://org-nvim.com/extensions.html) page at every
 release. An experimental extension becomes stable
@@ -1061,7 +1108,8 @@ the bar is a prompt to add the missing specs or docs.
   `release branch` check fails any other pull request into `main`.
 - Pull requests into `dev` and `main` run `make test` on Ubuntu against
   Neovim v0.11.0, stable and nightly (nightly may fail without blocking),
-  and on macOS and Windows against stable, plus stylua, `make typecheck`
+  and on macOS and Windows against stable, plus `make lint` (stylua and
+  the source lint rules), `make typecheck`
   and a helptags check; after editing `doc/org.txt`, run
   `nvim --headless -u NONE -c "helptags doc" -c q`. A pull request that
   changes the docs also builds the website. Pushes don't run CI.
@@ -1101,10 +1149,19 @@ the section is empty), and deploys the documentation website built from
 that tag. The tag goes on the release branch's last commit.
 There is no version number in the code: `:Org version` reports the latest
 `vX.Y.Z` tag of the checkout. Merge release PRs with a merge commit, not a
-squash, so that commit is part of `main`. Afterwards, merge the release
-branch back into `dev` (a pull request from `release/v0.2.0` into `dev`),
-so `dev` gets the changelog and reaches the tag; do the same for any fix
-committed to the release branch itself. Pick the version with
+squash, so that commit is part of `main`. The Release workflow then
+brings the release back into `dev`, so `dev` gets the changelog and
+reaches the tag: it makes a `merge-back/v0.2.0` branch at the release
+branch's last commit (the release branch may be deleted by then) and opens
+a pull request from it into `dev`, titled `release: merge v0.2.0 into dev`
+(a `release:` subject, which the changelog leaves out). It skips that when
+`dev` already has the commit. Merge that pull request with a merge commit
+too, resolving any conflict (usually `CHANGELOG.md`, take the release's)
+on the `merge-back` branch; pull requests opened by the workflow don't
+start CI. Opening it needs "Allow GitHub Actions to create and approve
+pull requests" (Settings > Actions > General); without it, or if the step
+fails, the release is still out and the step's warning links to open the
+same pull request by hand. Pick the version with
 [semver](https://semver.org): a breaking change (`feat!:` or a
 `BREAKING CHANGE:` footer, listed first in the changelog) bumps the major
 version, a `feat` the minor version, and fixes the patch.

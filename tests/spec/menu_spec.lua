@@ -3,6 +3,8 @@
 -- Neovim menus with Emacs's entries, added and removed with the buffer.
 local config = require("org.config")
 local menu = require("org.menu")
+-- (the menus are built once a menu can be used: first_open_spec.lua)
+menu.activate()
 
 --- The menu `path` ({} when there is none).
 local function get(path)

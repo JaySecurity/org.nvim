@@ -202,6 +202,42 @@ function M.headline_level(line)
   return nil
 end
 
+-- The planning keywords with their colon, as bytes, by first byte.
+local PLANNING_WORDS = {
+  [string.byte("S")] = { string.byte("SCHEDULED:", 1, -1) },
+  [string.byte("D")] = { string.byte("DEADLINE:", 1, -1) },
+  [string.byte("C")] = { string.byte("CLOSED:", 1, -1) },
+}
+
+--- Does `line` look like a planning line (org-planning-line-re:
+--- "^[ \t]*\\(CLOSED\\|DEADLINE\\|SCHEDULED\\):", keywords in upper case)?
+--- The line test only: for the parser a planning line must also directly
+--- follow its headline, which callers check themselves. Byte by byte and
+--- allocation-free like headline_level, for the indent and fold hot paths.
+---@param line string|nil
+---@return boolean
+function M.is_planning_line(line)
+  if not line then
+    return false
+  end
+  local p = 1
+  local b = line:byte(1)
+  while b == 32 or b == 9 do
+    p = p + 1
+    b = line:byte(p)
+  end
+  local word = b and PLANNING_WORDS[b]
+  if not word then
+    return false
+  end
+  for k = 2, #word do
+    if line:byte(p + k - 1) ~= word[k] then
+      return false
+    end
+  end
+  return true
+end
+
 --- Split a headline line into components.
 ---@param line string
 ---@param todo_cfg? org.TodoConfig
@@ -468,8 +504,7 @@ local PLANNING_KEYS = { SCHEDULED = "scheduled", DEADLINE = "deadline", CLOSED =
 local function parse_planning(line)
   -- org-planning-line-re starts with a planning keyword. A body line
   -- such as "NOTE: SCHEDULED: ..." must never become editable metadata.
-  local first = line:match("^%s*([A-Z]+):")
-  if not PLANNING_KEYS[first] then
+  if not M.is_planning_line(line) then
     return nil
   end
   local planning = {}

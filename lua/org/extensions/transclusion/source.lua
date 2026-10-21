@@ -604,15 +604,9 @@ end
 -- Formatting
 ---------------------------------------------------------------------------
 
-local PLANNING = { "^%s*SCHEDULED:", "^%s*DEADLINE:", "^%s*CLOSED:" }
-
+-- org.parser is loaded on first use: this module loads with setup()
 local function is_planning(line)
-  for _, p in ipairs(PLANNING) do
-    if line and line:match(p) then
-      return true
-    end
-  end
-  return false
+  return require("org.parser").is_planning_line(line)
 end
 
 --- Mark the lines of excluded element types in first..last.

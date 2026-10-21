@@ -471,15 +471,7 @@ local function plain(s)
   return (s:gsub("\r+\n", "\n"):gsub("\r", ""))
 end
 
-local function read_file(path)
-  local f = io.open(path, "r")
-  if not f then
-    return nil
-  end
-  local s = f:read("*a")
-  f:close()
-  return s
-end
+local read_file = require("org.utils").read_text
 
 local function stop_timer(req)
   if req.timer then

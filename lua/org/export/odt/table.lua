@@ -21,10 +21,7 @@ local LIST_STYLES = shared.LIST_STYLES
 ---------------------------------------------------------------------------
 
 local function unquote(s)
-  if type(s) == "string" then
-    return (s:gsub('^"(.*)"$', "%1"))
-  end
-  return s
+  return type(s) == "string" and require("org.utils").strip_quotes(s) or s
 end
 
 --- org-odt-table-style-spec: the entry of `odt_table_styles` named by the

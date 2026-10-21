@@ -342,13 +342,15 @@ function M.groups_from_definitions(defs, into)
       open, head = false, nil
     elseif d.group == ":" then
       local prev = defs[i - 1]
-      if open and prev and prev.name then
-        head = prev.name
-        groups[head] = groups[head] or {}
+      local name = prev and prev.name
+      if open and name then
+        head = name
+        groups[name] = groups[name] or {}
       end
     elseif d.name and head then
-      if not vim.tbl_contains(groups[head], d.name) then
-        table.insert(groups[head], d.name)
+      local members = groups[head]
+      if members and not vim.tbl_contains(members, d.name) then
+        table.insert(members, d.name)
       end
     end
   end
@@ -653,6 +655,7 @@ function M.fast_select(current, defs, inherited, opts)
   for _, t in ipairs(opts.todo_keys or {}) do
     todo_by_key[t.key] = t.name
   end
+  ---@type boolean|"expert"
   local single = config.opts.fast_tag_selection_single_key
   if opts.single ~= nil then
     single = opts.single
@@ -739,7 +742,7 @@ end
 ---@param no_fast? boolean
 function M.set_tags(target, tags, no_fast)
   local bufnr, file, hl = edit.resolve_headline(target)
-  if not bufnr then
+  if not (file and hl) then
     return nil
   end
   if not tags then
@@ -896,7 +899,7 @@ end
 --- Toggle one tag on a headline.
 function M.toggle_tag(target, tag)
   local bufnr, _, hl = edit.resolve_headline(target)
-  if not bufnr then
+  if not (bufnr and hl) then
     return nil
   end
   local tags = vim.deepcopy(hl.tags)

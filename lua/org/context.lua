@@ -61,6 +61,21 @@ local function repeated(fn)
   return res
 end
 
+--- Whether 1-based `col` is in a match of `pattern` on `line`.
+local function span_at(line, col, pattern)
+  local init = 1
+  while true do
+    local s, e = line:find(pattern, init)
+    if not s or s > col then
+      return false
+    end
+    if col <= e then
+      return true
+    end
+    init = e + 1
+  end
+end
+
 --- C-c C-c
 function M.context_action()
   local sparse = require("org.agenda.sparse")
@@ -118,34 +133,35 @@ function M.context_action()
   if footnotes.at_point() then
     return footnotes.action_at_point()
   end
+  -- a #+KEY: keyword line (not a block's #+begin_ line): its
+  -- value holds no objects to act on
+  if line:match("^%s*#%+[^%s:]+:") then
+    require("org.buffer").refresh(0)
+    utils.notify("Local setup has been refreshed")
+    return
+  end
+  -- objects under the cursor come before the element they are in
+  -- (org-element-context): a statistics cookie, a timestamp or a radio
+  -- target in a headline or on the first line of an item
+  if span_at(line, col, "%[%d*[/%%]%d*%]") then
+    return require("org.lists").update_statistics()
+  end
+  if require("org.date").at_col(line, col) then
+    return require("org.timestamps").normalize_at_cursor()
+  end
+  if span_at(line, col, "<<<.->>>") then
+    -- refresh radio link highlighting (org-update-radio-target-regexp)
+    require("org.buffer").refresh(0)
+    utils.notify("Radio targets updated")
+    return
+  end
   if is_headline(line) then
-    -- statistics cookie under cursor?
-    local s, e = line:find("%[%d*[/%%]%d*%]")
-    if s and col >= s and col <= e then
-      return require("org.lists").update_statistics()
-    end
     return require("org.tags").set_tags()
   end
   local item = list_item(lnum)
   if item and item.lnum == lnum then
     local arg = vim.v.count > 0 and (vim.v.count >= 16 and 16 or 4) or nil
     return require("org.lists").ctrl_c_ctrl_c_item(item, arg)
-  end
-  if line:match("<<<.->>>") then
-    -- on a radio target: refresh radio link highlighting
-    -- (org-update-radio-target-regexp)
-    require("org.buffer").refresh(0)
-    utils.notify("Radio targets updated")
-    return
-  end
-  if line:match("^#%+") then
-    require("org.buffer").refresh(0)
-    utils.notify("Local setup has been refreshed")
-    return
-  end
-  local ts = require("org.date").at_col(line, col)
-  if ts then
-    return require("org.timestamps").normalize_at_cursor()
   end
   utils.warn("C-c C-c can do nothing useful here")
 end

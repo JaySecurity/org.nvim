@@ -97,8 +97,9 @@ jobs:
     if: github.event.action == 'closed' && github.event.pull_request.merged && startsWith(github.head_ref, 'release/v')
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # the tag, the release and the merge-back branch
       actions: write # to start pages.yml
+      pull-requests: write # the merge-back pull request into dev
     steps:
       - uses: actions/checkout@v4
         with:
@@ -146,3 +147,54 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh workflow run luarocks.yml --repo "$GITHUB_REPOSITORY" --ref "${HEAD_REF#release/}"
+      # Bring the release back into dev: a pull request from
+      # merge-back/vX.Y.Z, a branch made here at the release branch's last
+      # commit (the tagged one; the release branch itself may be deleted by
+      # now). Its `release:` title keeps it out of CHANGELOG.md. Nothing to
+      # do when dev already has that commit. Last, and allowed to fail: the
+      # release is out either way, and the pull request can be opened by
+      # hand (CONTRIBUTING.md, "Branches, CI and releases").
+      - name: Open the merge-back pull request into dev
+        continue-on-error: true
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${HEAD_REF#release/}"
+          branch="merge-back/$tag"
+          # "behind" or "identical": the release commit is an ancestor of dev
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/dev...$SHA" --jq .status)
+          if [[ "$status" == "behind" || "$status" == "identical" ]]; then
+            echo "dev already has $SHA ($tag): no merge-back needed."
+            exit 0
+          fi
+          if ! gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$branch" -f sha="$SHA" --silent; then
+            # a re-run: the branch is there already, at the same commit
+            existing=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$branch" --jq .object.sha)
+            if [[ "$existing" != "$SHA" ]]; then
+              echo "::error::$branch exists at $existing, not at the release commit $SHA."
+              exit 1
+            fi
+          fi
+          open=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" --base dev --state open \
+            --json url --jq '.[0].url // empty')
+          if [[ -n "$open" ]]; then
+            echo "The merge-back pull request is open already: $open"
+            exit 0
+          fi
+          # shellcheck disable=SC2016 # the backticks are Markdown
+          {
+            printf 'Brings the `%s` release (its `CHANGELOG.md` section and any fix committed to `%s`) back into `dev`, so `dev` reaches the `%s` tag and `:Org version` reports it there.\n\n' "$tag" "$HEAD_REF" "$tag"
+            printf 'Merge it with a merge commit, not a squash, or `dev` will not contain the tagged commit. Resolve conflicts on `%s` (usually in `CHANGELOG.md`: take the release side). Opened by the Release workflow after #%s.\n\n' "$branch" "$NUMBER"
+            printf '## In plain words\n\nVersion %s is out. This copies its last changes, such as the list of what changed, back to where development happens, so the next version builds on it. Nothing changes for users.\n' "$tag"
+          } > merge-back.md
+          # GITHUB_TOKEN may only open pull requests when the repository
+          # allows it (Settings > Actions > General > "Allow GitHub Actions
+          # to create and approve pull requests")
+          if ! gh pr create --repo "$GITHUB_REPOSITORY" --base dev --head "$branch" \
+            --title "release: merge $tag into dev" --body-file merge-back.md; then
+            echo "::warning::Could not open the merge-back pull request; open it by hand: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/dev...$branch?expand=1 titled 'release: merge $tag into dev'"
+            exit 1
+          fi

@@ -155,6 +155,12 @@ function M.comment_prefix(lang)
     return "// "
   elseif lang == "fortran" then
     return "! "
+  elseif lang == "matlab" then
+    return "% "
+  elseif lang == "forth" then
+    return "\\ "
+  elseif lang == "dot" or lang == "sass" then
+    return "// "
   elseif lang == "plantuml" then
     return "' "
   elseif lang == "vim" then

@@ -232,6 +232,7 @@ end
 ---@param prompt string
 ---@param candidates string[]|fun(arglead:string):string[]
 ---@param default? string
+---@return string?
 function M.input_complete(prompt, candidates, default)
   if M._noninteractive > 0 then
     return nil
@@ -250,9 +251,18 @@ function M.input_complete(prompt, candidates, default)
   return value
 end
 
+---@param arglead string
+---@param cmdline string
+---@return string[]
 function M._input_complete(arglead, cmdline, _)
   local c = M._complete_candidates
-  local list = type(c) == "function" and c(cmdline) or c or {}
+  ---@type string[]
+  local list
+  if type(c) == "function" then
+    list = c(cmdline) or {}
+  else
+    list = c or {}
+  end
   -- complete only the last word (after ':' or space) for tag-like inputs
   local lead = cmdline:match("([^:%s]*)$") or ""
   local prefix = cmdline:sub(1, #cmdline - #lead)
@@ -317,6 +327,52 @@ function M.getchar(prompt)
     return nil
   end
   return ch
+end
+
+---------------------------------------------------------------------------
+-- Small shared helpers (once copied into many modules)
+---------------------------------------------------------------------------
+
+--- Whether line `l` is empty or only whitespace (`%s`: space, tab, CR,
+--- LF, VT, FF). A missing line (nil, past the end of a buffer) counts as
+--- blank; callers that must treat it as not blank test `l ~= nil` first.
+---@param l string|nil
+---@return boolean
+function M.is_blank(l)
+  return l == nil or l:match("^%s*$") ~= nil
+end
+
+--- `s` without one pair of surrounding double quotes (`"a b"` gives
+--- `a b`); `s` itself when it isn't quoted that way.
+---@param s string
+---@return string
+function M.strip_quotes(s)
+  return s:match('^"(.*)"$') or s
+end
+
+--- `s` with each bracket link shown as Org displays it: `[[link][desc]]`
+--- as `desc`, `[[link]]` as `link`.
+---@param s string
+---@return string
+function M.link_descriptions(s)
+  s = s:gsub("%[%[([^%]]-)%]%[([^%]]-)%]%]", "%2")
+  return (s:gsub("%[%[([^%]]-)%]%]", "%1"))
+end
+
+--- The whole contents of file `path` as one string, or nil when it can't
+--- be opened or read. `binary` opens it in binary mode (no newline
+--- translation on Windows).
+---@param path string
+---@param binary? boolean
+---@return string|nil
+function M.read_text(path, binary)
+  local fd = io.open(path, binary and "rb" or "r")
+  if not fd then
+    return nil
+  end
+  local s = fd:read("*a")
+  fd:close()
+  return s
 end
 
 ---------------------------------------------------------------------------
@@ -958,6 +1014,8 @@ end
 ---@param b string
 ---@return integer[][]
 function M.diff_indices(a, b)
+  -- the deprecated `vim.diff` is only reached on Neovim 0.11, which has no `vim.text.diff`
+  ---@diagnostic disable-next-line: deprecated
   local xdiff = (vim.text and vim.text.diff) or vim.diff
   return xdiff(a, b, { result_type = "indices" }) --[[@as integer[][] ]]
 end
@@ -993,7 +1051,7 @@ function M.save_buffer(bufnr)
     end
     local ok, err
     vim.api.nvim_buf_call(bufnr, function()
-      ok, err = pcall(vim.cmd, "silent noautocmd keepalt write")
+      ok, err = pcall(vim.cmd --[[@as fun(command: string)]], "silent noautocmd keepalt write")
     end)
     if ok then
       require("org.files").invalidate(vim.api.nvim_buf_get_name(bufnr))
@@ -1036,6 +1094,7 @@ end
 ---@param opts? { split?: string, col?: integer, reuse_win?: boolean, reveal?: boolean }
 function M.open_file(path, lnum, opts)
   opts = opts or {}
+  ---@type string?
   local cmd = ({ split = "split", vsplit = "vsplit", tab = "tabedit" })[opts.split or ""] or "edit"
   if opts.reuse_win then
     local b = M.find_buffer(path)
@@ -1057,7 +1116,10 @@ function M.open_file(path, lnum, opts)
       -- `hide` avoids E37 when the current buffer has unsaved changes; a
       -- modified buffer that can't be hidden (bufhidden=wipe) keeps its
       -- window and the file opens in a split
-      local ok, err = pcall(vim.cmd, (cmd == "edit" and "hide " or "") .. cmd .. " " .. vim.fn.fnameescape(path))
+      local ok, err = pcall(
+        vim.cmd --[[@as fun(command: string)]],
+        (cmd == "edit" and "hide " or "") .. cmd .. " " .. vim.fn.fnameescape(path)
+      )
       if not ok then
         if cmd == "edit" and tostring(err):find("E37", 1, true) then
           vim.cmd("split " .. vim.fn.fnameescape(path))

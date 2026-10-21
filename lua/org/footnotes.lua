@@ -153,9 +153,7 @@ local function section_name()
   return s or nil
 end
 
-local function is_blank(l)
-  return l == nil or l:match("^%s*$") ~= nil
-end
+local is_blank = utils.is_blank
 
 --- Whether `blank_before_new_entry.heading` is on ("auto" counts), which
 --- org-back-over-empty-lines and the footnote section creation look at.
@@ -271,12 +269,12 @@ end
 --- Move after the planning line, drawers, clock lines and blank lines of
 --- the headline at point (org-end-of-meta-data with FULL = t).
 local function tb_end_of_meta_data(tb)
+  local parser = require("org.parser")
   tb:forward_line(1)
   local l = tb:line()
-  if l:match("^%s*SCHEDULED:") or l:match("^%s*DEADLINE:") or l:match("^%s*CLOSED:") then
+  if parser.is_planning_line(l) then
     tb:forward_line(1)
   end
-  local parser = require("org.parser")
   while not tb:eobp() do
     l = tb:line()
     if parser.headline_level(l) then

@@ -61,9 +61,7 @@ function M.wrapper(code, package, out_file, value_file)
 end
 
 --- `org-strip-quotes`
-local function strip_quotes(s)
-  return s:match('^"(.*)"$') or s
-end
+local strip_quotes = require("org.utils").strip_quotes
 
 --- The text of the first Lisp form of `s` (what `read` reads).
 local function first_form(s)

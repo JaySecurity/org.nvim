@@ -22,6 +22,10 @@
 --                 looked up again with line:find(value [, 1, true]), which
 --                 finds the value inside the keyword when it spells it
 --                 (`#+name: name`). Capture the column with `()` instead.
+--   planning-line a hand-written planning-line pattern ("^%s*SCHEDULED:",
+--                 "^[ \t]*CLOSED:" ...). The copies drifted (`%s` against
+--                 `[ \t]`, some without CLOSED); use
+--                 parser.is_planning_line (org-planning-line-re).
 --
 -- An audited, safe use is allowed by a comment on the same line or the
 -- line above, with a reason:
@@ -33,7 +37,7 @@
 
 local M = {}
 
-M.rules = { expand = true, gsub = true, ["keyword-span"] = true }
+M.rules = { expand = true, gsub = true, ["keyword-span"] = true, ["planning-line"] = true }
 
 ---------------------------------------------------------------------------
 -- Tokenizer
@@ -510,6 +514,26 @@ local function check_keyword_span(toks, hits)
   end
 end
 
+-- planning-line: a string literal "^<blanks>KEYWORD:" for a planning
+-- keyword, <blanks> being one of the ways to write org's [ \t]*.
+local PLANNING_KEYWORDS = { SCHEDULED = true, DEADLINE = true, CLOSED = true }
+local PLANNING_BLANKS = { ["%s*"] = true, ["[ \\t]*"] = true, ["[\\t ]*"] = true, [" *"] = true }
+
+local function check_planning_line(toks, hits)
+  for _, tk in ipairs(toks) do
+    if tk.t == "string" then
+      local blanks, kw = tk.v:match("^[\"']%^([^%u\"']*)(%u+):")
+      if blanks and PLANNING_BLANKS[blanks] and PLANNING_KEYWORDS[kw] then
+        hits[#hits + 1] = {
+          line = tk.line,
+          rule = "planning-line",
+          msg = "hand-written planning-line pattern " .. tk.v .. ": use parser.is_planning_line",
+        }
+      end
+    end
+  end
+end
+
 ---------------------------------------------------------------------------
 -- Allow comments
 ---------------------------------------------------------------------------
@@ -540,6 +564,7 @@ function M.check(src)
   check_expand(toks, raw)
   check_gsub(toks, raw)
   check_keyword_span(toks, raw)
+  check_planning_line(toks, raw)
   local allows, out = parse_allows(comments)
   for _, h in ipairs(raw) do
     local allowed = false
