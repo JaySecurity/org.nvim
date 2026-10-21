@@ -269,14 +269,12 @@ end
 local function end_of_meta_data(lines, hl)
   local n = #lines
   local i = hl.line + 1
-  local function planning(l)
-    return l:match("^[ \t]*SCHEDULED:") or l:match("^[ \t]*DEADLINE:") or l:match("^[ \t]*CLOSED:")
-  end
-  if i <= n and planning(lines[i]) then
+  local parser = require("org.parser")
+  if i <= n and parser.is_planning_line(lines[i]) then
     i = i + 1
   end
   -- org-property-drawer-re, matched ignoring case like Emacs does
-  local drawer = i <= n and require("org.parser").parse_property_drawer(lines, i, n)
+  local drawer = i <= n and parser.parse_property_drawer(lines, i, n)
   if drawer then
     i = drawer.properties_range[2] + 1
   end

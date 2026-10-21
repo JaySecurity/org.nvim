@@ -329,7 +329,7 @@ function M.section(bufnr, lnum)
   local els = {}
   local i = from
   local l = lines[i]
-  if hl and l and (l:match("^%s*SCHEDULED:") or l:match("^%s*DEADLINE:") or l:match("^%s*CLOSED:")) then
+  if hl and parser.is_planning_line(l) then
     els[1] = { type = "planning", first = i, post = i, clast = i, children = {} }
     i = i + 1
   end
