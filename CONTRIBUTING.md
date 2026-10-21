@@ -34,6 +34,7 @@ make lint                                 # stylua --check + source lint rules
 make format                               # format with stylua
 make typecheck                            # lua-language-server --check
 make coverage                             # specs with line coverage of lua/org
+make coverage-check                       # coverage/ against scripts/coverage_floor.txt
 make fuzz                                 # the fuzz specs with many more seeds
 git config blame.ignoreRevsFile .git-blame-ignore-revs  # blame past the formatting commit
 ```
@@ -60,6 +61,22 @@ install, and nothing of it reaches plugin users. The Coverage workflow
 runs it weekly (and from the Actions tab), uploads `coverage/` as an
 artifact and puts the summary on the run's page; it never runs on pull
 requests.
+
+#### Coverage floors
+
+`scripts/coverage_floor.txt` gives each strict path (those of
+`scripts/typecheck_strict.txt`, a file or a directory) a floor in percent,
+and `make coverage-check` (`scripts/coverage_floor.lua`) fails when the
+line coverage of a path in `coverage/coverage.json` is below its floor, or
+when a path matches no file any more. The Coverage workflow runs it after
+`make coverage` and fails the run when a path dropped. The check only
+means something after a full run: with `SPEC=` most paths fall short.
+After a full `make coverage`, `make coverage-check ARGS=--update` resets
+every floor to the path's coverage rounded down, less one point (the slack
+for lines that only run on some runs); do that to raise the floors when
+coverage went up, or to give a new strict path its floor. Don't lower a
+floor just to make the check pass: add the specs, or say in the pull
+request why the code can't be covered.
 
 To try your checkout in your own config, point lazy.nvim at it:
 

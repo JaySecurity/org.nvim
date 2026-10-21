@@ -36,6 +36,13 @@ coverage:
 	nvim --clean --headless -l scripts/coverage_report.lua coverage/counts coverage || s=1; \
 	exit $$s
 
+# The coverage of `make coverage` (coverage/coverage.json) against the
+# floors in scripts/coverage_floor.txt: fails when a path dropped below its
+# floor; ARGS=--update resets the floors (after a full run).
+.PHONY: coverage-check
+coverage-check:
+	nvim --clean --headless -l scripts/coverage_floor.lua coverage/coverage.json $(ARGS)
+
 # The fuzz specs with many more seeds: ORG_FUZZ_SCALE (40) times their
 # defaults, or ORG_FUZZ_ITERATIONS each, from ORG_FUZZ_START (default: a
 # random seed). See "Fuzzing" in CONTRIBUTING.md.

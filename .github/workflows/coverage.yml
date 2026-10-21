@@ -1,7 +1,8 @@
 name: Coverage
 
 # Line coverage of lua/org by the specs (make coverage), weekly and on
-# demand. Informational: it never runs on pull requests and gates nothing.
+# demand. It never runs on pull requests; it fails when a path of
+# scripts/coverage_floor.txt dropped below its floor (make coverage-check).
 # The report (every module, lowest coverage first, and the lines no spec
 # runs) is uploaded as the "coverage" artifact; the totals and the 20
 # lowest modules go to the run's summary, followed by the extension
@@ -40,6 +41,18 @@ jobs:
         id: run
         run: make coverage
         continue-on-error: true
+      # every path of scripts/coverage_floor.txt at or above its floor
+      - name: Coverage floors
+        id: floors
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ ! -f coverage/coverage.json ]; then
+            echo "::error::No coverage/coverage.json to check the floors against."
+            exit 1
+          fi
+          set -o pipefail
+          make --no-print-directory coverage-check | tee coverage/floors.txt
       - name: Summary
         if: always()
         run: |
@@ -47,6 +60,11 @@ jobs:
             cat coverage/summary.md >> "$GITHUB_STEP_SUMMARY"
           else
             echo "No coverage report was written." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f coverage/floors.txt ]; then
+            printf '\n### Coverage floors\n\n```\n' >> "$GITHUB_STEP_SUMMARY"
+            cat coverage/floors.txt >> "$GITHUB_STEP_SUMMARY"
+            printf '```\n' >> "$GITHUB_STEP_SUMMARY"
           fi
       # each criterion of "Promoting an extension" (CONTRIBUTING.md) with
       # this coverage, and the candidates for stable
@@ -64,9 +82,15 @@ jobs:
             coverage/summary.md
             coverage/missed.txt
             coverage/coverage.json
+            coverage/floors.txt
           if-no-files-found: warn
       - name: Fail when a spec failed
         if: steps.run.outcome == 'failure'
         run: |
           echo "::error::Specs failed during the coverage run; see the 'Run the specs with coverage' step."
+          exit 1
+      - name: Fail when a path is below its coverage floor
+        if: always() && steps.floors.outcome == 'failure'
+        run: |
+          echo "::error::Line coverage dropped below a floor of scripts/coverage_floor.txt; see the 'Coverage floors' step."
           exit 1

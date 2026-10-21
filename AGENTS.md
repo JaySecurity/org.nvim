@@ -16,6 +16,7 @@ make site                                  # docs website into site/ (scripts/si
 make playground                            # re-record the tutor lessons for the site's playground (docs/playground/); LESSON=name for one
 make typecheck                             # lua-language-server --check with .luarc.json
 make coverage                              # specs with line coverage; report in coverage/report.md
+make coverage-check                        # coverage/ against the floors in scripts/coverage_floor.txt
 make fuzz                                  # fuzz specs with 40x the seeds, random start
 make bench                                 # first open and a 50,000-headline agenda, timed (CONTRIBUTING.md)
 make extensions-report                     # each extension against the promotion criteria (CONTRIBUTING.md)
