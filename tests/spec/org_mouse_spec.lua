@@ -507,6 +507,176 @@ describe("org-mouse", function()
     eq(false, om.open_at_point(false))
   end)
 
+  it("builds the general menu, its list and blank-line entries by context", function()
+    org_buffer({ "plain text", "- item", "- [ ] box", "" })
+    local base = {
+      "Show Overview",
+      "Show Headlines",
+      "Show All",
+      "Check Deadlines",
+      "Check TODOs",
+      "Check Tags",
+      "Check Phrase ...",
+      "Display Agenda",
+      "Display TODO List",
+      "Display Tags",
+      "Display Calendar",
+    }
+    eq("global", context(1, 3))
+    eq(base, names("]OrgMouse"))
+    eq("global", context(2, 5))
+    eq(
+      vim.list_extend(vim.deepcopy(base), { "Insert Checkbox", "Insert Checkboxes", "Plain List to Outline" }),
+      names("]OrgMouse")
+    )
+    -- an item with a checkbox already, past its end
+    eq("global", context(3, 10))
+    eq(vim.list_extend(vim.deepcopy(base), { "Plain List to Outline" }), names("]OrgMouse"))
+    eq("global", context(4, 1))
+    eq(vim.list_extend(vim.deepcopy(base), { "Delete Blank Lines" }), names("]OrgMouse"))
+  end)
+
+  it("lists the agenda custom commands and the tags in the general menu", function()
+    local saved = config.opts.agenda.custom_commands
+    config.opts.agenda.custom_commands = {
+      x = { desc = "My agenda" },
+      y = { desc = "A description longer than thirty characters" },
+      z = {},
+    }
+    org_buffer({ "* A :work:", "text" })
+    eq("global", context(2, 2))
+    local items = names("]OrgMouse")
+    config.opts.agenda.custom_commands = saved
+    eq({ "My agenda", "A description longer than t...", "Agenda Command `z'" }, vim.list_slice(items, 12, 14))
+    eq({ "work", "Custom Tag ..." }, names("]OrgMouse.Check Tags"))
+    eq({ "work", "Custom Tag ..." }, names("]OrgMouse.Display Tags"))
+  end)
+
+  it("builds the checkbox, TODO keyword and timestamp menus", function()
+    org_buffer({ "* TODO Task", "- [ ] box", "<2026-09-28 Mon>" })
+    eq("checkbox", context(2, 4))
+    eq({ "Toggle", "Remove", "All Clear", "All Set", "All Toggle", "All Remove" }, names("]OrgMouse"))
+    eq("todo", context(1, 4))
+    eq({
+      "[X] TODO",
+      "[ ] DONE",
+      "Check TODOs",
+      "List all TODO keywords",
+      "List only TODO",
+    }, names("]OrgMouse"))
+    eq("timestamp", context(3, 3))
+    eq({
+      "Show Day",
+      "Change Timestamp",
+      "Delete Timestamp",
+      "Compute Time Range",
+      "Set for Today",
+      "Set for Tomorrow",
+      "Set in 1 Week",
+      "Set in 2 Weeks",
+      "Set in a Month",
+      "+ 1 Day",
+      "+ 1 Week",
+      "+ 1 Month",
+      "- 1 Day",
+      "- 1 Week",
+      "- 1 Month",
+    }, names("]OrgMouse"))
+  end)
+
+  it("builds the table and table mark menus", function()
+    local buf = org_buffer({ "| a | b |", "| # | 1 |" })
+    eq("table", context(1, 3))
+    eq({
+      "Align Table",
+      "Blank Field",
+      "Edit Field",
+      "Column",
+      "Row",
+      "Rectangle",
+      "Set Column Formula",
+      "Set Field Formula",
+      "Edit Formulas",
+      "Recalculate Line",
+      "Recalculate All",
+      "Iterate All",
+      "Toggle Recalculate Mark",
+      "Sum Column/Rectangle",
+      "Field Info",
+      "Debug Formulas",
+    }, names("]OrgMouse"))
+    eq({
+      "Move Column Left",
+      "Move Column Right",
+      "Delete Column",
+      "Insert Column",
+      "[X] Enable Narrowing",
+    }, names("]OrgMouse.Column"))
+    eq({
+      "Move Row Up",
+      "Move Row Down",
+      "Delete Row",
+      "Insert Row",
+      "Sort lines in region",
+      "Insert Hline",
+    }, names("]OrgMouse.Row"))
+    eq({ "Copy Rectangle", "Cut Rectangle", "Paste Rectangle", "Fill Rectangle" }, names("]OrgMouse.Rectangle"))
+    eq("table-special", context(2, 3))
+    eq({
+      "( ) ( ) Nothing Special",
+      "( ) (!) Column Names",
+      "( ) (^) Field Names Above",
+      "( ) (^) Field Names Below",
+      "( ) ($) Formula Parameters",
+      "(*) (#) Recalculation: Auto",
+      "( ) (*) Recalculation: Manual",
+      "( ) (') Recalculation: None",
+      "( ) None",
+    }, names("]OrgMouse"))
+    emenu("( ) (*) Recalculation: Manual")
+    eq({ "| a | b |", "| * | 1 |" }, buf_lines(buf))
+  end)
+
+  it("builds the region menu", function()
+    org_buffer({ "see the site" })
+    eq("region", context(1, 5, { text = "the", s = { 1, 5 }, e = { 1, 7 } }))
+    eq({
+      "Sparse Tree",
+      "Find in Buffer",
+      "Grep in Current Dir",
+      "Grep in Parent Dir",
+      "Convert to Link",
+      "Insert Link Here",
+    }, names("]OrgMouse"))
+  end)
+
+  it("builds the agenda menu away from an entry", function()
+    local items = om.agenda_items()
+    local labels = {}
+    for _, e in ipairs(items) do
+      if type(e) == "table" then
+        labels[#labels + 1] = e[1]
+      end
+    end
+    eq({
+      "Agenda Files",
+      "Undo",
+      "Rebuild Buffer",
+      "New Diary Entry",
+      "Goto Today",
+      "Display Calendar",
+      "Calendar Commands",
+      "Day View",
+      "Week View",
+      "Show Logbook entries",
+      "Include Diary",
+      "Use Time Grid",
+      "Follow Mode",
+      "Quit",
+      "Exit and Release Buffers",
+    }, labels)
+  end)
+
   it("gives the agenda its menu and runs headline commands remotely", function()
     local path = vim.fn.tempname() .. ".org"
     vim.fn.writefile({ "* TODO Remote task", "  SCHEDULED: <" .. os.date("%Y-%m-%d %a") .. ">" }, path)
