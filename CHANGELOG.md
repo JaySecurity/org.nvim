@@ -8,6 +8,18 @@ pull request, by its [Conventional Commits](https://www.conventionalcommits.org/
 This file is generated from the git history by `make changelog`
 (`scripts/changelog.lua`); edit the pull request titles, not this file.
 
+## [v2.14.4] - 2026-10-21
+
+### Fixes
+
+- **columns:** Keep the leader and which-key working after the overlay view ([#283](https://github.com/xheisenbugx/org.nvim/pull/283))
+
+<details><summary>Tests, CI and chores (1)</summary>
+
+- **chore(parity):** Measure against Org 9.8.12 ([#280](https://github.com/xheisenbugx/org.nvim/pull/280))
+
+</details>
+
 ## [v2.14.3] - 2026-10-19
 
 ### Fixes
@@ -505,6 +517,7 @@ This file is generated from the git history by `make changelog`
 
 </details>
 
+[v2.14.4]: https://github.com/xheisenbugx/org.nvim/compare/v2.14.3...v2.14.4
 [v2.14.3]: https://github.com/xheisenbugx/org.nvim/compare/v2.14.2...v2.14.3
 [v2.14.2]: https://github.com/xheisenbugx/org.nvim/compare/v2.14.1...v2.14.2
 [v2.14.1]: https://github.com/xheisenbugx/org.nvim/compare/v2.14.0...v2.14.1
