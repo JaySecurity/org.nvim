@@ -12509,6 +12509,7 @@ Options (defaults) ~
   `width`          40
   `interval`       30
   `sections`       { "clock", "next", "today", "habits", "inbox" }
+                   (one name may be given as a string)
   `show_done`      false
   `deadline_days`  7
   `inbox_file`     nil
