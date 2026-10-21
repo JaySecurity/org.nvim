@@ -374,16 +374,16 @@ by topic, with each command's Vim and Emacs keys on one row.
 
 ## 📊 Parity with Emacs Org
 
-**98.6% of Org 9.8.12's commands and options behave the same in org.nvim**
-(strict count, October 2026). Emacs itself lists every interactive command
-and user option of Org 9.8.12; each one is classified in
+**98.3% of Org 9.8.12's commands, options, Babel languages, link types and
+export transcoders behave the same in org.nvim** (strict count, October
+2026). Emacs itself lists every one of them in Org 9.8.12; each is classified in
 [`docs/parity/inventory.tsv`](docs/parity/inventory.tsv) and scored by
 [`docs/parity/score.sh`](docs/parity/score.sh):
 
 | Count | Parity | What it counts |
 | --- | --- | --- |
-| **Strict** | `▰▰▰▰▰▰▰▰▰▰` **98.6%** | All 1,830 commands and options with a user-visible effect, including the 24 that need Emacs itself (Gnus, BBDB, eww, TRAMP, CDLaTeX...) |
-| Without Emacs-only | `▰▰▰▰▰▰▰▰▰▰` 99.9% | The 1,806 of those that can exist outside Emacs |
+| **Strict** | `▰▰▰▰▰▰▰▰▰▰` **98.3%** | All 2,297 items with a user-visible effect, including the 31 that need Emacs itself (Gnus, BBDB, eshell, TRAMP, CDLaTeX...) |
+| Without Emacs-only | `▰▰▰▰▰▰▰▰▰▰` 99.7% | The 2,266 of those that can exist outside Emacs |
 
 By area (strict):
 
@@ -397,14 +397,15 @@ By area (strict):
 | ⏱️ Clocking and timers | `▰▰▰▰▰▰▰▰▰▰` 100% | — |
 | 🧮 Tables and plots | `▰▰▰▰▰▰▰▰▰▰` 99.6% | Calc's symbolic mode and date format can't be set in `calc_default_modes` |
 | 🏛️ Column view | `▰▰▰▰▰▰▰▰▰▰` 100% | — |
-| 🔗 Links | `▰▰▰▰▰▰▰▰▱▱` 83.6% | Links to Emacs applications (Gnus, BBDB, MH-E, eww, w3m) need Emacs |
+| 🔗 Links | `▰▰▰▰▰▰▰▰▱▱` 79.1% | Links to Emacs applications (Gnus, BBDB, MH-E, rmail) need Emacs; `eww:`/`w3m:` links and `docview:` page numbers are missing |
 | 📎 Attachments, IDs, footnotes, lint, protocol, crypt | `▰▰▰▰▰▰▰▰▰▰` 100% | — |
-| 🧪 Babel and source editing | `▰▰▰▰▰▰▰▰▰▰` 98.5% | Common Lisp runs in `sbcl`, not SLIME/SLY; TRAMP and Clojure's CIDER need Emacs |
-| 📤 Export and publishing | `▰▰▰▰▰▰▰▰▰▰` 99.7% | BBDB anniversaries in iCalendar need Emacs |
+| 🧪 Babel and source editing | `▰▰▰▰▰▰▰▰▰▰` 96.9% | `css`, `makefile` and `org` blocks don't run yet and `awk` ignores `:var`/`:stdin`; Common Lisp runs in `sbcl`, not SLIME/SLY; TRAMP, eshell and Clojure's CIDER need Emacs |
+| 📤 Export and publishing | `▰▰▰▰▰▰▰▰▰▰` 99.9% | BBDB anniversaries in iCalendar need Emacs |
 | 📚 Citations | `▰▰▰▰▰▰▰▰▰▰` 100% | — |
 | 📰 Feeds and MobileOrg | `▰▰▰▰▰▰▰▰▰▰` 100% | — |
 
-**Known gaps.** This counts commands and options, not every edge case of
+**Known gaps.** This counts commands, options, Babel languages, link types
+and export transcoders, not every edge case of
 each, so it measures coverage rather than bug-for-bug equality. Where
 org.nvim differs from Emacs on purpose (prefix arguments are counts, the
 cursor sits on a character rather than between two), it is listed in the
