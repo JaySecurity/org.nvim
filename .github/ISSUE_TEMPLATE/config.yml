@@ -1,9 +1,15 @@
 # blank issues stay on: :Org bug_report opens issues/new with a prefilled body
 blank_issues_enabled: true
 contact_links:
+  - name: FAQ
+    url: https://org-nvim.com/manual/org-faq.html
+    about: Answers to common questions (`:h org-faq`); check here before opening an issue.
   - name: User manual
-    url: https://github.com/xheisenbugx/org.nvim/blob/main/doc/org.txt
+    url: https://org-nvim.com/manual/index.html
     about: Every command, key and option is documented in `:h org`.
+  - name: Known differences from Emacs
+    url: https://org-nvim.com/parity/differences.html
+    about: Where org.nvim behaves differently from Emacs Org on purpose (`:h org-differences`).
   - name: Org manual
     url: https://orgmode.org/manual/
     about: How Emacs Org behaves, which org.nvim follows.
