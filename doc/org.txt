@@ -363,8 +363,9 @@ so this manual is found. Update with `git pull` in that directory.
 - `:checkhealth org` runs once the plugin is found.
 
 Option defaults follow Emacs Org 9.8 (see |org-config|): with no
-`agenda_files` the agenda and refile see only the current file until you
-add some (`<C-c>[` adds the current file), `todo_keywords` is `TODO | DONE`,
+`agenda_files` the agenda reads no file and refile sees only the current
+file until you add some (`<C-c>[` adds the current file; see
+|org-faq-agenda|), `todo_keywords` is `TODO | DONE`,
 nothing is logged on DONE and files open fully expanded. A common starting
 point closer to many Emacs setups: >lua
     require("org").setup({
