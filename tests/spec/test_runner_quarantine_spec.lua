@@ -79,6 +79,9 @@ end)
         env = vim.tbl_extend("force", {
           ORG_TEST_WORKER = "",
           ORG_TEST_JOBS = "1",
+          -- CI shards its run (Windows): the one file here must not land in another share
+          ORG_TEST_SHARD = "",
+          ORG_TEST_PERF = "",
           ORG_TEST_PROGRESS = "",
           ORG_TEST_RESULT = dir .. "/outer.json",
           ORG_COVERAGE_DIR = "",

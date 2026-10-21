@@ -12,6 +12,11 @@ local function tmpdir()
   return require("org.utils").realpath(dir)
 end
 
+-- file: URL of an absolute path, as ox.links writes it (file:///C:/... on Windows)
+local function url(path)
+  return (path:match("^/") and "file://" or "file:///") .. path
+end
+
 local function export(backend, dir, lines, opts)
   opts = vim.tbl_extend("force", { filename = dir .. "/a.org", body_only = true }, opts or {})
   return (ox.export_as(backend, lines, opts))
@@ -43,10 +48,10 @@ describe("attachment: links on export", function()
 
   it("html inlines the image of the entry's DIR and ID directories", function()
     local out = export("html", dir, DOC)
-    ok(out:find('<img src="file://' .. dir .. '/img/pic.png" alt="pic.png" />', 1, true))
-    ok(out:find('<img src="file://' .. dir .. '/data/ab/cdef/p.png" alt="p.png" />', 1, true))
+    ok(out:find('<img src="' .. url(dir) .. '/img/pic.png" alt="pic.png" />', 1, true))
+    ok(out:find('<img src="' .. url(dir) .. '/data/ab/cdef/p.png" alt="p.png" />', 1, true))
     -- the description stays; verbatim text isn't a link
-    ok(out:find('<a href="file://' .. dir .. '/img/doc.pdf">the doc</a>', 1, true))
+    ok(out:find('<a href="' .. url(dir) .. '/img/doc.pdf">the doc</a>', 1, true))
     ok(out:find("<code>attachment:x.png</code>", 1, true))
     eq(nil, out:find('href="attachment:', 1, true))
   end)
@@ -62,7 +67,7 @@ describe("attachment: links on export", function()
     local out = export("md", dir, DOC)
     ok(out:find("![img](" .. dir .. "/img/pic.png)", 1, true))
     ok(out:find("![img](" .. dir .. "/data/ab/cdef/p.png)", 1, true))
-    ok(out:find("[the doc](file://" .. dir .. "/img/doc.pdf)", 1, true))
+    ok(out:find("[the doc](" .. url(dir) .. "/img/doc.pdf)", 1, true))
   end)
 
   it("uses the file's directory when the entry has none, or it doesn't exist", function()
