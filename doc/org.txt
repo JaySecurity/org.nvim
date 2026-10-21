@@ -291,7 +291,8 @@ org.nvim ~
 - that `*.org` files get the `org` filetype (a |vim.filetype.add()| in
   your config could change that)
 - other plugins that also act on org buffers: nvim-orgmode (a warning:
-  remove one of the two) and headlines.nvim; and ftplugin, syntax or indent
+  remove one of the two, and convert its setup with `:Org migrate_config`,
+  |org-migrate|) and headlines.nvim; and ftplugin, syntax or indent
   files for the org filetype from other plugins (a warning) or your own
   config (shown, not a warning). Neovim's own `org.vim` files are ignored.
 
@@ -314,6 +315,11 @@ org.nvim files ~
 - the agenda index (|org-agenda-index|)
 - `default_notes_file` exists and is writable (else it is created on the
   first capture)
+- `default_notes_file` is inside `org_directory`: a warning otherwise, as
+  captures without a target then land outside your notes. Its default,
+  `~/.notes` (as in Emacs), is a hidden file in your home directory, while
+  `org_directory` defaults to `~/org`; set it to a file there, for example
+  `default_notes_file = "~/org/refile.org"` (|org-capture|)
 - `mobile.directory`, when set, exists (|org-mobile|)
 - the session server, with `remote.enabled` (|org-remote|)
 

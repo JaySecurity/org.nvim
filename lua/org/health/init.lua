@@ -233,7 +233,12 @@ end
 
 -- plugins that also act on org buffers: module -> what it does
 local OTHER_PLUGINS = {
-  orgmode = { "warn", "nvim-orgmode is also loaded: both plugins handle *.org files", "remove one of them" },
+  orgmode = {
+    "warn",
+    "nvim-orgmode is also loaded: both plugins handle *.org files",
+    "remove one of them; to move from nvim-orgmode, run `:Org migrate_config` on the file of its setup()"
+      .. " to convert it to org.nvim's options; see :h org-migrate",
+  },
   headlines = {
     "info",
     "headlines.nvim is loaded: it also decorates org headlines and blocks",
@@ -320,6 +325,37 @@ function M.agenda_problems(patterns)
   return out
 end
 
+--- Real path of `p`, which may not exist yet: its nearest existing
+--- ancestor resolved, the rest kept.
+local function real_file(p)
+  p = vim.fs.normalize(p)
+  local rest = ""
+  while true do
+    local resolved = vim.uv.fs_realpath(p)
+    if resolved then
+      return vim.fs.normalize(resolved) .. rest
+    end
+    local parent = vim.fs.dirname(p)
+    if not parent or parent == p then
+      return p .. rest
+    end
+    rest = "/" .. vim.fs.basename(p) .. rest
+    p = parent
+  end
+end
+
+--- Whether the notes file (expanded) lies outside the org directory
+--- (expanded), symlinks resolved. Neither has to exist.
+---@param notes string
+---@param dir string
+---@return boolean
+function M.notes_outside(notes, dir)
+  if not notes or notes == "" or not dir or dir == "" then
+    return false
+  end
+  return not inside(real_file(notes), real_file(dir))
+end
+
 --- org_directory, the agenda files, the notes file, the MobileOrg
 --- directory and the session server.
 function M.check_files(h)
@@ -371,6 +407,21 @@ function M.check_files(h)
     end
   else
     h.info("default_notes_file will be created on first capture: " .. tilde(notes))
+  end
+  if M.notes_outside(notes, dir) then
+    h.warn(
+      string.format(
+        "default_notes_file %s is outside org_directory %s: captures without a target go there",
+        tilde(notes),
+        tilde(dir)
+      ),
+      {
+        string.format('set default_notes_file = "%s/refile.org" (or another file in org_directory)', tilde(dir)),
+        "see :h org-capture",
+      }
+    )
+  else
+    h.ok("default_notes_file is in org_directory")
   end
 
   local mobile = cfg.mobile or {}
