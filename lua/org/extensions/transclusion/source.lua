@@ -604,7 +604,10 @@ end
 -- Formatting
 ---------------------------------------------------------------------------
 
-local is_planning = require("org.parser").is_planning_line
+-- org.parser is loaded on first use: this module loads with setup()
+local function is_planning(line)
+  return require("org.parser").is_planning_line(line)
+end
 
 --- Mark the lines of excluded element types in first..last.
 local function mark_excluded(file, lines, first, last, types, drop)
