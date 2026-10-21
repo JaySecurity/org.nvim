@@ -854,16 +854,23 @@ do
         .. (#r.unknown > 0 and ("; check by hand: " .. table.concat(r.unknown, ", ")) or "")
     end)
     group("near", "Near misses", report.near, function(r)
-      return "needs " .. report_lib.why(r, report_lib.blockers(r))
+      return report_lib.why_split(r, report_lib.blockers(r))
     end)
     group("far", "Further off", report.far, function(r)
-      return "needs " .. report_lib.why(r, report_lib.blockers(r))
+      return report_lib.why_split(r, report_lib.blockers(r))
     end)
-    group("below", "Stable but below the bar", report.below, function(r)
-      return "lacks " .. report_lib.why(r, r.failed)
+    group("below", "Stable with work left", report.below, function(r)
+      local age = select(2, report_lib.split_age(r.failed))
+      return "lacks "
+        .. report_lib.why(r, r.gaps)
+        .. (#age > 0 and ("; also waits on age: " .. report_lib.why(r, age)) or "")
+    end)
+    group("young", "Stable, below the bar only by age", report.young, function(r)
+      return "waits on " .. report_lib.why(r, r.age)
     end)
     b[#b + 1] = '<p class="muted">A stable extension is never demoted automatically: '
-      .. "falling below the bar is a prompt to add the missing specs or docs.</p>"
+      .. "falling below the bar is a prompt to add the missing specs or docs. "
+      .. "One below it only by age needs nothing but time.</p>"
     b[#b + 1] = '<h2 id="bar">The bar</h2>'
     b[#b + 1] = '<div class="table-wrap"><table class="defs-bar"><thead><tr><th scope="col">Criterion</th>'
       .. '<th scope="col">An experimental extension needs</th></tr></thead><tbody>'

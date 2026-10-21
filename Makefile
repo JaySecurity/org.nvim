@@ -131,8 +131,10 @@ changelog:
 
 # The promotion report of the extensions (CONTRIBUTING.md, "Promoting an
 # extension"): each criterion per extension, pass or fail, and the
-# candidates for stable. Uses coverage/coverage.json of `make coverage`
-# when there is one. ARGS: --markdown, --json, --no-gh, --demo FILE, names.
+# candidates for stable. Uses the coverage/ of `make coverage` when there
+# is one (or --coverage PATH / ORG_COVERAGE, e.g. a downloaded `coverage`
+# artifact). ARGS: --markdown, --json, --no-gh, --coverage PATH, --demo
+# FILE, names.
 .PHONY: extensions-report
 extensions-report:
 	@nvim --headless --clean -l scripts/extension_report.lua $(ARGS)

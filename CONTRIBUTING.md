@@ -1031,11 +1031,21 @@ make coverage            # optional, but the coverage criterion needs it
 make extensions-report   # ARGS="--markdown", "--json", "--no-gh", or names
 ```
 
+Coverage is read from `coverage/` when `make coverage` has run (its
+`coverage.json`, `report.md` or `counts/`); `ARGS="--coverage PATH"` or
+`ORG_COVERAGE=PATH` point at another, such as the `coverage` artifact of
+the latest Coverage workflow run (`gh run download ID --name coverage
+--dir DIR`). Without any, coverage shows `?` and the report says how to
+get it.
+
 `scripts/extension_report.lua` measures each criterion below for every
 extension and lists the candidates (experimental extensions that pass all
 of them), the near misses and stable extensions that have fallen below
-the bar. The release pull request into `main` shows the same report in
-its job summary (with coverage from the latest Coverage run), and so does
+the bar. Stable extensions short only of the releases-and-age criterion
+are listed apart ("below the bar only by age"): time clears that, so
+only the "with work left" list needs specs or docs. For experimental
+ones, what only time clears comes after "waits on age". The release
+pull request into `main` shows the same report in its job summary (with coverage from the latest Coverage run), and so does
 the weekly Coverage workflow; the website publishes it as the
 [Extensions status](https://org-nvim.com/extensions.html) page at every
 release. An experimental extension becomes stable
