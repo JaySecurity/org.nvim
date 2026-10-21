@@ -1082,6 +1082,8 @@ sub-list indentation, circular item motion and the automatic rules.
                 toggling it is refused ("Cannot toggle this checkbox"). A
                 count 4 (C-u) adds or removes the checkbox, 16 (C-u C-u)
                 sets `[-]`. Without a checkbox, it only repairs the list.
+                On a statistics cookie, timestamp or radio target of the
+                item, it acts on that instead, as in Emacs.
                 With `ORDERED: t`, boxes after an unchecked one stay
                 unchecked. On other lines of an item: nothing.
 <C-Space>       Toggle checkboxes (org-toggle-checkbox): the item at the
@@ -1332,7 +1334,8 @@ digits, `_`, `@`, `#` and `%` (org-tag-re); `:a-b:` is not a tag.
                 home(h)` or the `tags` option), a key menu is shown
                 (org-fast-tag-selection); otherwise you type the tags with
                 completion.
-<C-c><C-c>      On a headline: set tags.
+<C-c><C-c>      On a headline: set tags (on a statistics cookie or a
+                timestamp in the title: update or normalize it).
 N<prefix>t      With a count (C-u C-c C-q): realign the tags of every
                 headline. A count of 16 (C-u C-u) types the tags with
                 completion even when they have keys.
