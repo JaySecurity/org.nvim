@@ -135,6 +135,35 @@ function M.eval(s, opts)
   return res
 end
 
+--- Run `fn(api)` with the modes `M.eval` sets from `opts` (ob-calc's Calc
+--- stack, org.babel.lang.calc): `api.eval(node)` evaluates a formula of
+--- `M.parse` (a node `{ k = "val", v = value }` stands for a value),
+--- `api.display(value)` shows a value like calc-eval, `api.tag(value)` is
+--- its type ("vec" for a vector, nil for a plain number).
+---@param opts? { prec?: integer, float_format?: table, deg?: boolean, frac?: boolean }
+---@param fn fun(api: table): any
+---@return any
+function M.with_values(opts, fn)
+  opts = opts or {}
+  local saved = { prec = modes.prec, frac = modes.frac, deg = modes.deg }
+  modes.prec, modes.frac, modes.deg = opts.prec or 12, opts.frac or false, opts.deg ~= false
+  set_simplifying(false)
+  local fmt = opts.float_format or { "float", 8 }
+  local api = {
+    eval = eval,
+    tag = tag,
+    display = function(v)
+      return display(v, fmt, modes.prec)
+    end,
+  }
+  local ok, res = pcall(fn, api)
+  modes.prec, modes.frac, modes.deg = saved.prec, saved.frac, saved.deg
+  if not ok then
+    error(res, 0)
+  end
+  return res
+end
+
 -- Vectors and matrices (org.table.calc_vec) and symbolic algebra
 -- (org.table.calc_alg) work on the values above through these internals.
 local K = {

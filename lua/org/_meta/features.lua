@@ -644,7 +644,8 @@
 ---`lua` runs inside Neovim unless `cmd` is another interpreter
 ---(`org-babel-lua-command`). For the ports of ob-LANG.el it is that
 ---language's command (java, julia, groovy, ocaml, maxima, gnuplot, ghci,
----`sbcl --script`, the gfortran compiler, ...).
+---`sbcl --script`, the gfortran compiler, dot, sed, sass, `octave -q`,
+---`matlab -nosplash`, gforth, ...).
 ---@field cmd? string|string[]
 ---Extension of the temp file, e.g. `"py"`. Defaults to a built-in
 ---per-language table, else the language name. (`:tangle yes` files use
@@ -823,7 +824,8 @@
 ---typescript, ts, ruby, perl, php, r, R, go, rust, sqlite, sql, C, C++,
 ---cpp, D, awk, and the ob-LANG ports: plantuml, ditaa, gnuplot, latex,
 ---lilypond, java, csharp, haskell, clojure, clojurescript, lisp, scheme,
----fortran, processing, screen, julia, groovy, ocaml, maxima). Emacs
+---fortran, processing, screen, julia, groovy, ocaml, maxima, calc, dot,
+---sed, sass, octave, matlab, forth). Emacs
 ---enables only emacs-lisp, which cannot run in Neovim.
 ---Set a language to `false` to remove it.
 ---@field languages? table<string, org.Config.Babel.Language|false>

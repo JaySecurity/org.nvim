@@ -5008,6 +5008,26 @@ runs. C-c C-v v shows the body as the Emacs expand function makes it.
   - screen: the block is pasted into the screen session `:session`
     ("default"), started in `:terminal` (xterm) running `:cmd` (sh);
     `:Org babel_screen_test` checks the setup.
+  - calc: no program needed; each line runs on a Calc stack (the Calc of
+    table formulas, 12 digits, degrees). A `:var` name pushes its value, a
+    line `'KEY` runs that Calc key on the stack (`'+ '- '* '/ '^ '% '\
+    ': '| 'B` on two values, `'n '& 'Q 'L 'E 'S 'C 'T 'A 'F 'R '!` on
+    one, `'P` pushes pi), another line is a formula whose value is pushed
+    (`:var` names replaced). The top of the stack is the result: a matrix
+    gives a table, a vector a row (`:results verbatim`: the text).
+  - dot (Graphviz): `cmd :cmdline -o :file` (`:cmdline` defaults to `-T`
+    and the file's extension, `:cmd` replaces `cmd`), `$NAME` replaced by
+    `:var NAME`. The diagrams extension (|org-extensions-diagrams|)
+    replaces it while it handles dot.
+  - sed: `cmd -f SCRIPT :cmd-line :in-file`; `:stdin ref` feeds a value.
+  - sass: `cmd :cmdline IN OUT`; the CSS is the result, or goes to `:file`.
+  - octave, matlab: the code with `name=value;` lines is fed to `cmd`
+    (`octave -q`, `matlab -nosplash`); a value result is written by the
+    wrapper of ob-octave to a file read back as a table; a graphics
+    `:file` is printed with `print -dpng`.
+  - forth: the lines run in gforth (`cmd`); `:results output` gives what
+    each line printed, the default the last line's (`:session none` is an
+    error like Emacs).
 
 Header arguments ~
 Header arguments merge like Emacs: `babel.default_header_args` (inline
@@ -8946,6 +8966,15 @@ Differences from Emacs:
   program fails with "You must install .NET to run this application".
   fish `:var` values escape `\` and `'` inside their single quotes (Emacs
   quotes them like POSIX shells, which changes values with backslashes).
+  calc blocks run on the Calc of table formulas with a new stack for
+  each block (Emacs keeps the *Calculator* stack and stored variables
+  between blocks); a table or text `:var` inside a formula is replaced
+  by its value (Emacs mangles it). octave and matlab blocks always run in
+  a new process (`cmd`; Emacs runs a block with `:session` in an inferior
+  Octave or matlab-shell). forth blocks run in a new gforth (`cmd`) whose
+  output is split by line like ob-forth's session; definitions don't
+  carry over to the next block, and an error stops the block. ob-eshell
+  (Emacs's own shell) is not available.
 - Emacs Lisp outside of blocks (`(eval ...)` macros, capture `%(sexp)`,
   diary sexps, `%(function)` link abbreviations, header forms) runs on the
   table formula Lisp interpreter when it can and otherwise in a separate
