@@ -24,9 +24,7 @@ local BLOCKS = {
   ["verse-block"] = true,
 }
 
-local function is_blank(l)
-  return l == nil or l:match("^%s*$") ~= nil
-end
+local is_blank = require("org.utils").is_blank
 
 --- Display width of the leading whitespace of `l`.
 local function indentation(l, ts)

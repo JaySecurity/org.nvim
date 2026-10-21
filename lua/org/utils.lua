@@ -330,6 +330,52 @@ function M.getchar(prompt)
 end
 
 ---------------------------------------------------------------------------
+-- Small shared helpers (once copied into many modules)
+---------------------------------------------------------------------------
+
+--- Whether line `l` is empty or only whitespace (`%s`: space, tab, CR,
+--- LF, VT, FF). A missing line (nil, past the end of a buffer) counts as
+--- blank; callers that must treat it as not blank test `l ~= nil` first.
+---@param l string|nil
+---@return boolean
+function M.is_blank(l)
+  return l == nil or l:match("^%s*$") ~= nil
+end
+
+--- `s` without one pair of surrounding double quotes (`"a b"` gives
+--- `a b`); `s` itself when it isn't quoted that way.
+---@param s string
+---@return string
+function M.strip_quotes(s)
+  return s:match('^"(.*)"$') or s
+end
+
+--- `s` with each bracket link shown as Org displays it: `[[link][desc]]`
+--- as `desc`, `[[link]]` as `link`.
+---@param s string
+---@return string
+function M.link_descriptions(s)
+  s = s:gsub("%[%[([^%]]-)%]%[([^%]]-)%]%]", "%2")
+  return (s:gsub("%[%[([^%]]-)%]%]", "%1"))
+end
+
+--- The whole contents of file `path` as one string, or nil when it can't
+--- be opened or read. `binary` opens it in binary mode (no newline
+--- translation on Windows).
+---@param path string
+---@param binary? boolean
+---@return string|nil
+function M.read_text(path, binary)
+  local fd = io.open(path, binary and "rb" or "r")
+  if not fd then
+    return nil
+  end
+  local s = fd:read("*a")
+  fd:close()
+  return s
+end
+
+---------------------------------------------------------------------------
 -- Strings
 ---------------------------------------------------------------------------
 

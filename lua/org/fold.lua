@@ -89,9 +89,7 @@ local function is_block_end(line, name)
   return e ~= nil and e:lower() == name
 end
 
-local function is_blank(l)
-  return l == nil or l:match("^%s*$") ~= nil
-end
+local is_blank = require("org.utils").is_blank
 
 --- Plain list items that span several lines, per line: the number of
 --- such items containing it and whether one starts there.

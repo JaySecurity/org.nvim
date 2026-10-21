@@ -441,8 +441,7 @@ local function mode_line_heading(hl)
       return s
     end
   end
-  local t = vim.trim(hl.title):gsub("%[%[([^%]]-)%]%[([^%]]-)%]%]", "%2"):gsub("%[%[([^%]]-)%]%]", "%1")
-  return t
+  return utils.link_descriptions(vim.trim(hl.title))
 end
 
 -- Local functions and tables the parts below use

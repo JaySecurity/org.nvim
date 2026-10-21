@@ -60,8 +60,9 @@ local function get_line(bufnr, lnum)
   return vim.api.nvim_buf_get_lines(bufnr, lnum - 1, lnum, false)[1]
 end
 
+--- A missing line (past the end of the buffer) is not blank here.
 local function is_blank(l)
-  return l ~= nil and l:match("^%s*$") ~= nil
+  return l ~= nil and utils.is_blank(l)
 end
 
 --- A buffer holding only one empty line (a new file).

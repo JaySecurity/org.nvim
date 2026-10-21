@@ -15,9 +15,7 @@ local parser = require("org.parser")
 
 local M = {}
 
-local function is_blank(l)
-  return l == nil or l:match("^%s*$") ~= nil
-end
+local is_blank = require("org.utils").is_blank
 
 --- The fill column: 'textwidth', or 79 (like `gq`) when it is 0.
 local function fill_column()

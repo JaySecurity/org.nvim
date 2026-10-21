@@ -396,13 +396,7 @@ local function spec_to_string(bufnr, spec, file)
 end
 
 local function read_bytes(path)
-  local fh = io.open(path, "rb")
-  if not fh then
-    return nil
-  end
-  local s = fh:read("*a")
-  fh:close()
-  return s
+  return utils.read_text(path, true)
 end
 
 ---@class org.babel.TangleOpts

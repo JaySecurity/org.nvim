@@ -221,14 +221,7 @@ function M.references(text, base, out)
 end
 
 local function read_file(path)
-  local fd = uv.fs_open(path, "r", 438)
-  if not fd then
-    return nil
-  end
-  local st = uv.fs_fstat(fd)
-  local data = st and uv.fs_read(fd, st.size, 0)
-  uv.fs_close(fd)
-  return data
+  return utils.read_text(path, true)
 end
 
 local function root_of(bufnr)

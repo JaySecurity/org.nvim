@@ -24,9 +24,7 @@ local function get_line(lnum)
   return vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, false)[1]
 end
 
-local function is_blank(line)
-  return line == nil or line:match("^%s*$") ~= nil
-end
+local is_blank = utils.is_blank
 
 local function lines_range(s, e)
   return { mode = "V", s = { s, 0 }, e = { e, 0 } }

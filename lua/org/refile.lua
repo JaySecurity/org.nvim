@@ -131,9 +131,7 @@ end
 
 --- Heading text of a target (links shown by their description).
 local function heading_text(hl)
-  local t = hl.title:gsub("%[%[([^%]]-)%]%[([^%]]-)%]%]", "%2")
-  t = t:gsub("%[%[([^%]]-)%]%]", "%1")
-  return vim.trim(t)
+  return vim.trim(utils.link_descriptions(hl.title))
 end
 
 --- The buffer whose headlines are "current": in the agenda, the buffer of

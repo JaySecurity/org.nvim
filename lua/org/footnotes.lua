@@ -153,9 +153,7 @@ local function section_name()
   return s or nil
 end
 
-local function is_blank(l)
-  return l == nil or l:match("^%s*$") ~= nil
-end
+local is_blank = utils.is_blank
 
 --- Whether `blank_before_new_entry.heading` is on ("auto" counts), which
 --- org-back-over-empty-lines and the footnote section creation look at.

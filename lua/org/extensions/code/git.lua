@@ -6,15 +6,7 @@
 
 local M = {}
 
-local function read(path)
-  local fh = io.open(path, "r")
-  if not fh then
-    return nil
-  end
-  local s = fh:read("*a")
-  fh:close()
-  return s
-end
+local read = require("org.utils").read_text
 
 --- Directory to start looking from for `path_or_buf` (a path, a buffer
 --- number, or nil for the current buffer; the cwd for unnamed buffers).

@@ -41,9 +41,7 @@ local function set_lines(bufnr, s, e, lines)
   vim.api.nvim_buf_set_lines(bufnr, s - 1, e, false, lines)
 end
 
-local function is_blank(l)
-  return l == nil or l:match("^%s*$") ~= nil
-end
+local is_blank = utils.is_blank
 
 --- Insert `lines` before line `at` (a line past the end appends). Lines
 --- inserted right before a fold become part of it for Vim, which then

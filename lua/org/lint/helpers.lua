@@ -275,10 +275,7 @@ local function is_url(path)
   return path:match("^%a[%w+%.%-]*://") ~= nil
 end
 
-local function strip_quotes(s)
-  local q = s:match('^"(.*)"$')
-  return q or s
-end
+local strip_quotes = require("org.utils").strip_quotes
 
 local function prev_sibling(el)
   local p = el.parent

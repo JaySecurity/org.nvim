@@ -128,9 +128,7 @@ local function split_unquoted(s, sep)
   return out
 end
 
-local function unquote(s)
-  return s:match('^"(.*)"$') or s
-end
+local unquote = require("org.utils").strip_quotes
 
 --- Read a plain query (`todo:NEXT tags:work !done "a phrase"`) into the
 --- Lua form: space-separated terms are ANDed, `!` negates a term, commas

@@ -114,13 +114,7 @@ end
 ---------------------------------------------------------------------------
 
 local function read_raw(path)
-  local fd = io.open(path, "rb")
-  if not fd then
-    return nil
-  end
-  local s = fd:read("*a")
-  fd:close()
-  return s
+  return utils.read_text(path, true)
 end
 
 local function write_raw(path, s)

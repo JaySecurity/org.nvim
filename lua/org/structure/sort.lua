@@ -49,10 +49,7 @@ local SORT_LIST = {
 
 --- Text as displayed: link descriptions instead of links
 --- (org-sort-remove-invisible).
-local function links_text(s)
-  s = s:gsub("%[%[([^%]]-)%]%[([^%]]-)%]%]", "%2"):gsub("%[%[([^%]]-)%]%]", "%1")
-  return s
-end
+local links_text = utils.link_descriptions
 
 --- `s` as org-sort-remove-invisible gives it: emphasis markers removed,
 --- code and verbatim as their value, links as their description (or

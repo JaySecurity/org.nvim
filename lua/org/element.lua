@@ -46,9 +46,7 @@ local AFFILIATED = {
   SOURCE = true,
 }
 
-local function is_blank(l)
-  return l == nil or l:match("^%s*$") ~= nil
-end
+local is_blank = utils.is_blank
 
 local function affiliated(line)
   local key = line:match("^%s*#%+([%w_%-]+)[%[:]")
