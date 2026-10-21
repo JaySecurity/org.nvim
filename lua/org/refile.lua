@@ -179,8 +179,8 @@ function M.targets(opts)
   local rcfg = config.opts.refile or {}
   local style = outline_style()
   local verify = rcfg.verify
-  local current = vim.api.nvim_buf_get_name(bufnr)
-  current = current ~= "" and vim.fs.normalize(current) or nil
+  local name = vim.api.nvim_buf_get_name(bufnr)
+  local current = name ~= "" and vim.fs.normalize(name) or nil
   local key = rcfg.use_cache and not opts.targets and ((current or "") .. "\n" .. tostring(style)) or nil
   if not rcfg.use_cache then
     cache = {}
@@ -440,7 +440,7 @@ function M.create_nodes(parent, names)
   local file = files.get_buffer(bufnr)
   local level, at
   if parent.lnum then
-    local hl = file:headline_at(parent.lnum)
+    local hl = assert(file:headline_at(parent.lnum), "refile target is not under a headline")
     level = hl.level + 1
     at = hl.end_line
     while at > hl.line and vim.trim(file.lines[at] or "x") == "" do
@@ -685,7 +685,7 @@ function M.refile(target, opts)
         local stars = string.rep("*", parent and parent.level + 1 or 1)
         vim.api.nvim_buf_set_lines(bufnr, range[1] - 1, range[1], false, { stars .. " " .. vim.trim(line) })
         file = files.get_buffer(bufnr)
-        hl = file:headline_on(range[1])
+        hl = assert(file:headline_on(range[1]))
       else
         utils.warn("The region is not a (sequence of) subtree(s)")
         return
@@ -699,7 +699,7 @@ function M.refile(target, opts)
     end
   else
     bufnr, file, hl = edit.resolve_headline(target)
-    if not hl then
+    if not (bufnr and file and hl) then
       return
     end
   end
@@ -723,14 +723,15 @@ function M.refile(target, opts)
       bufnr = bufnr,
     })
     if source then
-      s, e = source:rows()
+      local rs, re = source:rows()
       source:del()
-      if not s then
+      if not rs or not re then
         if dest then
           utils.warn("The entry to refile is gone")
         end
         return
       end
+      s, e = rs, re
     end
   end
   if not dest then

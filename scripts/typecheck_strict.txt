@@ -45,3 +45,4 @@ lua/org/org_mouse.lua
 lua/org/org_mouse
 lua/org/todo.lua
 lua/org/tags.lua
+lua/org/refile.lua
