@@ -38,3 +38,4 @@ lua/org/ui.lua
 lua/org/ui
 lua/org/migrate.lua
 lua/org/reload.lua
+lua/org/utils.lua
