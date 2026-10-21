@@ -1,5 +1,5 @@
-#+TITLE: org.nvim tutor 5: tables as a spreadsheet
-#+TUTOR_ORDER: 5
+#+TITLE: org.nvim tutor 7: tables as a spreadsheet
+#+TUTOR_ORDER: 7
 #+TUTOR_LEVEL: Power user
 #+TUTOR_TOPICS: fields, rows and columns, sorting, formulas, recalculation, number formats, csv
 #+STARTUP: showall nologdone

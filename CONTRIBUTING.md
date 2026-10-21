@@ -622,12 +622,14 @@ Lessons are numbered in the order they are meant to be taken:
 | --- | --- | --- | --- |
 | 1 | `basics` | the basics | Beginner |
 | 2 | `workflow` | capture, agenda and clocking | Daily workflow |
-| 3 | `writing` | writing in org | Beginner |
-| 4 | `dates` | dates in depth | Daily workflow |
-| 5 | `tables` | tables as a spreadsheet | Power user |
-| 6 | `properties` | properties and column view | Power user |
-| 7 | `organize` | organize and find | Daily workflow |
-| 8 | `code` | code and export | Power user |
+| 3 | `agenda` | the agenda | Daily workflow |
+| 4 | `links` | links, IDs and attachments | Daily workflow |
+| 5 | `writing` | writing in org | Beginner |
+| 6 | `dates` | dates in depth | Daily workflow |
+| 7 | `tables` | tables as a spreadsheet | Power user |
+| 8 | `properties` | properties and column view | Power user |
+| 9 | `organize` | organize and find | Daily workflow |
+| 10 | `code` | code and export | Power user |
 
 The level is one of `Beginner`, `Daily workflow` and `Power user`
 (`require("org.tutor").levels`). `:Org tutor` lists the lessons in this

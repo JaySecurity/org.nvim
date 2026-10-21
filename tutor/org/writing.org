@@ -1,5 +1,5 @@
-#+TITLE: org.nvim tutor 3: writing in org
-#+TUTOR_ORDER: 3
+#+TITLE: org.nvim tutor 5: writing in org
+#+TUTOR_ORDER: 5
 #+TUTOR_LEVEL: Beginner
 #+TUTOR_TOPICS: emphasis, paragraphs, comments, keywords, blocks, source code, footnotes
 #+STARTUP: showall nologdone fnlocal

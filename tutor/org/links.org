@@ -1,0 +1,112 @@
+#+TITLE: org.nvim tutor 4: links, IDs and attachments
+#+TUTOR_ORDER: 4
+#+TUTOR_LEVEL: Daily workflow
+#+TUTOR_TOPICS: links, internal targets, stored links, file links, IDs, attachments
+#+STARTUP: showall nologdone
+#+TODO: TODO | DONE
+
+Links tie your notes together: to a web page, to a headline of the same
+file, to another file, or to an entry by its ID, wherever it moves.
+Files can also be attached to an entry. This lesson assumes the first
+one (=:Org tutor basics=).
+
+- As before, a {{done}} at the end of an exercise's headline means it is
+  done, and {{todo}} that it is not yet. Keys are shown as mapped in your
+  config; =<leader>= is ={{leader}}=.
+- This is a working copy: =:w= saves your progress and =:Org tutor
+  links reset= starts over. Attachments go in a folder next to the
+  copy, so your notes stay as they are.
+- Stuck? =:Org tutor_hint= shows the keys that solve the exercise at
+  the cursor, and =:Org tutor= lists every lesson.
+
+* Lesson 1: links
+A link is =[[target][description]]=: only the description shows, and
+={{org.toggle_link_display}}= shows the brackets. A target that is not a URL or a
+file names a headline (=*Title=) or a =<<target>>= of the file. A new
+link goes in after the cursor: at the end of a line, first add a space
+with =A=, a space and =<Esc>=.
+
+** 1.1 Follow a link
+Put the cursor on the link below and press ={{org.open_at_point}}=: the cursor jumps to
+the headline it names.
+
+- Before you go out, read the [[*Shopping list][shopping list]].
+
+*** Shopping list
+
+** 1.2 Insert a link
+After a space at the end of =Manual:=, press ={{org.insert_link}}=, type
+=https://orgmode.org= and =<CR>=, then =Org manual= and =<CR>= for its
+description.
+
+- Manual:
+
+** 1.3 Link to a target
+=<<door code>>= below is a target: links to it are written
+=[[door code]]=. After a space at the end of =Visitors:=, press
+={{org.insert_link}}=, type =door code= and =<CR>=, then =<CR>= again
+for no description.
+
+- The <<door code>> is 4711.
+- Visitors:
+
+** 1.4 Store a link, insert it elsewhere
+On the =Meeting notes= headline press ={{org.store_link}}=. Then after a
+space at the end of =Notes:=, press ={{org.insert_last_stored_link}}= to insert it.
+(={{org.insert_link}}= offers it too, as its default.)
+
+- Notes:
+
+*** Meeting notes
+
+** 1.5 Link to a file
+After a space at the end of =Ideas:=, press ={{org.insert_link}}=, type
+=file:ideas.txt= and =<CR>= twice: a path relative to this file.
+={{org.open_at_point}}= on it opens the file (a new one here).
+
+- Ideas:
+
+* Lesson 2: IDs
+A link to a headline by its title breaks when the title changes or the
+entry moves to another file. An ID does not: a unique =:ID:= property
+that =id:= links find wherever the entry is.
+
+** 2.1 Give an entry an ID
+On =Project plan= press ={{org.id_get_create}}=: a =:PROPERTIES:=
+drawer with an ID appears under it (={{org.cycle}}= on it shows it).
+
+*** Project plan
+
+** 2.2 Link by ID
+On =Project plan= run =:Org id_store_link=: it stores an =id:= link to
+the entry. After a space at the end of =Plan:=, press
+={{org.insert_last_stored_link}}=. ={{org.open_at_point}}= on the new link jumps to the entry,
+even once it is moved to another file.
+
+- Plan:
+
+* Lesson 3: attachments
+={{org.attach}}= opens the attachment menu of the entry at the cursor.
+Its files go in a folder named after its ID (in =data/= next to this
+file), and the entry gets the =ATTACH= tag. =F= in the menu opens the
+folder in Neovim, =f= in your file manager.
+
+** 3.1 Attach a new file
+On =Receipts= press ={{org.attach}}= and =n=, type =march.txt= and
+=<CR>=: a window opens on the new file, in the attachment folder. Type
+a line, then =:wq=. =a= in the menu attaches a file you already have.
+
+*** Receipts
+- March:
+
+** 3.2 Link to an attachment
+After a space at the end of =March:= above, press ={{org.insert_link}}=,
+type =attachment:march.txt= and =<CR>= twice. The link finds the file
+in the entry's folder; ={{org.open_at_point}}= on it opens the file.
+
+* What next
+- ={{org.help}}= lists every key; =:h org-links=, =:h org-id= and =:h org-attach=
+  are the manual.
+- ={{global.store_link}}= stores a link from any buffer, such as a line of
+  code, to paste in your notes.
+- {{examples}} links to one file per feature, links among them.

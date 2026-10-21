@@ -1,5 +1,5 @@
-#+TITLE: org.nvim tutor 6: properties and column view
-#+TUTOR_ORDER: 6
+#+TITLE: org.nvim tutor 8: properties and column view
+#+TUTOR_ORDER: 8
 #+TUTOR_LEVEL: Power user
 #+TUTOR_TOPICS: properties, allowed values, effort, column view, summaries, columnview blocks
 #+STARTUP: showall nologdone
